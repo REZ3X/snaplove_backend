@@ -1,14 +1,19 @@
 const express = require('express');
-const { param, validationResult } = require('express-validator');
-const Frame = require('../../../../../../models/Frame');
-const User = require('../../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../../middleware');
+const { param, body, validationResult } = require('express-validator');
+const Frame = require('../../../../../../../models/Frame');
+const User = require('../../../../../../../models/User');
+const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware');
 
 const router = express.Router();
 
-router.get('/:username/frame/private/:id', [
+router.put('/:username/:id', [
   param('username').notEmpty().withMessage('Username is required'),
-  param('id').isMongoId().withMessage('Invalid frame ID')
+  param('id').isMongoId().withMessage('Invalid frame ID'),
+  body('title').optional().isLength({ min: 1, max: 100 }).withMessage('Title must be 1-100 characters'),
+  body('desc').optional().isLength({ max: 500 }).withMessage('Description must be max 500 characters'),
+  body('layout_type').optional().isIn(['2x1', '3x1', '4x1']).withMessage('Invalid layout type'),
+  body('visibility').optional().isIn(['private', 'public']).withMessage('Invalid visibility'),
+  body('tag_label').optional().isArray().withMessage('Tag labels must be an array')
 ], authenticateToken, checkBanStatus, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -31,25 +36,36 @@ router.get('/:username/frame/private/:id', [
     if (req.user.userId !== targetUser._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. You can only view your own private frames.'
+        message: 'Access denied. You can only edit your own frames.'
       });
     }
 
     const frame = await Frame.findOne({ 
       _id: req.params.id,
-      user_id: targetUser._id,
-      visibility: 'private'
-    }).populate('user_id', 'name username image_profile role');
+      user_id: targetUser._id
+    });
 
     if (!frame) {
       return res.status(404).json({
         success: false,
-        message: 'Private frame not found'
+        message: 'Frame not found'
       });
     }
 
+    const { title, desc, layout_type, visibility, tag_label } = req.body;
+
+    if (title !== undefined) frame.title = title.trim();
+    if (desc !== undefined) frame.desc = desc.trim();
+    if (layout_type !== undefined) frame.layout_type = layout_type;
+    if (visibility !== undefined) frame.visibility = visibility;
+    if (tag_label !== undefined) frame.tag_label = tag_label;
+
+    await frame.save();
+    await frame.populate('user_id', 'name username image_profile role');
+
     res.json({
       success: true,
+      message: 'Frame updated successfully',
       data: {
         frame: {
           id: frame._id,
@@ -76,7 +92,7 @@ router.get('/:username/frame/private/:id', [
     });
 
   } catch (error) {
-    console.error('Get private frame by ID error:', error);
+    console.error('Edit frame error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
