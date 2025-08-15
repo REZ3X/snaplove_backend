@@ -1,51 +1,11 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const User = require('../../../models/User');
+const { authenticateToken, checkBanStatus } = require('../../../middleware');
 
 const router = express.Router();
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: 'Access token required'
-    });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({
-        success: false,
-        message: 'Invalid or expired token'
-      });
-    }
-    req.user = user;
-    next();
-  });
-};
-
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    if (user.ban_status) {
-      const now = new Date();
-      if (user.ban_release_datetime && now >= user.ban_release_datetime) {
-        user.ban_status = false;
-        user.ban_release_datetime = null;
-        await user.save();
-      }
-    }
+    const user = req.currentUser;
 
     res.json({
       success: true,
