@@ -38,6 +38,20 @@ class LocalImageHandler {
     });
   }
 
+  getPhotoStorage() {
+    return multer.diskStorage({
+      destination: async (req, file, cb) => {
+        await this.ensureDirectoryExists(this.photosDir);
+        cb(null, this.photosDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `photo-${uniqueSuffix}${ext}`);
+      }
+    });
+  }
+
   imageFileFilter(req, file, cb) {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (allowedMimes.includes(file.mimetype)) {
@@ -53,7 +67,18 @@ class LocalImageHandler {
       fileFilter: this.imageFileFilter,
       limits: {
         fileSize: 5 * 1024 * 1024, 
-        files: 1 
+        files: 1
+      }
+    });
+  }
+
+  getPhotoUpload() {
+    return multer({
+      storage: this.getPhotoStorage(),
+      fileFilter: this.imageFileFilter,
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+        files: 5 
       }
     });
   }

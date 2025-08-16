@@ -21,6 +21,16 @@ const framePrivateDetailRoute = require('./api/user/[username]/frame/private/[id
 const frameDeleteRoute = require('./api/user/[username]/frame/private/[id]/delete/route');
 const frameAdminDeleteRoute = require('./api/frame/public/[id]/admin/delete/route');
 
+const postPublicRoute = require('./api/post/public/route');
+const postByIdRoute = require('./api/post/public/[id]/route');
+const postLikeRoute = require('./api/post/public/[id]/like/route');
+const postAdminDeleteRoute = require('./api/post/public/[id]/delete/route');
+const userPhotoPrivateRoute = require('./api/user/[username]/photo/private/route');
+const userPhotoPublicPostsRoute = require('./api/user/[username]/photo/public/posts/route');
+const photoPrivateDetailRoute = require('./api/user/[username]/photo/private/[id]/route');
+const photoEditRoute = require('./api/user/[username]/photo/private/[id]/edit/route');
+const photoDeleteRoute = require('./api/user/[username]/photo/private/[id]/delete/route');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -82,6 +92,17 @@ app.use('/api/user', userFramePublicRoute);
 app.use('/api/user', frameEditRoute);
 app.use('/api/user', framePrivateDetailRoute);
 app.use('/api/user', frameDeleteRoute);
+
+app.use('/api/post/public', postPublicRoute);
+app.use('/api/post/public', postByIdRoute);
+app.use('/api/post/public', postLikeRoute);
+app.use('/api/post/public', postAdminDeleteRoute);
+
+app.use('/api/user', userPhotoPrivateRoute);
+app.use('/api/user', userPhotoPublicPostsRoute);
+app.use('/api/user', photoPrivateDetailRoute);
+app.use('/api/user', photoEditRoute);
+app.use('/api/user', photoDeleteRoute);
 
 app.use('*', (req, res) => {
   res.status(404).json({

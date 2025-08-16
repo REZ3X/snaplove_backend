@@ -1,8 +1,7 @@
 const express = require('express');
 const { param, query, validationResult } = require('express-validator');
-const PhotoPost = require('../../../../../models/PhotoPost');
-const User = require('../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../middleware');
+const PhotoPost = require('../../../../../../models/PhotoPost');
+const User = require('../../../../../../models/User');
 
 const router = express.Router();
 
@@ -10,7 +9,7 @@ router.get('/:username', [
   param('username').notEmpty().withMessage('Username is required'),
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50')
-], authenticateToken, checkBanStatus, async (req, res) => {
+], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -29,20 +28,13 @@ router.get('/:username', [
       });
     }
 
-    if (req.user.userId !== targetUser._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. You can only view your own private photos.'
-      });
-    }
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const photos = await PhotoPost.find({ 
+    const posts = await PhotoPost.find({ 
       user_id: targetUser._id,
-      posted: false
+      posted: true
     })
       .populate('template_frame_id', 'title layout_type official_status')
       .sort({ created_at: -1 })
@@ -51,28 +43,35 @@ router.get('/:username', [
 
     const total = await PhotoPost.countDocuments({ 
       user_id: targetUser._id,
-      posted: false
+      posted: true
     });
     const totalPages = Math.ceil(total / limit);
 
     res.json({
       success: true,
       data: {
-        photos: photos.map(photo => ({
-          id: photo._id,
-          images: photo.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
-          title: photo.title,
-          desc: photo.desc,
-          tag_label: photo.tag_label,
-          posted: photo.posted,
-          template_frame: photo.template_frame_id ? {
-            id: photo.template_frame_id._id,
-            title: photo.template_frame_id.title,
-            layout_type: photo.template_frame_id.layout_type,
-            official_status: photo.template_frame_id.official_status
+        user: {
+          id: targetUser._id,
+          name: targetUser.name,
+          username: targetUser.username,
+          image_profile: targetUser.image_profile,
+          role: targetUser.role
+        },
+        posts: posts.map(post => ({
+          id: post._id,
+          images: post.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
+          title: post.title,
+          desc: post.desc,
+          total_likes: post.total_likes,
+          tag_label: post.tag_label,
+          template_frame: post.template_frame_id ? {
+            id: post.template_frame_id._id,
+            title: post.template_frame_id.title,
+            layout_type: post.template_frame_id.layout_type,
+            official_status: post.template_frame_id.official_status
           } : null,
-          created_at: photo.created_at,
-          updated_at: photo.updated_at
+          created_at: post.created_at,
+          updated_at: post.updated_at
         })),
         pagination: {
           current_page: page,
@@ -86,7 +85,7 @@ router.get('/:username', [
     });
 
   } catch (error) {
-    console.error('Get private photos error:', error);
+    console.error('Get user public posts error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

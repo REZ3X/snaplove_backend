@@ -3,10 +3,11 @@ const { param, validationResult } = require('express-validator');
 const PhotoPost = require('../../../../../../../models/PhotoPost');
 const User = require('../../../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware');
+const imageHandler = require('../../../../../../../utils/LocalImageHandler');
 
 const router = express.Router();
 
-router.get('/:username/photo/private/:id', [
+router.delete('/:username/photo/private/:id/delete', [
   param('username').notEmpty().withMessage('Username is required'),
   param('id').isMongoId().withMessage('Invalid photo ID')
 ], authenticateToken, checkBanStatus, async (req, res) => {
@@ -31,58 +32,56 @@ router.get('/:username/photo/private/:id', [
     if (req.user.userId !== targetUser._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. You can only view your own private photos.'
+        message: 'Access denied. You can only delete your own photos.'
       });
     }
 
     const photo = await PhotoPost.findOne({ 
       _id: req.params.id,
-      user_id: targetUser._id,
-      posted: false
-    })
-      .populate('user_id', 'name username image_profile role')
-      .populate('template_frame_id', 'title layout_type official_status images');
+      user_id: targetUser._id
+    });
 
     if (!photo) {
       return res.status(404).json({
         success: false,
-        message: 'Private photo not found'
+        message: 'Photo not found'
       });
     }
 
+    const photoData = {
+      id: photo._id,
+      title: photo.title,
+      images: photo.images,
+      posted: photo.posted
+    };
+
+    const imageDeletePromises = photo.images.map(async (imagePath) => {
+      try {
+        await imageHandler.deleteImage(imagePath);
+      } catch (error) {
+        console.error(`Failed to delete image ${imagePath}:`, error);
+      }
+    });
+
+    await Promise.allSettled(imageDeletePromises);
+
+    await PhotoPost.findByIdAndDelete(photo._id);
+
     res.json({
       success: true,
+      message: 'Photo deleted successfully',
       data: {
-        photo: {
-          id: photo._id,
-          images: photo.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
-          title: photo.title,
-          desc: photo.desc,
-          total_likes: photo.total_likes,
-          tag_label: photo.tag_label,
-          posted: photo.posted,
-          template_frame: photo.template_frame_id ? {
-            id: photo.template_frame_id._id,
-            title: photo.template_frame_id.title,
-            layout_type: photo.template_frame_id.layout_type,
-            official_status: photo.template_frame_id.official_status,
-            images: photo.template_frame_id.images.map(img => req.protocol + '://' + req.get('host') + '/' + img)
-          } : null,
-          user: {
-            id: photo.user_id._id,
-            name: photo.user_id.name,
-            username: photo.user_id.username,
-            image_profile: photo.user_id.image_profile,
-            role: photo.user_id.role
-          },
-          created_at: photo.created_at,
-          updated_at: photo.updated_at
+        deleted_photo: {
+          id: photoData.id,
+          title: photoData.title,
+          posted: photoData.posted,
+          deleted_images_count: photoData.images.length
         }
       }
     });
 
   } catch (error) {
-    console.error('Get private photo by ID error:', error);
+    console.error('Delete photo error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
