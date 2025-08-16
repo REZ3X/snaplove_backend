@@ -19,6 +19,7 @@ const userFramePublicRoute = require('./api/user/[username]/frame/public/route')
 const frameEditRoute = require('./api/user/[username]/frame/private/[id]/edit/route');
 const framePrivateDetailRoute = require('./api/user/[username]/frame/private/[id]/route');
 const frameDeleteRoute = require('./api/user/[username]/frame/private/[id]/delete/route');
+const frameAdminDeleteRoute = require('./api/frame/public/[id]/admin/delete/route');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,6 +75,7 @@ app.use('/api/auth/me', meRoute);
 app.use('/api/frame/public', framePublicRoute);
 app.use('/api/frame/public', frameByIdRoute);
 app.use('/api/frame/public', frameLikeRoute);
+app.use('/api/frame/public', frameAdminDeleteRoute);
 
 app.use('/api/user', userFramePrivateRoute);
 app.use('/api/user', userFramePublicRoute);
