@@ -8,6 +8,7 @@ class LocalImageHandler {
     this.framesDir = path.join(this.baseDir, 'frames');
     this.photosDir = path.join(this.baseDir, 'photos');
     this.profilesDir = path.join(this.baseDir, 'profiles');
+    this.ticketsDir = path.join(this.baseDir, 'tickets');
   }
 
   async ensureDirectoryExists(dirPath) {
@@ -22,6 +23,7 @@ class LocalImageHandler {
     await this.ensureDirectoryExists(this.framesDir);
     await this.ensureDirectoryExists(this.photosDir);
     await this.ensureDirectoryExists(this.profilesDir);
+    await this.ensureDirectoryExists(this.ticketsDir);
   }
 
   getFrameStorage() {
@@ -48,6 +50,20 @@ class LocalImageHandler {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname);
         cb(null, `photo-${uniqueSuffix}${ext}`);
+      }
+    });
+  }
+
+  getTicketStorage() {
+    return multer.diskStorage({
+      destination: async (req, file, cb) => {
+        await this.ensureDirectoryExists(this.ticketsDir);
+        cb(null, this.ticketsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `ticket-${uniqueSuffix}${ext}`);
       }
     });
   }
@@ -79,6 +95,17 @@ class LocalImageHandler {
       limits: {
         fileSize: 10 * 1024 * 1024,
         files: 5 
+      }
+    });
+  }
+
+  getTicketUpload() {
+    return multer({
+      storage: this.getTicketStorage(),
+      fileFilter: this.imageFileFilter,
+      limits: {
+        fileSize: 5 * 1024 * 1024, 
+        files: 3 
       }
     });
   }

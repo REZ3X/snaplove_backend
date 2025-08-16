@@ -36,6 +36,11 @@ const adminUserDetailRoute = require('./api/admin/users/[username]/route');
 const adminUserUpdateRoute = require('./api/admin/users/[username]/update/route');
 const adminUserDeleteRoute = require('./api/admin/users/[username]/delete/route');
 
+const userTicketPrivateRoute = require('./api/user/[username]/ticket/private/route');
+const userTicketDetailRoute = require('./api/user/[username]/ticket/private/[id]/route');
+const adminTicketRoute = require('./api/admin/ticket/route');
+const adminTicketDetailRoute = require('./api/admin/ticket/[id]/route');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -64,7 +69,7 @@ app.use(limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,   max: 5, 
-  message: {
+  message: {//
     success: false,
     message: 'Too many authentication attempts, please try again later.'
   }
@@ -113,6 +118,12 @@ app.use('/api/admin/users', adminUsersRoute);
 app.use('/api/admin/users', adminUserDetailRoute);
 app.use('/api/admin/users', adminUserUpdateRoute);
 app.use('/api/admin/users', adminUserDeleteRoute);
+
+app.use('/api/user', userTicketPrivateRoute);
+app.use('/api/user', userTicketDetailRoute);
+
+app.use('/api/admin/ticket', adminTicketRoute);
+app.use('/api/admin/ticket', adminTicketDetailRoute);
 
 app.use('*', (req, res) => {
   res.status(404).json({
