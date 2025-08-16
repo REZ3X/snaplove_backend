@@ -31,6 +31,11 @@ const photoPrivateDetailRoute = require('./api/user/[username]/photo/private/[id
 const photoEditRoute = require('./api/user/[username]/photo/private/[id]/edit/route');
 const photoDeleteRoute = require('./api/user/[username]/photo/private/[id]/delete/route');
 
+const adminUsersRoute = require('./api/admin/users/route');
+const adminUserDetailRoute = require('./api/admin/users/[username]/route');
+const adminUserUpdateRoute = require('./api/admin/users/[username]/update/route');
+const adminUserDeleteRoute = require('./api/admin/users/[username]/delete/route');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -103,6 +108,11 @@ app.use('/api/user', userPhotoPublicPostsRoute);
 app.use('/api/user', photoPrivateDetailRoute);
 app.use('/api/user', photoEditRoute);
 app.use('/api/user', photoDeleteRoute);
+
+app.use('/api/admin/users', adminUsersRoute);
+app.use('/api/admin/users', adminUserDetailRoute);
+app.use('/api/admin/users', adminUserUpdateRoute);
+app.use('/api/admin/users', adminUserDeleteRoute);
 
 app.use('*', (req, res) => {
   res.status(404).json({
