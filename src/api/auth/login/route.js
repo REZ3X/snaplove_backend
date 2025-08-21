@@ -21,9 +21,12 @@ router.post('/', [
 
     const { google_id, email } = req.body;
 
-    const user = await User.findOne({
-      $or: [{ google_id }, { email }]
-    });
+
+    let user = await User.findOne({ google_id });
+    
+    if (!user) {
+      user = await User.findOne({ email });
+    }
 
     if (!user) {
       return res.status(401).json({
@@ -52,7 +55,8 @@ router.post('/', [
       }
     }
 
-    if (!user.google_id && google_id) {
+
+    if (!user.google_id || user.google_id !== google_id) {
       user.google_id = google_id;
       await user.save();
     }
