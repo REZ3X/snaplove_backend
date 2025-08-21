@@ -1,8 +1,8 @@
 const express = require('express');
 const { param, validationResult } = require('express-validator');
-const PhotoPost = require('../../../../../../../models/PhotoPost');
-const User = require('../../../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware');
+const PhotoPost = require('../../../../../../models/PhotoPost');
+const User = require('../../../../../../models/User');
+const { authenticateToken, checkBanStatus } = require('../../../../../../middleware');
 
 const router = express.Router();
 
