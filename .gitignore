@@ -37,3 +37,6 @@ coverage/
 *.cache
 *.tgz
 !.yarn/cache
+
+# Uploaded Assets
+uploads
