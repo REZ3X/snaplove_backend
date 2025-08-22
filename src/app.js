@@ -42,7 +42,7 @@ const adminTicketRoute = require('./api/admin/ticket/route');
 const adminTicketDetailRoute = require('./api/admin/ticket/[id]/route');
 
 const userProfileRoute = require('./api/user/[username]/route');
-const userProfileEditRoute = require('./api/user/[username]/edit/route');
+const userProfileEditRoute = require('./api/user/[username]/private/edit/route');
 
 const adminServerHealthRoute = require('./api/admin/serverHealth/route');
 
