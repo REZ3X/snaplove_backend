@@ -41,6 +41,11 @@ const userTicketDetailRoute = require('./api/user/[username]/ticket/private/[id]
 const adminTicketRoute = require('./api/admin/ticket/route');
 const adminTicketDetailRoute = require('./api/admin/ticket/[id]/route');
 
+const userProfileRoute = require('./api/user/[username]/route');
+const userProfileEditRoute = require('./api/user/[username]/edit/route');
+
+const adminServerHealthRoute = require('./api/admin/serverHealth/route');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -186,10 +191,15 @@ app.use('/api/user', photoPrivateDetailRoute);
 app.use('/api/user', photoEditRoute);
 app.use('/api/user', photoDeleteRoute);
 
+app.use('/api/user', userProfileRoute);
+app.use('/api/user', userProfileEditRoute);
+
 app.use('/api/admin/users', adminUsersRoute);
 app.use('/api/admin/users', adminUserDetailRoute);
 app.use('/api/admin/users', adminUserUpdateRoute);
 app.use('/api/admin/users', adminUserDeleteRoute);
+
+app.use('/api/admin/serverHealth', adminServerHealthRoute);
 
 app.use('/api/user', userTicketPrivateRoute);
 app.use('/api/user', userTicketDetailRoute);

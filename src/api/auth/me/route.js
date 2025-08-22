@@ -23,6 +23,11 @@ router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
           ban_release_datetime: user.ban_release_datetime,
           created_at: user.created_at,
           updated_at: user.updated_at
+        },
+        permissions: {
+          can_edit_profile: true,
+          can_create_content: !user.ban_status,
+          is_admin: ['official', 'developer'].includes(user.role)
         }
       }
     });

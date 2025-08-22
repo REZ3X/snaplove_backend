@@ -24,27 +24,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-const requireAdmin = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.userId);
-    
-    if (!user || !['official', 'developer'].includes(user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access required'
-      });
-    }
-    
-    next();
-  } catch (error) {
-    console.error('Admin check error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-};
-
 const checkBanStatus = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.userId);
@@ -82,8 +61,31 @@ const checkBanStatus = async (req, res, next) => {
   }
 };
 
+const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    if (!allowedRoles.includes(req.currentUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
+    }
+
+    next();
+  };
+};
+
+const requireAdmin = requireRole(['official', 'developer']);
+
 module.exports = {
   authenticateToken,
-  requireAdmin,
-  checkBanStatus
+  checkBanStatus,
+  requireRole,
+  requireAdmin
 };
