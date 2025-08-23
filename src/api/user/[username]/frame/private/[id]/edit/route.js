@@ -3,7 +3,7 @@ const { param, body, validationResult } = require('express-validator');
 const Frame = require('../../../../../../../models/Frame');
 const User = require('../../../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware');
-const { canCreatePublicFrame } = require('../../../../../../../utils/rolePolicy');
+const { canCreatePublicFrame } = require('../../../../../../../utils/RolePolicy');
 
 const router = express.Router();
 
