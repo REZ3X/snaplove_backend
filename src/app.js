@@ -48,6 +48,8 @@ const adminTicketDetailRoute = require('./api/admin/ticket/[id]/route');
 
 const userProfileRoute = require('./api/user/[username]/route');
 const userProfileEditRoute = require('./api/user/[username]/private/edit/route');
+const userStatsRoute = require('./api/user/[username]/stats/route');
+const userLikedPrivateRoute = require('./api/user/[username]/liked/private/route');
 
 const photoPrivateDetailRoute = require('./api/user/[username]/photo/private/[id]/route');
 const photoEditRoute = require('./api/user/[username]/photo/private/[id]/edit/route');
@@ -84,6 +86,12 @@ if (process.env.NODE_ENV === 'production') {
 if (process.env.NODE_ENV !== 'test') {
   connectDB();
 }
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'view', 'index.html'));
+});
+
+app.use('/docs', express.static(path.join(__dirname, 'view')));
 
 app.use(helmet({
   ...(process.env.NODE_ENV === 'production' && {
@@ -302,6 +310,8 @@ app.use('/api/user', photoPrivateRoute);
 
 app.use('/api/user', userProfileRoute);
 app.use('/api/user', userProfileEditRoute);
+app.use('/api/user', userStatsRoute);
+app.use('/api/user', userLikedPrivateRoute);
 
 app.use('/api/admin/users', adminUsersRoute);
 app.use('/api/admin/users', adminUserDetailRoute);
