@@ -12,35 +12,35 @@ const Report = require('../../../models/Report');
 
 const router = express.Router();
 
-// Helper function to get file/directory sizes
+
 const getDirectorySize = async (dirPath) => {
   try {
     const stats = await fs.stat(dirPath);
     if (stats.isFile()) {
       return stats.size;
     }
-    
+
     const files = await fs.readdir(dirPath);
     let totalSize = 0;
-    
+
     for (const file of files) {
       const filePath = path.join(dirPath, file);
       const fileStats = await fs.stat(filePath);
-      
+
       if (fileStats.isDirectory()) {
         totalSize += await getDirectorySize(filePath);
       } else {
         totalSize += fileStats.size;
       }
     }
-    
+
     return totalSize;
   } catch (error) {
     return 0;
   }
 };
 
-// Helper function to format bytes
+
 const formatBytes = (bytes) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -49,13 +49,13 @@ const formatBytes = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-// Helper function to get uptime in readable format
+
 const formatUptime = (seconds) => {
   const days = Math.floor(seconds / (24 * 60 * 60));
   const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
   const minutes = Math.floor((seconds % (60 * 60)) / 60);
   const secs = Math.floor(seconds % 60);
-  
+
   return `${days}d ${hours}h ${minutes}m ${secs}s`;
 };
 
@@ -63,7 +63,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
   try {
     const startTime = Date.now();
 
-    // System Information
+
     const systemInfo = {
       hostname: os.hostname(),
       platform: os.platform(),
@@ -84,7 +84,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       networkInterfaces: Object.keys(os.networkInterfaces()).length
     };
 
-    // Database Statistics
+
     const dbStats = await mongoose.connection.db.stats();
     const databaseInfo = {
       connectionState: mongoose.connection.readyState,
@@ -106,7 +106,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       totalSize: formatBytes(dbStats.dataSize + dbStats.indexSize)
     };
 
-    // Collection Statistics
+
     const [userStats, frameStats, photoStats, ticketStats, reportStats] = await Promise.all([
       User.aggregate([
         {
@@ -184,7 +184,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       ])
     ]);
 
-    // File System Statistics
+
     const [framesDirSize, photosDirSize, profilesDirSize, ticketsDirSize] = await Promise.all([
       getDirectorySize(path.join(process.cwd(), 'uploads', 'frames')),
       getDirectorySize(path.join(process.cwd(), 'uploads', 'photos')),
@@ -202,7 +202,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       }
     };
 
-    // Application Information
+
     const packageJson = require('../../../../package.json');
     const applicationInfo = {
       name: packageJson.name,
@@ -215,11 +215,11 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
 
-    // Security & Rate Limiting Info
+
     const securityInfo = {
       cors: {
         enabled: true,
-        allowedOrigins: process.env.NODE_ENV === 'production' 
+        allowedOrigins: process.env.NODE_ENV === 'production'
           ? (process.env.PRODUCTION_FRONTEND_URLS ? process.env.PRODUCTION_FRONTEND_URLS.split(',') : ['https://slaviors.xyz'])
           : ['development origins']
       },
@@ -238,7 +238,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       }
     };
 
-    // Recent Activity (last 24 hours)
+
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [recentUsers, recentFrames, recentPhotos, recentTickets] = await Promise.all([
       User.countDocuments({ created_at: { $gte: last24Hours } }),
@@ -256,7 +256,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       }
     };
 
-    // Performance Metrics
+
     const responseTime = Date.now() - startTime;
     const performanceInfo = {
       responseTime: `${responseTime}ms`,
@@ -265,7 +265,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       cpuLoad: os.loadavg()[0].toFixed(2)
     };
 
-    // Dependencies Information
+
     const dependencies = {
       production: Object.keys(packageJson.dependencies || {}).length,
       development: Object.keys(packageJson.devDependencies || {}).length,
@@ -273,13 +273,13 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       scripts: Object.keys(packageJson.scripts || {}).length
     };
 
-    // Health Status
+
     const healthStatus = {
       overall: 'healthy',
       checks: {
         database: mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy',
         memory: ((os.totalmem() - os.freemem()) / os.totalmem()) < 0.9 ? 'healthy' : 'warning',
-        disk: 'healthy', // Could add actual disk space check
+        disk: 'healthy',
         response: responseTime < 1000 ? 'healthy' : 'warning'
       }
     };

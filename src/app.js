@@ -36,10 +36,20 @@ const adminUserDetailRoute = require('./api/admin/users/[username]/route');
 const adminUserUpdateRoute = require('./api/admin/users/[username]/update/route');
 const adminUserDeleteRoute = require('./api/admin/users/[username]/delete/route');
 
+const userReportPrivateRoute = require('./api/user/[username]/report/private/route');
+const userReportDetailRoute = require('./api/user/[username]/report/private/[id]/route');
+const adminReportsRoute = require('./api/admin/reports/route');
+const adminReportDetailRoute = require('./api/admin/reports/[id]/route');
+
 const userTicketPrivateRoute = require('./api/user/[username]/ticket/private/route');
 const userTicketDetailRoute = require('./api/user/[username]/ticket/private/[id]/route');
 const adminTicketRoute = require('./api/admin/ticket/route');
 const adminTicketDetailRoute = require('./api/admin/ticket/[id]/route');
+
+app.use('/api/user', userReportPrivateRoute);
+app.use('/api/user', userReportDetailRoute);
+app.use('/api/admin/reports', adminReportsRoute);
+app.use('/api/admin/reports', adminReportDetailRoute);
 
 const userProfileRoute = require('./api/user/[username]/route');
 const userProfileEditRoute = require('./api/user/[username]/private/edit/route');
