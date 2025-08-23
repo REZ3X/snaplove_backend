@@ -17,9 +17,9 @@ router.get('/:id', [
       });
     }
 
-    const post = await PhotoPost.findOne({ 
-      _id: req.params.id, 
-      posted: true 
+    const post = await PhotoPost.findOne({
+      _id: req.params.id,
+      posted: true
     })
       .populate('user_id', 'name username image_profile role')
       .populate('template_frame_id', 'title layout_type official_status images');

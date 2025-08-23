@@ -17,9 +17,10 @@ router.get('/:id', [
       });
     }
 
-    const frame = await Frame.findOne({ 
-      _id: req.params.id, 
-      visibility: 'public' 
+    const frame = await Frame.findOne({
+      _id: req.params.id,
+      visibility: 'public'
+
     }).populate('user_id', 'name username image_profile role');
 
     if (!frame) {
@@ -35,6 +36,7 @@ router.get('/:id', [
         frame: {
           id: frame._id,
           images: frame.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
+          thumbnail: frame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + frame.thumbnail : null,
           title: frame.title,
           desc: frame.desc,
           total_likes: frame.total_likes,
@@ -42,6 +44,8 @@ router.get('/:id', [
           layout_type: frame.layout_type,
           official_status: frame.official_status,
           visibility: frame.visibility,
+          approval_status: frame.approval_status,
+          is_shadow_banned: frame.approval_status !== 'approved',
           tag_label: frame.tag_label,
           user: {
             id: frame.user_id._id,

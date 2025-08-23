@@ -49,6 +49,8 @@ const photoDeleteRoute = require('./api/user/[username]/photo/private/[id]/delet
 
 const adminServerHealthRoute = require('./api/admin/serverHealth/route');
 
+const frameApprovalRoute = require('./api/admin/framePublicApproval/route');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -214,6 +216,8 @@ app.use('/api/user', photoPrivateRoute);
 app.use('/api/user', photoPrivateDetailRoute);
 app.use('/api/user', photoEditRoute);
 app.use('/api/user', photoDeleteRoute);
+
+app.use('/api/admin/framePublicApproval', frameApprovalRoute);
 
 app.use('*', (req, res) => {
   res.status(404).json({

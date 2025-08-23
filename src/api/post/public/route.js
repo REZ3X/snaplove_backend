@@ -27,11 +27,11 @@ router.get('/', [
     const skip = (page - 1) * limit;
 
     const filter = { posted: true };
-    
+
     if (req.query.tag) {
       filter.tag_label = { $in: [req.query.tag] };
     }
-    
+
     if (req.query.has_frame === 'true') {
       filter.template_frame_id = { $ne: null };
     } else if (req.query.has_frame === 'false') {
@@ -40,14 +40,14 @@ router.get('/', [
 
     let sort = {};
     switch (req.query.sort) {
-    case 'oldest':
-      sort = { created_at: 1 };
-      break;
-    case 'most_liked':
-      sort = { 'like_count': -1, created_at: -1 };
-      break;
-    default:
-      sort = { created_at: -1 };
+      case 'oldest':
+        sort = { created_at: 1 };
+        break;
+      case 'most_liked':
+        sort = { 'like_count': -1, created_at: -1 };
+        break;
+      default:
+        sort = { created_at: -1 };
     }
 
     const posts = await PhotoPost.find(filter)
@@ -110,7 +110,7 @@ router.get('/', [
 router.post('/', authenticateToken, async (req, res) => {
   const imageHandler = require('../../../utils/LocalImageHandler');
   const upload = imageHandler.getPhotoUpload();
-  
+
   upload.array('images', 20)(req, res, async (err) => {
     if (err) {
       return res.status(400).json({

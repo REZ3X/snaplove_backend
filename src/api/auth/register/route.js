@@ -35,7 +35,7 @@ router.post('/', [
     }
 
     const username = email.replace('@gmail.com', '').replace('@', '_');
-    
+
     let finalUsername = username;
     let counter = 1;
     while (await User.findOne({ username: finalUsername })) {
@@ -56,7 +56,7 @@ router.post('/', [
     await newUser.save();
 
     const token = jwt.sign(
-      { 
+      {
         userId: newUser._id,
         email: newUser.email,
         role: newUser.role

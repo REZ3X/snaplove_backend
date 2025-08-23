@@ -27,7 +27,10 @@ router.get('/', [
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const filter = { visibility: 'public' };
+    const filter = {
+      visibility: 'public',
+      approval_status: 'approved'
+    };
 
     if (req.query.layout_type) {
       filter.layout_type = req.query.layout_type;
@@ -199,6 +202,7 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
         layout_type,
         official_status: ['official', 'developer'].includes(user.role),
         visibility: frameVisibility,
+        approval_status: ['official', 'developer'].includes(user.role) ? 'approved' : 'pending',
         tag_label: tags,
         user_id: req.user.userId
       });

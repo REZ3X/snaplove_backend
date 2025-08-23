@@ -28,15 +28,15 @@ router.get('/', [
     const skip = (page - 1) * limit;
 
     const filter = {};
-    
+
     if (req.query.role) {
       filter.role = req.query.role;
     }
-    
+
     if (req.query.ban_status !== undefined) {
       filter.ban_status = req.query.ban_status === 'true';
     }
-    
+
     if (req.query.search) {
       const searchRegex = new RegExp(req.query.search, 'i');
       filter.$or = [
@@ -48,23 +48,23 @@ router.get('/', [
 
     let sort = {};
     switch (req.query.sort) {
-    case 'oldest':
-      sort = { created_at: 1 };
-      break;
-    case 'name_asc':
-      sort = { name: 1 };
-      break;
-    case 'name_desc':
-      sort = { name: -1 };
-      break;
-    case 'username_asc':
-      sort = { username: 1 };
-      break;
-    case 'username_desc':
-      sort = { username: -1 };
-      break;
-    default:
-      sort = { created_at: -1 };
+      case 'oldest':
+        sort = { created_at: 1 };
+        break;
+      case 'name_asc':
+        sort = { name: 1 };
+        break;
+      case 'name_desc':
+        sort = { name: -1 };
+        break;
+      case 'username_asc':
+        sort = { username: 1 };
+        break;
+      case 'username_desc':
+        sort = { username: -1 };
+        break;
+      default:
+        sort = { created_at: -1 };
     }
 
     const users = await User.find(filter)

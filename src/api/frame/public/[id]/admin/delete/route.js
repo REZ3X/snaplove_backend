@@ -19,9 +19,9 @@ router.delete('/:id/admin/delete', [
       });
     }
 
-    const frame = await Frame.findOne({ 
-      _id: req.params.id, 
-      visibility: 'public' 
+    const frame = await Frame.findOne({
+      _id: req.params.id,
+      visibility: 'public'
     }).populate('user_id', 'name username email role');
 
     if (!frame) {

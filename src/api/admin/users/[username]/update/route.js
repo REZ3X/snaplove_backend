@@ -63,7 +63,7 @@ router.put('/:username/update', [
     if (ban_status !== undefined && ban_status !== user.ban_status) {
       updateData.ban_status = ban_status;
       changes.push(`Ban status changed from ${user.ban_status} to ${ban_status}`);
-      
+
       if (ban_status === false) {
         updateData.ban_release_datetime = null;
         changes.push('Ban release date cleared');

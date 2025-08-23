@@ -18,9 +18,9 @@ router.post('/:id', [
       });
     }
 
-    const post = await PhotoPost.findOne({ 
-      _id: req.params.id, 
-      posted: true 
+    const post = await PhotoPost.findOne({
+      _id: req.params.id,
+      posted: true
     });
 
     if (!post) {

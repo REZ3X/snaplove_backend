@@ -23,7 +23,7 @@ router.post('/', [
 
 
     let user = await User.findOne({ google_id });
-    
+
     if (!user) {
       user = await User.findOne({ email });
     }
@@ -62,7 +62,7 @@ router.post('/', [
     }
 
     const token = jwt.sign(
-      { 
+      {
         userId: user._id,
         email: user.email,
         role: user.role

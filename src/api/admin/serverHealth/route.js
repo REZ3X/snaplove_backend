@@ -150,10 +150,13 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
       Frame.aggregate([
         {
           $group: {
-            _id: '$visibility',
+            _id: {
+              visibility: '$visibility',
+              approval_status: '$approval_status'
+            },
             count: { $sum: 1 },
-            totalLikes: { $sum: '$like_count' },
-            totalUses: { $sum: '$use_count' }
+            totalLikes: { $sum: { $size: '$like_count' } },
+            totalUses: { $sum: { $size: '$use_count' } }
           }
         }
       ]),

@@ -56,6 +56,28 @@ const frameSchema = new mongoose.Schema({
     enum: ['private', 'public'],
     default: 'private'
   },
+
+  approval_status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default() {
+      return this.official_status ? 'approved' : 'pending';
+    }
+  },
+  approved_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  approved_at: {
+    type: Date,
+    default: null
+  },
+  rejection_reason: {
+    type: String,
+    default: null,
+    maxlength: 500
+  },
   tag_label: [{
     type: String,
     trim: true
@@ -77,6 +99,15 @@ frameSchema.virtual('total_uses').get(function () {
   return this.use_count ? this.use_count.length : 0;
 });
 
+
+frameSchema.virtual('is_public_visible').get(function () {
+  return this.visibility === 'public' && this.approval_status === 'approved';
+});
+
 frameSchema.set('toJSON', { virtuals: true });
+
+
+frameSchema.index({ visibility: 1, approval_status: 1 });
+frameSchema.index({ approval_status: 1, created_at: -1 });
 
 module.exports = mongoose.model('Frame', frameSchema);

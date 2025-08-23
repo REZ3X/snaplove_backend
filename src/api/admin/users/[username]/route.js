@@ -21,7 +21,7 @@ router.get('/:username', [
     }
 
     const user = await User.findOne({ username: req.params.username })
-      .select('-password'); 
+      .select('-password');
 
     if (!user) {
       return res.status(404).json({
@@ -30,39 +30,39 @@ router.get('/:username', [
       });
     }
 
-const [frameStats, photoStats] = await Promise.all([
-  Frame.aggregate([
-    { $match: { user_id: user._id } },
-    {
-      $group: {
-        _id: '$visibility',
-        count: { $sum: 1 },
-        total_likes: { $sum: { $size: '$like_count' } },
-        total_uses: { $sum: { $size: '$use_count' } }
-      }
-    }
-  ]),
-  Photo.aggregate([
-    { $match: { user_id: user._id } },
-    {
-      $group: {
-        _id: null,
-        count: { $sum: 1 }
-      }
-    }
-  ])
-]);
+    const [frameStats, photoStats] = await Promise.all([
+      Frame.aggregate([
+        { $match: { user_id: user._id } },
+        {
+          $group: {
+            _id: '$visibility',
+            count: { $sum: 1 },
+            total_likes: { $sum: { $size: '$like_count' } },
+            total_uses: { $sum: { $size: '$use_count' } }
+          }
+        }
+      ]),
+      Photo.aggregate([
+        { $match: { user_id: user._id } },
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
 
-const [recentFrames, recentPhotos] = await Promise.all([
-  Frame.find({ user_id: user._id })
-    .select('title visibility created_at like_count use_count')
-    .sort({ created_at: -1 })
-    .limit(5),
-  Photo.find({ user_id: user._id })
-    .select('title created_at')
-    .sort({ created_at: -1 })
-    .limit(5)
-]);
+    const [recentFrames, recentPhotos] = await Promise.all([
+      Frame.find({ user_id: user._id })
+        .select('title visibility created_at like_count use_count')
+        .sort({ created_at: -1 })
+        .limit(5),
+      Photo.find({ user_id: user._id })
+        .select('title created_at')
+        .sort({ created_at: -1 })
+        .limit(5)
+    ]);
 
     res.json({
       success: true,
@@ -89,9 +89,9 @@ const [recentFrames, recentPhotos] = await Promise.all([
             total_frame_likes: frameStats.reduce((sum, s) => sum + (s.total_likes || 0), 0),
             total_frame_uses: frameStats.reduce((sum, s) => sum + (s.total_uses || 0), 0)
           },
-photos: {
-  total: photoStats[0]?.count || 0
-},
+          photos: {
+            total: photoStats[0]?.count || 0
+          },
         },
         recent_activity: {
           frames: recentFrames.map(frame => ({
@@ -102,11 +102,11 @@ photos: {
             uses: frame.use_count?.length || 0,
             created_at: frame.created_at
           })),
-posts: recentPhotos.map(photo => ({
-  id: photo._id,
-  title: photo.title,
-  created_at: photo.created_at
-}))
+          posts: recentPhotos.map(photo => ({
+            id: photo._id,
+            title: photo.title,
+            created_at: photo.created_at
+          }))
         }
       }
     });

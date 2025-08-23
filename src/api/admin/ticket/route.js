@@ -29,19 +29,19 @@ router.get('/', [
     const skip = (page - 1) * limit;
 
     const filter = {};
-    
+
     if (req.query.type) {
       filter.type = req.query.type;
     }
-    
+
     if (req.query.status) {
       filter.status = req.query.status;
     }
-    
+
     if (req.query.priority) {
       filter.priority = req.query.priority;
     }
-    
+
     if (req.query.search) {
       const searchRegex = new RegExp(req.query.search, 'i');
       filter.$or = [
@@ -52,36 +52,36 @@ router.get('/', [
 
     let sort = {};
     switch (req.query.sort) {
-    case 'oldest':
-      sort = { created_at: 1 };
-      break;
-    case 'priority_high':
-      sort = { 
-        priority: 1,
-        created_at: -1 
-      };
-      break;
-    case 'priority_low':
-      sort = { 
-        priority: -1,
-        created_at: -1 
-      };
-      break;
-    default:
-      sort = { created_at: -1 };
+      case 'oldest':
+        sort = { created_at: 1 };
+        break;
+      case 'priority_high':
+        sort = {
+          priority: 1,
+          created_at: -1
+        };
+        break;
+      case 'priority_low':
+        sort = {
+          priority: -1,
+          created_at: -1
+        };
+        break;
+      default:
+        sort = { created_at: -1 };
     }
 
     let aggregationPipeline = [];
-    
+
     if (req.query.sort === 'priority_high' || req.query.sort === 'priority_low') {
-      const priorityOrder = req.query.sort === 'priority_high' 
+      const priorityOrder = req.query.sort === 'priority_high'
         ? { urgent: 1, high: 2, medium: 3, low: 4 }
         : { low: 1, medium: 2, high: 3, urgent: 4 };
-        
+
       aggregationPipeline = [
         { $match: filter },
-        { 
-          $addFields: { 
+        {
+          $addFields: {
             priorityOrder: {
               $switch: {
                 branches: [
@@ -115,7 +115,7 @@ router.get('/', [
           }
         },
         { $unwind: '$user_id' },
-        { 
+        {
           $unwind: {
             path: '$admin_id',
             preserveNullAndEmptyArrays: true
@@ -163,8 +163,8 @@ router.get('/', [
         tickets: tickets.map(ticket => ({
           id: ticket._id,
           title: ticket.title,
-          description: ticket.description.length > 150 
-            ? ticket.description.substring(0, 150) + '...' 
+          description: ticket.description.length > 150
+            ? ticket.description.substring(0, 150) + '...'
             : ticket.description,
           images: ticket.images?.map(img => req.protocol + '://' + req.get('host') + '/' + img) || [],
           type: ticket.type,
