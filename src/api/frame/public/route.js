@@ -1,7 +1,8 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const Frame = require('../../../models/Frame');
-const { authenticateToken } = require('../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../middleware');
+const { canCreatePublicFrame } = require('../../../utils/rolePolicy');
 
 const router = express.Router();
 
@@ -27,28 +28,28 @@ router.get('/', [
     const skip = (page - 1) * limit;
 
     const filter = { visibility: 'public' };
-    
+
     if (req.query.layout_type) {
       filter.layout_type = req.query.layout_type;
     }
-    
+
     if (req.query.tag) {
       filter.tag_label = { $in: [req.query.tag] };
     }
 
     let sort = {};
     switch (req.query.sort) {
-    case 'oldest':
-      sort = { created_at: 1 };
-      break;
-    case 'most_liked':
-      sort = { 'like_count': -1, created_at: -1 };
-      break;
-    case 'most_used':
-      sort = { 'use_count': -1, created_at: -1 };
-      break;
-    default:
-      sort = { created_at: -1 }; 
+      case 'oldest':
+        sort = { created_at: 1 };
+        break;
+      case 'most_liked':
+        sort = { 'like_count': -1, created_at: -1 };
+        break;
+      case 'most_used':
+        sort = { 'use_count': -1, created_at: -1 };
+        break;
+      default:
+        sort = { created_at: -1 };
     }
 
     const frames = await Frame.find(filter)
@@ -65,7 +66,7 @@ router.get('/', [
       data: {
         frames: frames.map(frame => ({
           id: frame._id,
-          images: frame.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
+          thumbnail: frame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + frame.thumbnail : null,
           title: frame.title,
           desc: frame.desc,
           total_likes: frame.total_likes,
@@ -103,11 +104,14 @@ router.get('/', [
   }
 });
 
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
   const imageHandler = require('../../../utils/LocalImageHandler');
   const upload = imageHandler.getFrameUpload();
-  
-  upload.array('images', 10)(req, res, async (err) => {
+
+  upload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'thumbnail', maxCount: 1 }
+  ])(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -125,10 +129,10 @@ router.post('/', authenticateToken, async (req, res) => {
         });
       }
 
-      if (!req.files || req.files.length === 0) {
+      if (!req.files || !req.files.images || req.files.images.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'At least one image is required'
+          message: 'At least one frame image is required'
         });
       }
 
@@ -139,9 +143,34 @@ router.post('/', authenticateToken, async (req, res) => {
         });
       }
 
+      const frameVisibility = visibility || 'private';
+
+
+      if (frameVisibility === 'public') {
+        if (!req.files.thumbnail || req.files.thumbnail.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Thumbnail is required for public frames'
+          });
+        }
+
+
+        const canCreate = await canCreatePublicFrame(req.user.userId);
+        if (!canCreate.canCreate) {
+          return res.status(403).json({
+            success: false,
+            message: canCreate.reason,
+            data: {
+              current_count: canCreate.current,
+              limit: canCreate.limit
+            }
+          });
+        }
+      }
+
       const User = require('../../../models/User');
       const user = await User.findById(req.user.userId);
-      
+
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -149,7 +178,9 @@ router.post('/', authenticateToken, async (req, res) => {
         });
       }
 
-      const images = req.files.map(file => imageHandler.getRelativeImagePath(file.path));
+      const images = req.files.images.map(file => imageHandler.getRelativeImagePath(file.path));
+
+      const thumbnail = req.files.thumbnail ? imageHandler.getRelativeImagePath(req.files.thumbnail[0].path) : null;
 
       let tags = [];
       if (tag_label) {
@@ -162,11 +193,12 @@ router.post('/', authenticateToken, async (req, res) => {
 
       const newFrame = new Frame({
         images,
+        thumbnail,
         title: title.trim(),
         desc: desc ? desc.trim() : '',
         layout_type,
         official_status: ['official', 'developer'].includes(user.role),
-        visibility: visibility || 'private',
+        visibility: frameVisibility,
         tag_label: tags,
         user_id: req.user.userId
       });
@@ -174,13 +206,16 @@ router.post('/', authenticateToken, async (req, res) => {
       await newFrame.save();
       await newFrame.populate('user_id', 'name username image_profile role');
 
+      console.log(`FRAME CREATED: User ${user.username} created a ${frameVisibility} frame: ${newFrame.title}`);
+
       res.status(201).json({
         success: true,
-        message: 'Frame created successfully',
+        message: `Frame created successfully as ${frameVisibility}`,
         data: {
           frame: {
             id: newFrame._id,
             images: newFrame.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
+            thumbnail: newFrame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + newFrame.thumbnail : null,
             title: newFrame.title,
             desc: newFrame.desc,
             total_likes: newFrame.total_likes,

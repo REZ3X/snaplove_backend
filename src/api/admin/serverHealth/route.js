@@ -6,7 +6,7 @@ const path = require('path');
 const { authenticateToken, checkBanStatus, requireRole } = require('../../../middleware');
 const User = require('../../../models/User');
 const Frame = require('../../../models/Frame');
-const PhotoPost = require('../../../models/PhotoPost');
+const Photo = require('../../../models/Photo');
 const Ticket = require('../../../models/Ticket');
 const Report = require('../../../models/Report');
 
@@ -157,12 +157,11 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
           }
         }
       ]),
-      PhotoPost.aggregate([
+      Photo.aggregate([
         {
           $group: {
             _id: null,
-            total: { $sum: 1 },
-            totalLikes: { $sum: '$like_count' }
+            total: { $sum: 1 }
           }
         }
       ]),
@@ -186,10 +185,10 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
 
 
     const [framesDirSize, photosDirSize, profilesDirSize, ticketsDirSize] = await Promise.all([
-      getDirectorySize(path.join(process.cwd(), 'uploads', 'frames')),
-      getDirectorySize(path.join(process.cwd(), 'uploads', 'photos')),
-      getDirectorySize(path.join(process.cwd(), 'uploads', 'profiles')),
-      getDirectorySize(path.join(process.cwd(), 'uploads', 'tickets'))
+      getDirectorySize(path.join(process.cwd(), 'images', 'frames')),
+      getDirectorySize(path.join(process.cwd(), 'images', 'photos')),
+      getDirectorySize(path.join(process.cwd(), 'images', 'profiles')),
+      getDirectorySize(path.join(process.cwd(), 'images', 'tickets'))
     ]);
 
     const fileSystemInfo = {
@@ -243,7 +242,7 @@ router.get('/', authenticateToken, checkBanStatus, requireRole(['official', 'dev
     const [recentUsers, recentFrames, recentPhotos, recentTickets] = await Promise.all([
       User.countDocuments({ created_at: { $gte: last24Hours } }),
       Frame.countDocuments({ created_at: { $gte: last24Hours } }),
-      PhotoPost.countDocuments({ created_at: { $gte: last24Hours } }),
+      Photo.countDocuments({ created_at: { $gte: last24Hours } }),
       Ticket.countDocuments({ created_at: { $gte: last24Hours } })
     ]);
 

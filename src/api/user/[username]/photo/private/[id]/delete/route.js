@@ -1,6 +1,6 @@
 const express = require('express');
 const { param, validationResult } = require('express-validator');
-const PhotoPost = require('../../../../../../../models/PhotoPost');
+const Photo = require('../../../../../../../models/Photo');
 const User = require('../../../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware');
 const imageHandler = require('../../../../../../../utils/LocalImageHandler');
@@ -36,7 +36,7 @@ router.delete('/:username/photo/private/:id/delete', [
       });
     }
 
-    const photo = await PhotoPost.findOne({ 
+    const photo = await Photo.findOne({
       _id: req.params.id,
       user_id: targetUser._id
     });
@@ -51,8 +51,7 @@ router.delete('/:username/photo/private/:id/delete', [
     const photoData = {
       id: photo._id,
       title: photo.title,
-      images: photo.images,
-      posted: photo.posted
+      images: photo.images
     };
 
     const imageDeletePromises = photo.images.map(async (imagePath) => {
@@ -65,7 +64,7 @@ router.delete('/:username/photo/private/:id/delete', [
 
     await Promise.allSettled(imageDeletePromises);
 
-    await PhotoPost.findByIdAndDelete(photo._id);
+    await Photo.findByIdAndDelete(photo._id);
 
     res.json({
       success: true,
@@ -74,7 +73,6 @@ router.delete('/:username/photo/private/:id/delete', [
         deleted_photo: {
           id: photoData.id,
           title: photoData.title,
-          posted: photoData.posted,
           deleted_images_count: photoData.images.length
         }
       }

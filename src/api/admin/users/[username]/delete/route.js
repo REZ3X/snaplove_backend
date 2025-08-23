@@ -2,7 +2,7 @@ const express = require('express');
 const { param, body, validationResult } = require('express-validator');
 const User = require('../../../../../models/User');
 const Frame = require('../../../../../models/Frame');
-const PhotoPost = require('../../../../../models/PhotoPost');
+const Photo = require('../../../../../models/Photo');
 const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../../../middleware');
 const imageHandler = require('../../../../../utils/LocalImageHandler');
 
@@ -46,9 +46,9 @@ router.delete('/:username/delete', [
       });
     }
 
-    const [userFrames, userPosts] = await Promise.all([
-      Frame.find({ user_id: user._id }),
-      PhotoPost.find({ user_id: user._id })
+    const [userFrames, userPhotos] = await Promise.all([
+      Frame.find({ user_id: user._id }).select('images'),
+      Photo.find({ user_id: user._id }).select('images')
     ]);
 
     const deletionData = {
@@ -62,16 +62,16 @@ router.delete('/:username/delete', [
       },
       content_counts: {
         frames: userFrames.length,
-        posts: userPosts.length,
+        photos: userPhotos.length,
         total_images: userFrames.reduce((sum, frame) => sum + frame.images.length, 0) +
-                     userPosts.reduce((sum, post) => sum + post.images.length, 0)
+          userPhotos.reduce((sum, photo) => sum + photo.images.length, 0)
       },
       reason: req.body.reason || 'No reason provided'
     };
 
     const allImages = [
       ...userFrames.flatMap(frame => frame.images),
-      ...userPosts.flatMap(post => post.images)
+      ...userPhotos.flatMap(post => post.images)
     ];
 
     const imageDeletePromises = allImages.map(async (imagePath) => {
@@ -86,7 +86,7 @@ router.delete('/:username/delete', [
 
     await Promise.all([
       Frame.deleteMany({ user_id: user._id }),
-      PhotoPost.deleteMany({ user_id: user._id })
+      Photo.deleteMany({ user_id: user._id })
     ]);
 
     await Promise.all([
@@ -98,7 +98,7 @@ router.delete('/:username/delete', [
         { 'use_count.user_id': user._id },
         { $pull: { use_count: { user_id: user._id } } }
       ),
-      PhotoPost.updateMany(
+      Photo.updateMany(
         { 'like_count.user_id': user._id },
         { $pull: { like_count: { user_id: user._id } } }
       )

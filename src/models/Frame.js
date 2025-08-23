@@ -5,6 +5,10 @@ const frameSchema = new mongoose.Schema({
     type: String,
     required: true
   }],
+  thumbnail: {
+    type: String,
+    default: null
+  },
   title: {
     type: String,
     required: true,
@@ -65,11 +69,11 @@ const frameSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-frameSchema.virtual('total_likes').get(function() {
+frameSchema.virtual('total_likes').get(function () {
   return this.like_count ? this.like_count.length : 0;
 });
 
-frameSchema.virtual('total_uses').get(function() {
+frameSchema.virtual('total_uses').get(function () {
   return this.use_count ? this.use_count.length : 0;
 });
 

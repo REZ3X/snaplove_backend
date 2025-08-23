@@ -1,6 +1,6 @@
 const express = require('express');
 const { param, validationResult } = require('express-validator');
-const PhotoPost = require('../../../../../../models/PhotoPost');
+const Photo = require('../../../../../../models/Photo');
 const User = require('../../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../../middleware');
 
@@ -35,13 +35,12 @@ router.get('/:username/photo/private/:id', [
       });
     }
 
-    const photo = await PhotoPost.findOne({ 
+    const photo = await Photo.findOne({
       _id: req.params.id,
-      user_id: targetUser._id,
-      posted: false
+      user_id: targetUser._id
     })
       .populate('user_id', 'name username image_profile role')
-      .populate('template_frame_id', 'title layout_type official_status images');
+      .populate('frame_id', 'title layout_type images thumbnail');
 
     if (!photo) {
       return res.status(404).json({
@@ -58,16 +57,13 @@ router.get('/:username/photo/private/:id', [
           images: photo.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
           title: photo.title,
           desc: photo.desc,
-          total_likes: photo.total_likes,
-          tag_label: photo.tag_label,
-          posted: photo.posted,
-          template_frame: photo.template_frame_id ? {
-            id: photo.template_frame_id._id,
-            title: photo.template_frame_id.title,
-            layout_type: photo.template_frame_id.layout_type,
-            official_status: photo.template_frame_id.official_status,
-            images: photo.template_frame_id.images.map(img => req.protocol + '://' + req.get('host') + '/' + img)
-          } : null,
+          frame: {
+            id: photo.frame_id._id,
+            title: photo.frame_id.title,
+            layout_type: photo.frame_id.layout_type,
+            thumbnail: photo.frame_id.thumbnail ? req.protocol + '://' + req.get('host') + '/' + photo.frame_id.thumbnail : null,
+            images: photo.frame_id.images.map(img => req.protocol + '://' + req.get('host') + '/' + img)
+          },
           user: {
             id: photo.user_id._id,
             name: photo.user_id.name,
@@ -75,6 +71,7 @@ router.get('/:username/photo/private/:id', [
             image_profile: photo.user_id.image_profile,
             role: photo.user_id.role
           },
+          expires_at: photo.expires_at,
           created_at: photo.created_at,
           updated_at: photo.updated_at
         }

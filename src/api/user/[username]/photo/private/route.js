@@ -1,12 +1,12 @@
 const express = require('express');
 const { param, query, validationResult } = require('express-validator');
-const PhotoPost = require('../../../../../models/PhotoPost');
+const Photo = require('../../../../../models/Photo');
 const User = require('../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../middleware');
 
 const router = express.Router();
 
-router.get('/:username', [
+router.get('/:username/photo/private', [
   param('username').notEmpty().withMessage('Username is required'),
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50')
@@ -32,7 +32,7 @@ router.get('/:username', [
     if (req.user.userId !== targetUser._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. You can only view your own private photos.'
+        message: 'Access denied. You can only view your own photos.'
       });
     }
 
@@ -40,18 +40,16 @@ router.get('/:username', [
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const photos = await PhotoPost.find({ 
-      user_id: targetUser._id,
-      posted: false
+    const photos = await Photo.find({
+      user_id: targetUser._id
     })
-      .populate('template_frame_id', 'title layout_type official_status')
+      .populate('frame_id', 'title layout_type thumbnail')
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await PhotoPost.countDocuments({ 
-      user_id: targetUser._id,
-      posted: false
+    const total = await Photo.countDocuments({
+      user_id: targetUser._id
     });
     const totalPages = Math.ceil(total / limit);
 
@@ -63,14 +61,13 @@ router.get('/:username', [
           images: photo.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
           title: photo.title,
           desc: photo.desc,
-          tag_label: photo.tag_label,
-          posted: photo.posted,
-          template_frame: photo.template_frame_id ? {
-            id: photo.template_frame_id._id,
-            title: photo.template_frame_id.title,
-            layout_type: photo.template_frame_id.layout_type,
-            official_status: photo.template_frame_id.official_status
-          } : null,
+          frame: {
+            id: photo.frame_id._id,
+            title: photo.frame_id.title,
+            layout_type: photo.frame_id.layout_type,
+            thumbnail: photo.frame_id.thumbnail ? req.protocol + '://' + req.get('host') + '/' + photo.frame_id.thumbnail : null
+          },
+          expires_at: photo.expires_at,
           created_at: photo.created_at,
           updated_at: photo.updated_at
         })),
