@@ -1,4 +1,6 @@
 require('dotenv').config();
+const http = require('http');
+const socketService = require('./services/socketService');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -63,6 +65,10 @@ const frameApprovalRoute = require('./api/admin/framePublicApproval/route');
 
 const leaderboardPublicRoute = require('./api/leaderboard/public/route');
 
+const userNotificationPrivateRoute = require('./api/user/[username]/notification/private/route');
+const userFollowerRoute = require('./api/user/[username]/follower/route');
+const userFollowingRoute = require('./api/user/[username]/following/route');
+
 const apiKeyAuth = createApiKeyAuth({
   skipPaths: ['/', '/health'],
   skipPatterns: [/^\/docs/, /^\/images/],
@@ -123,14 +129,14 @@ app.use(helmet({
 
 const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === 'production') {
-    return process.env.PRODUCTION_FRONTEND_URLS 
+    return process.env.PRODUCTION_FRONTEND_URLS
       ? process.env.PRODUCTION_FRONTEND_URLS.split(',').map(url => url.trim())
       : ['https://slaviors.xyz'];
   } else if (process.env.NODE_ENV === 'development') {
     return [
       process.env.FRONTEND_URL || 'http://localhost:3000',
       'http://localhost:3001',
-      'http://localhost:5173', 
+      'http://localhost:5173',
       'http://localhost:4173',
     ];
   }
@@ -147,8 +153,8 @@ app.use(cors({
 app.use('/images', express.static(path.join(process.cwd(), 'images')));
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: process.env.NODE_ENV === 'test' ? 1000000 : 100, 
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000000 : 100,
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
@@ -156,10 +162,10 @@ const limiter = rateLimit({
   skip: process.env.NODE_ENV === 'test' ? () => true : () => false,
   keyGenerator: (req) => {
     if (process.env.NODE_ENV === 'production') {
-      return req.headers['cf-connecting-ip'] || 
-             req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-             req.connection.remoteAddress || 
-             req.ip;
+      return req.headers['cf-connecting-ip'] ||
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+        req.connection.remoteAddress ||
+        req.ip;
     }
     return req.ip;
   },
@@ -170,7 +176,7 @@ app.use(limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000000 : 5, 
+  max: process.env.NODE_ENV === 'test' ? 1000000 : 5,
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again later.'
@@ -178,10 +184,10 @@ const authLimiter = rateLimit({
   skip: process.env.NODE_ENV === 'test' ? () => true : () => false,
   keyGenerator: (req) => {
     if (process.env.NODE_ENV === 'production') {
-      return req.headers['cf-connecting-ip'] || 
-             req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-             req.connection.remoteAddress || 
-             req.ip;
+      return req.headers['cf-connecting-ip'] ||
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+        req.connection.remoteAddress ||
+        req.ip;
     }
     return req.ip;
   },
@@ -209,19 +215,19 @@ app.get('/health', async (req, res) => {
     };
 
     const [userCount, frameCount, photoCount] = await Promise.all([
-      User.countDocuments({ ban_status: false }), 
+      User.countDocuments({ ban_status: false }),
       Frame.countDocuments({ visibility: 'public', approval_status: 'approved' }),
-      Photo.countDocuments() 
-    ]).catch(() => [0, 0, 0]); 
+      Photo.countDocuments()
+    ]).catch(() => [0, 0, 0]);
 
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [recentFrames, recentUsers] = await Promise.all([
-      Frame.countDocuments({ 
+      Frame.countDocuments({
         created_at: { $gte: last24Hours },
         visibility: 'public',
         approval_status: 'approved'
       }),
-      User.countDocuments({ 
+      User.countDocuments({
         created_at: { $gte: last24Hours },
         ban_status: false
       })
@@ -229,7 +235,7 @@ app.get('/health', async (req, res) => {
 
     const responseTime = Date.now() - startTime;
     const memoryUsage = process.memoryUsage();
-    
+
     const healthChecks = {
       database: databaseStatus.connected,
       response_time: responseTime < 1000,
@@ -327,6 +333,9 @@ app.use('/api/user', userProfileRoute);
 app.use('/api/user', userProfileEditRoute);
 app.use('/api/user', userStatsRoute);
 app.use('/api/user', userLikedPrivateRoute);
+app.use('/api/user', userNotificationPrivateRoute);
+app.use('/api/user', userFollowerRoute);
+app.use('/api/user', userFollowingRoute);
 
 app.use('/api/admin/users', adminUsersRoute);
 app.use('/api/admin/users', adminUserDetailRoute);
@@ -362,21 +371,26 @@ app.use((err, req, res, _next) => {
   console.error('Global error:', err);
   res.status(err.status || 500).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
+    message: process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
       : err.message,
     ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 });
 
+const server = http.createServer(app);
+
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  socketService.initialize(server);
+
+  server.listen(PORT, () => {
     console.log(`🚀 Snaplove Backend running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
     console.log(`📁 Images served from: ${path.join(process.cwd(), 'images')}`);
     console.log(`🔒 Trust proxy: ${app.get('trust proxy')}`);
+    console.log(`📡 Socket.IO enabled for real-time notifications`);
   });
 }
 
-module.exports = app;
+module.exports = { app, server };

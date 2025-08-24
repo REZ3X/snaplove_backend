@@ -2,6 +2,7 @@ const express = require('express');
 const { query, param, body, validationResult } = require('express-validator');
 const Frame = require('../../../models/Frame');
 const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../middleware/middleware');
+const socketService = require('../../../services/socketService');
 
 const router = express.Router();
 
@@ -276,6 +277,21 @@ router.put('/:id', [
       .populate('approved_by', 'name username role');
 
     console.log(`FRAME ${approval_status.toUpperCase()}: Admin ${req.user.userId} ${approval_status} frame ${frame._id} by ${frame.user_id.username}`);
+
+    try {
+      await socketService.sendFrameApprovalNotification(
+        frame.user_id._id,
+        {
+          id: updatedFrame._id,
+          title: updatedFrame.title,
+          thumbnail: updatedFrame.thumbnail
+        },
+        approval_status,
+        approval_status === 'rejected' ? rejection_reason : null
+      );
+    } catch (notifError) {
+      console.error('Failed to send approval notification:', notifError);
+    }
 
     res.json({
       success: true,

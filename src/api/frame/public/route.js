@@ -3,6 +3,7 @@ const { query, validationResult } = require('express-validator');
 const Frame = require('../../../models/Frame');
 const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 const { canCreatePublicFrame } = require('../../../utils/RolePolicy');
+const socketService = require('../../../services/socketService');
 
 const router = express.Router();
 
@@ -209,6 +210,24 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
 
       await newFrame.save();
       await newFrame.populate('user_id', 'name username image_profile role');
+
+      try {
+        if (frameVisibility === 'public') {
+          await socketService.sendFrameUploadNotification(
+            req.user.userId,
+            {
+              id: newFrame._id,
+              title: newFrame.title,
+              thumbnail: newFrame.thumbnail,
+              layout_type: newFrame.layout_type,
+              owner_name: user.name,
+              owner_username: user.username
+            }
+          );
+        }
+      } catch (notifError) {
+        console.error('Failed to send frame upload notifications:', notifError);
+      }
 
       console.log(`FRAME CREATED: User ${user.username} created a ${frameVisibility} frame: ${newFrame.title}`);
 

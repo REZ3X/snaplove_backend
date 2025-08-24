@@ -27,7 +27,7 @@ const authenticateToken = (req, res, next) => {
 const checkBanStatus = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.userId);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -49,7 +49,7 @@ const checkBanStatus = async (req, res, next) => {
         });
       }
     }
-    
+
     req.currentUser = user;
     next();
   } catch (error) {

@@ -1,5 +1,5 @@
 const createApiKeyAuth = (options = {}) => {
-  const { 
+  const {
     skipPaths = ['/', '/health'],
     skipPatterns = [/^\/docs/],
     envOnly = 'production'
@@ -19,7 +19,7 @@ const createApiKeyAuth = (options = {}) => {
     }
 
     const apiKey = req.headers['x-api-key'] || req.headers['api-key'];
-    
+
     if (!apiKey) {
       return res.status(401).json({
         success: false,
@@ -28,7 +28,7 @@ const createApiKeyAuth = (options = {}) => {
       });
     }
 
-    const allowedApiKeys = process.env.API_KEYS 
+    const allowedApiKeys = process.env.API_KEYS
       ? process.env.API_KEYS.split(',').map(key => key.trim())
       : [];
 
@@ -49,7 +49,7 @@ const createApiKeyAuth = (options = {}) => {
     }
 
     console.log(`API access granted for key: ${apiKey.substring(0, 8)}...`);
-    
+
     next();
   };
 };

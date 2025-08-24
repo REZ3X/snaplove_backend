@@ -3,6 +3,7 @@ const { param, validationResult } = require('express-validator');
 const Frame = require('../../../../models/Frame');
 const User = require('../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../middleware/middleware');
+const Follow = require('../../../../models/Follow');
 
 const router = express.Router();
 
@@ -46,6 +47,90 @@ router.get('/:username/stats', [
         }
       }
     ]);
+
+    const [followerStats, followingStats] = await Promise.all([
+      Follow.aggregate([
+        {
+          $match: {
+            following_id: targetUser._id,
+            status: 'active'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'follower_id',
+            foreignField: '_id',
+            as: 'follower'
+          }
+        },
+        {
+          $unwind: '$follower'
+        },
+        {
+          $match: {
+            'follower.ban_status': false
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_followers: { $sum: 1 },
+            recent_followers: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$created_at', thirtyDaysAgo] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]),
+      Follow.aggregate([
+        {
+          $match: {
+            follower_id: targetUser._id,
+            status: 'active'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'following_id',
+            foreignField: '_id',
+            as: 'following'
+          }
+        },
+        {
+          $unwind: '$following'
+        },
+        {
+          $match: {
+            'following.ban_status': false
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total_following: { $sum: 1 },
+            recent_following: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$created_at', thirtyDaysAgo] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ])
+    ]);
+
+    const followerData = followerStats[0] || { total_followers: 0, recent_followers: 0 };
+    const followingData = followingStats[0] || { total_following: 0, recent_following: 0 };
 
     const approvedFrameStats = frameStats.find(stat => stat._id === 'approved') || {
       count: 0,
@@ -179,6 +264,14 @@ router.get('/:username/stats', [
         average_uses_per_frame: approvedFrameStats.count > 0
           ? Math.round(approvedFrameStats.total_uses / approvedFrameStats.count * 100) / 100
           : 0
+      },
+      social_stats: {
+        followers: followerData.total_followers,
+        following: followingData.total_following,
+        ...(isOwnStats && {
+          recent_followers_30d: followerData.recent_followers,
+          recent_following_30d: followingData.recent_following
+        })
       },
       top_frames: topFrames.map(frame => ({
         id: frame._id,

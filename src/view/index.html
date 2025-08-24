@@ -321,11 +321,17 @@
           📸 Photos
         </button>
         <button class="nav-tab" onclick="showSection('users')">👥 Users</button>
+        <button class="nav-tab" onclick="showSection('social')">
+          👥 Social
+        </button>
         <button class="nav-tab" onclick="showSection('leaderboard')">
           🏆 Leaderboard
         </button>
         <button class="nav-tab" onclick="showSection('reports')">
           📋 Reports & Tickets
+        </button>
+        <button class="nav-tab" onclick="showSection('notifications')">
+          🔔 Notifications
         </button>
         <button class="nav-tab" onclick="showSection('admin')">⚙️ Admin</button>
         <button class="nav-tab" onclick="showSection('examples')">
@@ -865,6 +871,102 @@
         </div>
       </div>
 
+      <div class="content-section" id="notifications">
+        <div class="endpoint-group">
+          <h3>🔔 Real-time Notifications</h3>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's notifications with pagination and filters
+            </div>
+            <div class="example-code">
+              Query Parameters:
+              ?page=1&limit=20&type=frame_like&unread_only=true
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private/{id}/read</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Mark specific notification as read
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private/mark-all-read</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Mark all notifications as read
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private/unread-count</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get unread notification count
+            </div>
+          </div>
+
+          <h4>📡 WebSocket Events</h4>
+          <div class="example-code">
+            // Client Events (emit): - 'mark_notification_read': Mark
+            notification as read - 'mark_all_read': Mark all notifications as
+            read - 'get_notifications': Get notifications list // Server Events
+            (listen): - 'new_notification': New notification received -
+            'unread_count': Updated unread count - 'notifications_list':
+            Notifications list response - 'error': Error message
+          </div>
+
+          <h4>🔔 Notification Types</h4>
+          <div class="example-code">
+            frame_like: Someone liked your frame frame_use: Someone used your
+            frame to take a photo frame_approved: Your frame was approved by
+            admin frame_rejected: Your frame was rejected by admin user_follow:
+            Someone started following you frame_upload: Someone you follow
+            uploaded a new frame system: System notifications
+          </div>
+
+          <h4>⚡ WebSocket Connection</h4>
+          <div class="example-code">
+            // Frontend Connection Example import io from 'socket.io-client';
+            const socket = io('ws://localhost:3000', { auth: { token:
+            localStorage.getItem('authToken') } }); // Listen for new
+            notifications socket.on('new_notification', (notification) => {
+            console.log('New notification:', notification); // Update UI with
+            new notification }); // Listen for unread count updates
+            socket.on('unread_count', (data) => { console.log('Unread count:',
+            data.count); // Update notification badge }); // Mark notification
+            as read socket.emit('mark_notification_read', notificationId); //
+            Get notifications socket.emit('get_notifications', { page: 1, limit:
+            20 });
+          </div>
+        </div>
+      </div>
+
       <div class="content-section" id="users">
         <div class="endpoint-group">
           <h3>👥 User Management</h3>
@@ -951,6 +1053,109 @@
             Basic: 3 public frames, 3-day photo TTL Verified: 20 public frames,
             7-day photo TTL Verified Premium: Unlimited frames & photos
             Official/Developer: Unlimited + auto-approval
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="social">
+        <div class="endpoint-group">
+          <h3>👥 Social Features</h3>
+
+          <h4>👤 Following Management</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}/following</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's following list with search and pagination
+            </div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=20&search=username
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/user/{username}/following</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Follow a user (sends real-time notification)
+            </div>
+            <div class="example-code">
+              { "following_username": "user_to_follow" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/following/{followingId}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">Unfollow a user</div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/following/check/{targetUsername}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Check if user is following another user
+            </div>
+          </div>
+
+          <h4>👥 Followers Management</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}/follower</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's followers list with search and pagination
+            </div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=20&search=username
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/follower/{followerId}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Remove a follower (profile owner only)
+            </div>
+          </div>
+
+          <h4>🔔 Social Notifications</h4>
+          <div class="example-code">
+            Real-time notifications sent for: - user_follow: When someone
+            follows you - frame_upload: When someone you follow uploads a public
+            frame Notification data includes: - Follower information (name,
+            username, image) - Frame details (title, thumbnail, layout) -
+            Timestamp and action type
+          </div>
+
+          <h4>📊 Social Features</h4>
+          <div class="example-code">
+            ✅ Mutual follow detection ✅ Search followers/following ✅
+            Pagination support ✅ Real-time notifications ✅ Ban status
+            filtering ✅ Self-follow prevention ✅ Stats integration
           </div>
         </div>
       </div>

@@ -28,7 +28,7 @@ router.get('/', [
 
     let dateFilter = {};
     const now = new Date();
-    
+
     switch (period) {
       case '7d':
         dateFilter = { created_at: { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } };
@@ -56,14 +56,16 @@ router.get('/', [
           total_likes: { $sum: { $size: '$like_count' } },
           total_uses: { $sum: { $size: '$use_count' } },
           frame_count: { $sum: 1 },
-          frames: { $push: {
-            id: '$_id',
-            title: '$title',
-            thumbnail: '$thumbnail',
-            likes: { $size: '$like_count' },
-            uses: { $size: '$use_count' },
-            created_at: '$created_at'
-          }}
+          frames: {
+            $push: {
+              id: '$_id',
+              title: '$title',
+              thumbnail: '$thumbnail',
+              likes: { $size: '$like_count' },
+              uses: { $size: '$use_count' },
+              created_at: '$created_at'
+            }
+          }
         }
       }
     ];
@@ -92,10 +94,10 @@ router.get('/', [
       default:
         basePipeline.push({
           $addFields: {
-            score: { 
+            score: {
               $add: [
                 { $multiply: ['$total_likes', 2] },
-                '$total_uses' 
+                '$total_uses'
               ]
             },
             type: 'combined'
@@ -122,7 +124,7 @@ router.get('/', [
       },
       {
         $match: {
-          'user.ban_status': false 
+          'user.ban_status': false
         }
       }
     );

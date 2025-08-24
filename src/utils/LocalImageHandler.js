@@ -82,7 +82,7 @@ class LocalImageHandler {
       storage: this.getFrameStorage(),
       fileFilter: this.imageFileFilter,
       limits: {
-        fileSize: 5 * 1024 * 1024, 
+        fileSize: 5 * 1024 * 1024,
         files: 1
       }
     });
@@ -94,7 +94,7 @@ class LocalImageHandler {
       fileFilter: this.imageFileFilter,
       limits: {
         fileSize: 10 * 1024 * 1024,
-        files: 5 
+        files: 5
       }
     });
   }
@@ -104,8 +104,8 @@ class LocalImageHandler {
       storage: this.getTicketStorage(),
       fileFilter: this.imageFileFilter,
       limits: {
-        fileSize: 5 * 1024 * 1024, 
-        files: 3 
+        fileSize: 5 * 1024 * 1024,
+        files: 3
       }
     });
   }

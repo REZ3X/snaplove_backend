@@ -32,7 +32,7 @@ router.get('/:username', [
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const frames = await Frame.find({ 
+    const frames = await Frame.find({
       user_id: targetUser._id,
       visibility: 'public'
     })
@@ -40,7 +40,7 @@ router.get('/:username', [
       .skip(skip)
       .limit(limit);
 
-    const total = await Frame.countDocuments({ 
+    const total = await Frame.countDocuments({
       user_id: targetUser._id,
       visibility: 'public'
     });

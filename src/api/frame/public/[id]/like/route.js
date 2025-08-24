@@ -2,6 +2,7 @@ const express = require('express');
 const { param, validationResult } = require('express-validator');
 const Frame = require('../../../../../models/Frame');
 const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
+const socketService = require('../../../../../services/socketService');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post('/:id', [
     const frame = await Frame.findOne({
       _id: req.params.id,
       visibility: 'public'
-    });
+    }).populate('user_id', 'name username');
 
     if (!frame) {
       return res.status(404).json({
@@ -45,6 +46,23 @@ router.post('/:id', [
       frame.like_count.push({ user_id: userId });
       isLiked = true;
       message = 'Frame liked successfully';
+
+      if (frame.user_id._id.toString() !== userId) {
+        try {
+          await socketService.sendFrameLikeNotification(
+            frame.user_id._id,
+            userId,
+            {
+              id: frame._id,
+              title: frame.title,
+              thumbnail: frame.thumbnail,
+              total_likes: frame.total_likes + 1
+            }
+          );
+        } catch (notifError) {
+          console.error('Failed to send like notification:', notifError);
+        }
+      }
     }
 
     await frame.save();
