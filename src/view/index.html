@@ -321,6 +321,9 @@
           📸 Photos
         </button>
         <button class="nav-tab" onclick="showSection('users')">👥 Users</button>
+        <button class="nav-tab" onclick="showSection('leaderboard')">
+          🏆 Leaderboard
+        </button>
         <button class="nav-tab" onclick="showSection('reports')">
           📋 Reports & Tickets
         </button>
@@ -559,19 +562,6 @@
             <div class="endpoint-header">
               <span class="method get">GET</span>
               <span class="endpoint-path"
-                >/api/user/{username}/frame/private/{id}</span
-              >
-              <span class="auth-required">🔒 AUTH</span>
-            </div>
-            <div class="endpoint-description">
-              Get specific private frame details
-            </div>
-          </div>
-
-          <div class="endpoint">
-            <div class="endpoint-header">
-              <span class="method get">GET</span>
-              <span class="endpoint-path"
                 >/api/user/{username}/frame/public</span
               >
             </div>
@@ -666,7 +656,8 @@
               <span class="auth-required">🔒 AUTH</span>
             </div>
             <div class="endpoint-description">
-              Get specific photo details with frame information
+              Get specific photo details including frame information and
+              metadata
             </div>
           </div>
 
@@ -682,7 +673,8 @@
               Edit photo title and description
             </div>
             <div class="example-code">
-              { "title": "Updated Photo Title", "desc": "Updated description" }
+              { "title": "Updated Photo Title", "desc": "Updated photo
+              description" }
             </div>
           </div>
 
@@ -695,7 +687,7 @@
               <span class="auth-required">🔒 AUTH</span>
             </div>
             <div class="endpoint-description">
-              Delete user's photo permanently
+              Permanently delete user's photo and all associated images
             </div>
           </div>
 
@@ -703,6 +695,78 @@
           <div class="example-code">
             Basic: 3 days Verified: 7 days Verified Premium/Official/Developer:
             Unlimited
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="leaderboard">
+        <div class="endpoint-group">
+          <h3>🏆 Leaderboard System</h3>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/leaderboard/public</span>
+            </div>
+            <div class="endpoint-description">
+              Get user rankings based on frame likes and usage over different
+              time periods
+            </div>
+            <div class="example-code">
+              Query Parameters: ?period=7d|1m|all (default: 7d)
+              &type=likes|uses|combined (default: combined) &limit=50 (max: 100,
+              default: 50) &page=1
+            </div>
+          </div>
+
+          <h4>🕐 Time Periods</h4>
+          <div class="example-code">
+            7d: Last 7 days - Frames created in last 7 days 1m: Last 30 days -
+            Frames created in last 30 days all: All time - All approved public
+            frames
+          </div>
+
+          <h4>📊 Ranking Types</h4>
+          <div class="example-code">
+            likes: Total likes received on public frames uses: Total frame usage
+            by other users combined: (Likes × 2) + Uses (default scoring)
+          </div>
+
+          <h4>🏅 Response Structure</h4>
+          <div class="example-code">
+            { "success": true, "data": { "leaderboard": [ { "rank": 1, "user": {
+            "id": "user_id", "name": "Top Creator", "username": "top_creator",
+            "image_profile": "profile_url", "role": "verified_premium" },
+            "stats": { "score": 850, "total_likes": 320, "total_uses": 210,
+            "frame_count": 25, "avg_likes_per_frame": 12.8,
+            "avg_uses_per_frame": 8.4 }, "top_frames": [ { "id": "frame_id",
+            "title": "Popular Frame", "thumbnail": "thumbnail_url", "likes": 45,
+            "uses": 32, "total_interactions": 77, "created_at":
+            "2024-01-15T10:30:00.000Z" } ] } ], "period": { "type": "7d",
+            "ranking_type": "combined", "description": "Last 7 days ranking...",
+            "scoring_info": "Ranked by combined score..." }, "pagination": {
+            "current_page": 1, "total_pages": 5, "total_items": 248,
+            "items_per_page": 50 }, "statistics": { "period_stats": {
+            "total_frames": 1250, "total_likes": 15400, "total_uses": 8750,
+            "unique_creators": 248, "avg_likes_per_frame": 12.32,
+            "avg_uses_per_frame": 7.0 } } } }
+          </div>
+
+          <h4>🎯 Use Cases</h4>
+          <div class="example-code">
+            Weekly Leaderboard: /api/leaderboard/public?period=7d&type=combined
+            Monthly Likes Leaders: /api/leaderboard/public?period=1m&type=likes
+            All-time Most Used: /api/leaderboard/public?period=all&type=uses
+            Paginated Results: /api/leaderboard/public?page=2&limit=25
+          </div>
+
+          <h4>🏆 Ranking Logic</h4>
+          <div class="example-code">
+            1. Only approved public frames count towards rankings 2. Only
+            non-banned users appear in leaderboard 3. Scores calculated from
+            frames created within period 4. Combined scoring: Likes worth 2
+            points, Uses worth 1 point 5. Ties broken by: Total likes → Total
+            uses → Frame count
           </div>
         </div>
       </div>
@@ -818,11 +882,17 @@
           <div class="endpoint">
             <div class="endpoint-header">
               <span class="method put">PUT</span>
-              <span class="endpoint-path">/api/user/{username}/edit</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/private/edit</span
+              >
               <span class="auth-required">🔒 AUTH</span>
             </div>
             <div class="endpoint-description">
               Edit user profile (own profile only)
+            </div>
+            <div class="example-code">
+              { "name": "Updated Name", "bio": "Updated bio", "birthdate":
+              "1990-01-01" }
             </div>
           </div>
 
@@ -847,6 +917,19 @@
             </div>
             <div class="endpoint-description">
               Get frames liked by user (private access only)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/frame/private/{id}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get specific private frame details with full information
             </div>
           </div>
 
@@ -1175,6 +1258,24 @@
             "Validation error message" } ] } // Standard Success Response Format
             { "success": true, "message": "Operation successful", "data": { //
             Response data } }
+          </div>
+
+          <h4>🏆 Leaderboard Queries</h4>
+          <div class="example-code">
+            // Get weekly leaderboard (combined score)
+            fetch('/api/leaderboard/public?period=7d&type=combined&limit=10')
+            .then(response => response.json()) .then(data => {
+            data.data.leaderboard.forEach((entry, index) => {
+            console.log(`#${entry.rank}: ${entry.user.name} - Score:
+            ${entry.stats.score}`); }); }); // Get monthly likes leaders
+            fetch('/api/leaderboard/public?period=1m&type=likes&page=1&limit=25')
+            .then(response => response.json()) .then(data => { console.log('Top
+            creators by likes:', data.data.leaderboard); console.log('Period
+            stats:', data.data.statistics.period_stats); }); // Get all-time
+            most used frames creators
+            fetch('/api/leaderboard/public?period=all&type=uses') .then(response
+            => response.json()) .then(data => { console.log('Most used
+            creators:', data.data.leaderboard); });
           </div>
         </div>
       </div>

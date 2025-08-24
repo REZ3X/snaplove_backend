@@ -61,6 +61,8 @@ const adminServerHealthRoute = require('./api/admin/serverHealth/route');
 
 const frameApprovalRoute = require('./api/admin/framePublicApproval/route');
 
+const leaderboardPublicRoute = require('./api/leaderboard/public/route');
+
 const apiKeyAuth = createApiKeyAuth({
   skipPaths: ['/', '/health'],
   skipPatterns: [/^\/docs/, /^\/images/],
@@ -346,6 +348,8 @@ app.use('/api/user', photoEditRoute);
 app.use('/api/user', photoDeleteRoute);
 
 app.use('/api/admin/framePublicApproval', frameApprovalRoute);
+
+app.use('/api/leaderboard/public', leaderboardPublicRoute);
 
 app.use('*', (req, res) => {
   res.status(404).json({
