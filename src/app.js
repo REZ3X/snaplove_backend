@@ -12,6 +12,8 @@ const User = require('./models/User');
 const Frame = require('./models/Frame');
 const Photo = require('./models/Photo');
 
+const createApiKeyAuth = require('./middleware/apiKeyAuth');
+
 const loginRoute = require('./api/auth/login/route');
 const registerRoute = require('./api/auth/register/route');
 const logoutRoute = require('./api/auth/logout/route');
@@ -59,6 +61,12 @@ const adminServerHealthRoute = require('./api/admin/serverHealth/route');
 
 const frameApprovalRoute = require('./api/admin/framePublicApproval/route');
 
+const apiKeyAuth = createApiKeyAuth({
+  skipPaths: ['/', '/health'],
+  skipPatterns: [/^\/docs/, /^\/images/],
+  envOnly: 'production'
+});
+
 const formatUptime = (seconds) => {
   const days = Math.floor(seconds / (24 * 60 * 60));
   const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
@@ -74,6 +82,9 @@ const formatUptime = (seconds) => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 const imageHandler = require('./utils/LocalImageHandler');
 imageHandler.initializeDirectories();
 
@@ -86,6 +97,8 @@ if (process.env.NODE_ENV === 'production') {
 if (process.env.NODE_ENV !== 'test') {
   connectDB();
 }
+
+app.use(apiKeyAuth);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'view', 'index.html'));
