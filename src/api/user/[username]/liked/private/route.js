@@ -2,7 +2,7 @@ const express = require('express');
 const { param, query, validationResult } = require('express-validator');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
 
 const router = express.Router();
 
@@ -44,7 +44,7 @@ router.get('/:username/liked/private', [
 
     const filter = {
       'like_count.user_id': targetUser._id,
-      visibility: 'public' 
+      visibility: 'public'
     };
 
     const approvalFilter = req.query.approval_status || 'all';
@@ -54,17 +54,17 @@ router.get('/:username/liked/private', [
 
     let sort = {};
     switch (req.query.sort) {
-    case 'oldest':
-      sort = { 'like_count.created_at': 1 };
-      break;
-    case 'most_liked':
-      sort = { 'like_count': -1, created_at: -1 };
-      break;
-    case 'most_used':
-      sort = { 'use_count': -1, created_at: -1 };
-      break;
-    default:
-      sort = { 'like_count.created_at': -1 };
+      case 'oldest':
+        sort = { 'like_count.created_at': 1 };
+        break;
+      case 'most_liked':
+        sort = { 'like_count': -1, created_at: -1 };
+        break;
+      case 'most_used':
+        sort = { 'use_count': -1, created_at: -1 };
+        break;
+      default:
+        sort = { 'like_count.created_at': -1 };
     }
 
     const frames = await Frame.find(filter)
@@ -77,11 +77,11 @@ router.get('/:username/liked/private', [
     const totalPages = Math.ceil(total / limit);
 
     const stats = await Frame.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           'like_count.user_id': targetUser._id,
           visibility: 'public'
-        } 
+        }
       },
       {
         $group: {
@@ -94,7 +94,7 @@ router.get('/:username/liked/private', [
     ]);
 
     const processedFrames = frames.map(frame => {
-      const userLike = frame.like_count.find(like => 
+      const userLike = frame.like_count.find(like =>
         like.user_id.toString() === targetUser._id.toString()
       );
 
@@ -207,7 +207,7 @@ router.get('/:username/liked/private/check/:frameId', [
       });
     }
 
-    const userLike = frame.like_count.find(like => 
+    const userLike = frame.like_count.find(like =>
       like.user_id.toString() === targetUser._id.toString()
     );
 

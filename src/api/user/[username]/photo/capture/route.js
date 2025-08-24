@@ -3,7 +3,7 @@ const { param, body, validationResult } = require('express-validator');
 const Photo = require('../../../../../models/Photo');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
 const { calculatePhotoExpiry } = require('../../../../../utils/RolePolicy');
 
 const router = express.Router();

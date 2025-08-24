@@ -2,7 +2,7 @@ const express = require('express');
 const { param, query, validationResult } = require('express-validator');
 const Ticket = require('../../../../../models/Ticket');
 const User = require('../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
 
 const router = express.Router();
 
@@ -43,11 +43,11 @@ router.get('/:username/ticket/private', [
     const skip = (page - 1) * limit;
 
     const filter = { user_id: targetUser._id };
-    
+
     if (req.query.type) {
       filter.type = req.query.type;
     }
-    
+
     if (req.query.status) {
       filter.status = req.query.status;
     }
@@ -107,7 +107,7 @@ router.post('/:username/ticket/private', [
 ], authenticateToken, checkBanStatus, async (req, res) => {
   const imageHandler = require('../../../../../utils/LocalImageHandler');
   const upload = imageHandler.getTicketUpload();
-  
+
   upload.array('images', 3)(req, res, async (err) => {
     if (err) {
       return res.status(400).json({

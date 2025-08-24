@@ -2,7 +2,7 @@ const express = require('express');
 const { param, validationResult } = require('express-validator');
 const Photo = require('../../../../../../../models/Photo');
 const User = require('../../../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware/middleware');
 const imageHandler = require('../../../../../../../utils/LocalImageHandler');
 
 const router = express.Router();

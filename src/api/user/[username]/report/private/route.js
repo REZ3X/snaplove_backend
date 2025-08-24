@@ -3,7 +3,7 @@ const { param, body, query, validationResult } = require('express-validator');
 const Report = require('../../../../../models/Report');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
 
 const router = express.Router();
 

@@ -2,7 +2,7 @@ const express = require('express');
 const { param, validationResult } = require('express-validator');
 const Frame = require('../../../../models/Frame');
 const User = require('../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../middleware/middleware');
 
 const router = express.Router();
 
@@ -30,11 +30,11 @@ router.get('/:username/stats', [
     const isOwnStats = req.user.userId === targetUser._id.toString();
 
     const frameStats = await Frame.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           user_id: targetUser._id,
-          visibility: 'public' 
-        } 
+          visibility: 'public'
+        }
       },
       {
         $group: {
@@ -70,19 +70,19 @@ router.get('/:username/stats', [
     }
 
     const topFrames = await Frame.find(topFramesFilter)
-      .sort({ 
-        $expr: { 
+      .sort({
+        $expr: {
           $add: [
-            { $size: '$like_count' }, 
+            { $size: '$like_count' },
             { $size: '$use_count' }
-          ] 
+          ]
         }
       })
       .limit(5)
       .select('title thumbnail images layout_type like_count use_count approval_status created_at');
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
+
     const recentActivityFilter = {
       user_id: targetUser._id,
       visibility: 'public',
@@ -99,7 +99,7 @@ router.get('/:username/stats', [
       .select('title thumbnail like_count use_count approval_status created_at');
 
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    
+
     const growthFilter = {
       user_id: targetUser._id,
       visibility: 'public'
@@ -111,11 +111,11 @@ router.get('/:username/stats', [
 
     const [currentPeriod, previousPeriod] = await Promise.all([
       Frame.aggregate([
-        { 
-          $match: { 
+        {
+          $match: {
             ...growthFilter,
             created_at: { $gte: thirtyDaysAgo }
-          } 
+          }
         },
         {
           $group: {
@@ -127,14 +127,14 @@ router.get('/:username/stats', [
         }
       ]),
       Frame.aggregate([
-        { 
-          $match: { 
+        {
+          $match: {
             ...growthFilter,
-            created_at: { 
+            created_at: {
               $gte: sixtyDaysAgo,
               $lt: thirtyDaysAgo
             }
-          } 
+          }
         },
         {
           $group: {
@@ -173,11 +173,11 @@ router.get('/:username/stats', [
         total_approved: approvedFrameStats.count,
         total_likes_received: approvedFrameStats.total_likes,
         total_uses_received: approvedFrameStats.total_uses,
-        average_likes_per_frame: approvedFrameStats.count > 0 
-          ? Math.round(approvedFrameStats.total_likes / approvedFrameStats.count * 100) / 100 
+        average_likes_per_frame: approvedFrameStats.count > 0
+          ? Math.round(approvedFrameStats.total_likes / approvedFrameStats.count * 100) / 100
           : 0,
-        average_uses_per_frame: approvedFrameStats.count > 0 
-          ? Math.round(approvedFrameStats.total_uses / approvedFrameStats.count * 100) / 100 
+        average_uses_per_frame: approvedFrameStats.count > 0
+          ? Math.round(approvedFrameStats.total_uses / approvedFrameStats.count * 100) / 100
           : 0
       },
       top_frames: topFrames.map(frame => ({

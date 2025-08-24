@@ -2,7 +2,7 @@ const express = require('express');
 const { param, validationResult } = require('express-validator');
 const Frame = require('../../../../../../../models/Frame');
 const User = require('../../../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware/middleware');
 const imageHandler = require('../../../../../../../utils/LocalImageHandler');
 
 const router = express.Router();
@@ -36,7 +36,7 @@ router.delete('/:username/frame/private/:id/delete', [
       });
     }
 
-    const frame = await Frame.findOne({ 
+    const frame = await Frame.findOne({
       _id: req.params.id,
       user_id: targetUser._id
     });

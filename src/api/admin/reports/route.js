@@ -1,7 +1,7 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const Report = require('../../../models/Report');
-const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../middleware');
+const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../middleware/middleware');
 
 const router = express.Router();
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const { param, validationResult } = require('express-validator');
 const Frame = require('../../../../../../models/Frame');
-const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../../../../middleware');
+const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../../../../middleware/middleware');
 const imageHandler = require('../../../../../../utils/LocalImageHandler');
 
 const router = express.Router();

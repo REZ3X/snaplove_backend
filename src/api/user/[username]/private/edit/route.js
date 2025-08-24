@@ -1,7 +1,7 @@
 const express = require('express');
 const { param, body, validationResult } = require('express-validator');
 const User = require('../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
 
 const router = express.Router();
 
@@ -62,7 +62,7 @@ router.put('/:username/edit', [
 
       const currentBirthdate = targetUser.birthdate ? targetUser.birthdate.toISOString().split('T')[0] : null;
       const newBirthdateString = newBirthdate ? newBirthdate.toISOString().split('T')[0] : null;
-      
+
       if (currentBirthdate !== newBirthdateString) {
         updateData.birthdate = newBirthdate;
         changes.push(`Birthdate ${newBirthdate ? 'updated' : 'removed'}`);

@@ -2,7 +2,7 @@ const express = require('express');
 const { param, validationResult } = require('express-validator');
 const Report = require('../../../../../../models/Report');
 const User = require('../../../../../../models/User');
-const { authenticateToken, checkBanStatus } = require('../../../../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../../../../middleware/middleware');
 
 const router = express.Router();
 
@@ -35,7 +35,7 @@ router.get('/:username/report/private/:id', [
       });
     }
 
-    const report = await Report.findOne({ 
+    const report = await Report.findOne({
       _id: req.params.id,
       user_id: targetUser._id
     })

@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken, checkBanStatus } = require('../../../middleware');
+const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 
 const router = express.Router();
 
