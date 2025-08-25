@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snaplove Backend API Documentation</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <style>
+      :root {
+        --primary-color: #6366f1;
+        --primary-dark: #4f46e5;
+        --primary-light: #8b5cf6;
+        --secondary-color: #06b6d4;
+        --background-primary: #0f172a;
+        --background-secondary: #1e293b;
+        --background-tertiary: #334155;
+        --surface-primary: #ffffff;
+        --surface-secondary: #f8fafc;
+        --surface-tertiary: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #64748b;
+        --text-inverse: #ffffff;
+        --text-muted: #94a3b8;
+        --border-color: #e2e8f0;
+        --border-dark: #334155;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --error-color: #ef4444;
+        --info-color: #3b82f6;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+          0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+          0 8px 10px -6px rgb(0 0 0 / 0.1);
+        --radius-sm: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(
+          135deg,
+          var(--background-primary) 0%,
+          var(--background-secondary) 100%
+        );
+        color: var(--text-primary);
+        line-height: 1.6;
+        overflow-x: hidden;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 3rem;
+        background: var(--surface-primary);
+        padding: 3rem 2rem;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-xl);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+      }
+
+      .header h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.025em;
+      }
+
+      .header .title-icon {
+        font-size: 3.5rem;
+        margin-right: 1rem;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header p {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+        font-weight: 400;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .status-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-lg);
+        font-weight: 600;
+        font-size: 0.875rem;
+        border: 1px solid;
+        transition: all 0.2s ease;
+      }
+
+      .status-healthy {
+        background: #ecfdf5;
+        color: #065f46;
+        border-color: #10b981;
+      }
+
+      .status-loading {
+        background: #fffbeb;
+        color: #92400e;
+        border-color: #f59e0b;
+      }
+
+      .nav-tabs {
+        display: flex;
+        justify-content: center;
+        background: var(--surface-primary);
+        border-radius: var(--radius-xl);
+        padding: 0.75rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .nav-tab {
+        background: transparent;
+        border: none;
+        padding: 0.75rem 1.25rem;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .nav-tab:hover:not(.active) {
+        background: var(--surface-secondary);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+      }
+
+      .nav-tab.active {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        color: var(--text-inverse);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .nav-tab i {
+        font-size: 1rem;
+      }
+
+      .content-section {
+        display: none;
+        background: var(--surface-primary);
+        border-radius: var(--radius-xl);
+        padding: 2rem;
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(20px);
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-color);
+      }
+
+      .content-section.active {
+        display: block;
+        animation: fadeIn 0.5s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .endpoint-group {
+        background: var(--surface-primary);
+        margin-bottom: 2rem;
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+      }
+
+      .endpoint-group:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-2xl);
+      }
+
+      .endpoint-group h3 {
+        background: linear-gradient(
+          135deg,
+          var(--surface-secondary) 0%,
+          var(--surface-primary) 100%
+        );
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .endpoint-group h3 i {
+        color: var(--primary-color);
+        font-size: 1.25rem;
+      }
+
+      .endpoint {
+        background: transparent;
+        border-radius: 0;
+        padding: 1.5rem 2rem;
+        margin-bottom: 0;
+        border-left: none;
+        border-bottom: 1px solid var(--border-subtle);
+        transition: all 0.2s ease;
+        position: relative;
+      }
+
+      .endpoint:last-child {
+        border-bottom: none;
+      }
+
+      .endpoint:hover {
+        background: var(--surface-secondary);
+        transform: none;
+        box-shadow: none;
+      }
+
+      .endpoint-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .method {
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        min-width: 60px;
+        text-align: center;
+        border: 1px solid;
+      }
+
+      .method.get {
+        background: #ecfdf5;
+        color: #065f46;
+        border-color: #10b981;
+      }
+
+      .method.post {
+        background: #eff6ff;
+        color: #1e40af;
+        border-color: #3b82f6;
+      }
+
+      .method.put {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #f59e0b;
+      }
+
+      .method.delete {
+        background: #fef2f2;
+        color: #991b1b;
+        border-color: #ef4444;
+      }
+
+      .endpoint-path {
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        background: var(--surface-secondary);
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--radius-md);
+        flex-grow: 1;
+        font-weight: 600;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        font-size: 1rem;
+        min-width: 200px;
+      }
+
+      .endpoint-description {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        line-height: 1.6;
+      }
+
+      .auth-required {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: #fef3c7;
+        color: #92400e;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid #f59e0b;
+        white-space: nowrap;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .stat-card {
+        background: var(--surface-primary);
+        padding: 2rem;
+        border-radius: var(--radius-xl);
+        text-align: center;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-lg);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+      }
+
+      .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-2xl);
+      }
+
+      .stat-value {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+
+      .stat-label {
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 1rem;
+        margin: 0;
+      }
+
+      .example-code {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        font-size: 0.875rem;
+        overflow-x: auto;
+        margin: 1rem 0;
+        border: 1px solid #475569;
+        position: relative;
+      }
+
+      .example-code::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+      }
+
+      .footer {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: var(--surface-primary);
+        border-radius: var(--radius-xl);
+        margin-top: 4rem;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .footer::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+      }
+
+      .footer p {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .version {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        color: var(--text-inverse);
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-full);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        font-size: 0.875rem;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--primary-light);
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        .header h1 {
+          font-size: 2.5rem;
+        }
+
+        .header p {
+          font-size: 1rem;
+        }
+
+        .nav-tabs {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .nav-tab {
+          justify-content: center;
+          margin: 0.25rem 0;
+        }
+
+        .endpoint-header {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.75rem;
+        }
+
+        .endpoint-path {
+          min-width: auto;
+          font-size: 0.875rem;
+          overflow-x: auto;
+        }
+
+        .method {
+          margin-bottom: 0;
+          align-self: flex-start;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .stat-value {
+          font-size: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1><i class="fas fa-rocket title-icon"></i>Snaplove Backend API</h1>
+        <p>Comprehensive RESTful API for frame-based photo sharing platform</p>
+        <div class="status-container">
+          <span class="status-badge status-loading" id="status-badge">
+            <i class="fas fa-sync-alt fa-spin"></i>
+            Checking Status...
+          </span>
+          <span class="version" id="version">
+            <i class="fas fa-code-branch"></i>
+            Loading...
+          </span>
+        </div>
+      </div>
+
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showSection('overview')">
+          <i class="fas fa-chart-line"></i>
+          Overview
+        </button>
+        <button class="nav-tab" onclick="showSection('auth')">
+          <i class="fas fa-user-shield"></i>
+          Authentication
+        </button>
+        <button class="nav-tab" onclick="showSection('frames')">
+          <i class="fas fa-image"></i>
+          Frames
+        </button>
+        <button class="nav-tab" onclick="showSection('photos')">
+          <i class="fas fa-camera"></i>
+          Photos
+        </button>
+        <button class="nav-tab" onclick="showSection('users')">
+          <i class="fas fa-users"></i>
+          Users
+        </button>
+        <button class="nav-tab" onclick="showSection('social')">
+          <i class="fas fa-heart"></i>
+          Social
+        </button>
+        <button class="nav-tab" onclick="showSection('leaderboard')">
+          <i class="fas fa-trophy"></i>
+          Leaderboard
+        </button>
+        <button class="nav-tab" onclick="showSection('reports')">
+          <i class="fas fa-clipboard-list"></i>
+          Reports & Tickets
+        </button>
+        <button class="nav-tab" onclick="showSection('notifications')">
+          <i class="fas fa-bell"></i>
+          Notifications
+        </button>
+        <button class="nav-tab" onclick="showSection('admin')">
+          <i class="fas fa-cog"></i>
+          Admin
+        </button>
+        <button class="nav-tab" onclick="showSection('examples')">
+          <i class="fas fa-code"></i>
+          Examples
+        </button>
+      </div>
+
+      <div class="content-section active" id="overview">
+        <div class="endpoint-group">
+          <h3><i class="fas fa-chart-line"></i>API Overview</h3>
+          <div class="endpoint">
+            <p>
+              Welcome to the Snaplove Backend API documentation. This API powers
+              a frame-based photo sharing platform where users can create
+              frames, capture photos using those frames, and manage their
+              content.
+            </p>
+
+            <div
+              style="
+                background: #fef3c7;
+                padding: 1.5rem;
+                border-radius: var(--radius-lg);
+                margin: 1.5rem 0;
+                border: 1px solid #f59e0b;
+              "
+            >
+              <h4
+                style="
+                  margin: 0 0 0.75rem 0;
+                  color: #92400e;
+                  display: flex;
+                  align-items: center;
+                  gap: 0.5rem;
+                "
+              >
+                <i class="fas fa-key"></i> Production API Access
+              </h4>
+              <p style="margin: 0; color: #92400e">
+                <strong>Production requests require an API key.</strong> Include
+                <code>x-api-key</code> header with your requests.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-users">
+              <i class="fas fa-users"></i>
+              -
+            </div>
+            <div class="stat-label">Active Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-frames">
+              <i class="fas fa-image"></i>
+              -
+            </div>
+            <div class="stat-label">Public Frames</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-photos">
+              <i class="fas fa-camera"></i>
+              -
+            </div>
+            <div class="stat-label">Total Photos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-uptime">
+              <i class="fas fa-clock"></i>
+              -
+            </div>
+            <div class="stat-label">Uptime</div>
+          </div>
+        </div>
+
+        <div class="endpoint-group">
+          <h3><i class="fas fa-tools"></i>Key Features</h3>
+          <div class="endpoint">
+            <ul
+              style="margin: 1.5rem 0; padding-left: 1.5rem; line-height: 1.8"
+            >
+              <li>
+                <strong>Frame Management:</strong> Create, edit, and manage
+                frames with approval system
+              </li>
+              <li>
+                <strong>Photo Capture:</strong> Take photos using frames with
+                role-based TTL
+              </li>
+              <li>
+                <strong>User System:</strong> Role-based permissions and content
+                moderation
+              </li>
+              <li>
+                <strong>Admin Tools:</strong> Comprehensive administration and
+                reporting
+              </li>
+              <li>
+                <strong>Real-time Stats:</strong> Live performance and usage
+                metrics
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="endpoint-group">
+          <h3><i class="fas fa-globe"></i>Base URL</h3>
+          <div class="endpoint">
+            <div class="example-code">
+              Production: https://snaploveapi.slaviors.xyz<br />
+              Development: http://localhost:4000
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="auth">
+        <div class="endpoint-group">
+          <h3><i class="fas fa-user-shield"></i>Authentication</h3>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/auth/register</span>
+            </div>
+            <div class="endpoint-description">
+              Register a new user with Google OAuth
+            </div>
+            <div class="example-code">
+              { "google_id": "string", "email": "user@gmail.com", "name": "User
+              Name", "image_profile": "https://profile-url.jpg" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/auth/login</span>
+            </div>
+            <div class="endpoint-description">
+              Login with Google OAuth credentials
+            </div>
+            <div class="example-code">
+              { "google_id": "string", "email": "user@gmail.com" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/auth/me</span>
+              <span class="auth-required">
+                <i class="fas fa-lock"></i>
+                AUTH
+              </span>
+            </div>
+            <div class="endpoint-description">Get current user information</div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/auth/logout</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">Logout current user</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="frames">
+        <div class="endpoint-group">
+          <h3>🖼️ Frame Management</h3>
+
+          <h4>🌐 Public Frame Endpoints</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/frame/public</span>
+            </div>
+            <div class="endpoint-description">
+              Get public approved frames with pagination and filters
+            </div>
+            <div class="example-code">
+              Query Parameters:
+              ?page=1&limit=20&layout_type=2x1&tag=nature&sort=newest
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/frame/public</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Create new frame (thumbnail required for public visibility)
+            </div>
+            <div class="example-code">
+              FormData: - images: File[] (max 10) - thumbnail: File (required
+              for public) - title: string - desc: string (optional) -
+              layout_type: "2x1" | "3x1" | "4x1" - visibility: "private" |
+              "public" - tag_label: string (comma-separated)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/frame/public/{id}</span>
+            </div>
+            <div class="endpoint-description">
+              Get specific frame by ID (accessible via direct URL even if shadow
+              banned)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/frame/public/{id}/like</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Like/unlike a frame (toggle action)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/frame/public/{id}/admin/delete</span
+              >
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Admin delete any public frame
+            </div>
+          </div>
+
+          <h4>👤 User Frame Management</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}/frame</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get all user's frames (private + public) - own frames only
+            </div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=20&visibility=all|private|public
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/frame/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's private frames only
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/frame/public</span
+              >
+            </div>
+            <div class="endpoint-description">
+              Get user's public frames (visible to everyone)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/frame/private/{id}/edit</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Edit frame (can change visibility from private to public with
+              thumbnail)
+            </div>
+            <div class="example-code">
+              FormData: - title: string (optional) - desc: string (optional) -
+              layout_type: string (optional) - visibility: "private" | "public"
+              (optional) - tag_label: string[] (optional) - thumbnail: File
+              (required when changing to public)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/frame/private/{id}/delete</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">Delete user's own frame</div>
+          </div>
+
+          <h4>📊 Frame Approval System</h4>
+          <div class="example-code">
+            Frame Visibility Logic: - Private: Always visible to owner, no
+            approval needed - Public: Requires approval to appear in public feed
+            - Shadow Banned: Public but not in feed (accessible via direct URL)
+            - Auto-Approval: Official/Developer roles
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="photos">
+        <div class="endpoint-group">
+          <h3>📸 Photo Management</h3>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/capture</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Capture photo using a frame (private only, with TTL based on user
+              role)
+            </div>
+            <div class="example-code">
+              FormData: - images: File[] - frame_id: string - title: string -
+              desc: string (optional)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's private photos (own photos only)
+            </div>
+            <div class="example-code">Query Parameters: ?page=1&limit=20</div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/private/{id}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get specific photo details including frame information and
+              metadata
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/private/{id}/edit</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Edit photo title and description
+            </div>
+            <div class="example-code">
+              { "title": "Updated Photo Title", "desc": "Updated photo
+              description" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/private/{id}/delete</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Permanently delete user's photo and all associated images
+            </div>
+          </div>
+
+          <h4>📅 Photo TTL by Role:</h4>
+          <div class="example-code">
+            Basic: 3 days Verified: 7 days Verified Premium/Official/Developer:
+            Unlimited
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="leaderboard">
+        <div class="endpoint-group">
+          <h3>🏆 Leaderboard System</h3>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/leaderboard/public</span>
+            </div>
+            <div class="endpoint-description">
+              Get user rankings based on frame likes and usage over different
+              time periods
+            </div>
+            <div class="example-code">
+              Query Parameters: ?period=7d|1m|all (default: 7d)
+              &type=likes|uses|combined (default: combined) &limit=50 (max: 100,
+              default: 50) &page=1
+            </div>
+          </div>
+
+          <h4>🕐 Time Periods</h4>
+          <div class="example-code">
+            7d: Last 7 days - Frames created in last 7 days 1m: Last 30 days -
+            Frames created in last 30 days all: All time - All approved public
+            frames
+          </div>
+
+          <h4>📊 Ranking Types</h4>
+          <div class="example-code">
+            likes: Total likes received on public frames uses: Total frame usage
+            by other users combined: (Likes × 2) + Uses (default scoring)
+          </div>
+
+          <h4>🏅 Response Structure</h4>
+          <div class="example-code">
+            { "success": true, "data": { "leaderboard": [ { "rank": 1, "user": {
+            "id": "user_id", "name": "Top Creator", "username": "top_creator",
+            "image_profile": "profile_url", "role": "verified_premium" },
+            "stats": { "score": 850, "total_likes": 320, "total_uses": 210,
+            "frame_count": 25, "avg_likes_per_frame": 12.8,
+            "avg_uses_per_frame": 8.4 }, "top_frames": [ { "id": "frame_id",
+            "title": "Popular Frame", "thumbnail": "thumbnail_url", "likes": 45,
+            "uses": 32, "total_interactions": 77, "created_at":
+            "2024-01-15T10:30:00.000Z" } ] } ], "period": { "type": "7d",
+            "ranking_type": "combined", "description": "Last 7 days ranking...",
+            "scoring_info": "Ranked by combined score..." }, "pagination": {
+            "current_page": 1, "total_pages": 5, "total_items": 248,
+            "items_per_page": 50 }, "statistics": { "period_stats": {
+            "total_frames": 1250, "total_likes": 15400, "total_uses": 8750,
+            "unique_creators": 248, "avg_likes_per_frame": 12.32,
+            "avg_uses_per_frame": 7.0 } } } }
+          </div>
+
+          <h4>🎯 Use Cases</h4>
+          <div class="example-code">
+            Weekly Leaderboard: /api/leaderboard/public?period=7d&type=combined
+            Monthly Likes Leaders: /api/leaderboard/public?period=1m&type=likes
+            All-time Most Used: /api/leaderboard/public?period=all&type=uses
+            Paginated Results: /api/leaderboard/public?page=2&limit=25
+          </div>
+
+          <h4>🏆 Ranking Logic</h4>
+          <div class="example-code">
+            1. Only approved public frames count towards rankings 2. Only
+            non-banned users appear in leaderboard 3. Scores calculated from
+            frames created within period 4. Combined scoring: Likes worth 2
+            points, Uses worth 1 point 5. Ties broken by: Total likes → Total
+            uses → Frame count
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="reports">
+        <div class="endpoint-group">
+          <h3>📋 Reports & Tickets</h3>
+
+          <h4>📝 User Reports</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/report/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">Get user's submitted reports</div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=20&status=pending
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/report/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">Submit content report</div>
+            <div class="example-code">
+              { "title": "Inappropriate Content", "description": "Detailed
+              description of the issue", "frame_id": "frame_id_to_report" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/report/private/{id}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get specific report details and admin response
+            </div>
+          </div>
+
+          <h4>🎫 Support Tickets</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/ticket/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">Get user's support tickets</div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=20&type=suggestion&status=pending
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/ticket/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Create support ticket with attachments
+            </div>
+            <div class="example-code">
+              FormData: - title: string - description: string - type:
+              "suggestion" | "critics" | "other" - images: File[] (optional)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/ticket/private/{id}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get specific ticket details and admin response
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="notifications">
+        <div class="endpoint-group">
+          <h3>🔔 Real-time Notifications</h3>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's notifications with pagination and filters
+            </div>
+            <div class="example-code">
+              Query Parameters:
+              ?page=1&limit=20&type=frame_like&unread_only=true
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private/{id}/read</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Mark specific notification as read
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private/mark-all-read</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Mark all notifications as read
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/notification/private/unread-count</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get unread notification count
+            </div>
+          </div>
+
+          <h4>📡 WebSocket Events</h4>
+          <div class="example-code">
+            // Client Events (emit): - 'mark_notification_read': Mark
+            notification as read - 'mark_all_read': Mark all notifications as
+            read - 'get_notifications': Get notifications list // Server Events
+            (listen): - 'new_notification': New notification received -
+            'unread_count': Updated unread count - 'notifications_list':
+            Notifications list response - 'error': Error message
+          </div>
+
+          <h4>🔔 Notification Types</h4>
+          <div class="example-code">
+            frame_like: Someone liked your frame frame_use: Someone used your
+            frame to take a photo frame_approved: Your frame was approved by
+            admin frame_rejected: Your frame was rejected by admin user_follow:
+            Someone started following you frame_upload: Someone you follow
+            uploaded a new frame system: System notifications
+          </div>
+
+          <h4>⚡ WebSocket Connection</h4>
+          <div class="example-code">
+            // Frontend Connection Example import io from 'socket.io-client';
+            const socket = io('ws://localhost:3000', { auth: { token:
+            localStorage.getItem('authToken') } }); // Listen for new
+            notifications socket.on('new_notification', (notification) => {
+            console.log('New notification:', notification); // Update UI with
+            new notification }); // Listen for unread count updates
+            socket.on('unread_count', (data) => { console.log('Unread count:',
+            data.count); // Update notification badge }); // Mark notification
+            as read socket.emit('mark_notification_read', notificationId); //
+            Get notifications socket.emit('get_notifications', { page: 1, limit:
+            20 });
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="users">
+        <div class="endpoint-group">
+          <h3>👥 User Management</h3>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}</span>
+            </div>
+            <div class="endpoint-description">
+              Get user profile (public information)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/private/edit</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Edit user profile (own profile only)
+            </div>
+            <div class="example-code">
+              { "name": "Updated Name", "bio": "Updated bio", "birthdate":
+              "1990-01-01" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}/stats</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user statistics (likes, uses, frame performance)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/liked/private</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get frames liked by user (private access only)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/frame/private/{id}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get specific private frame details with full information
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/liked/private/check/{frameId}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Check if user liked specific frame
+            </div>
+          </div>
+
+          <h4>👤 User Roles & Limits:</h4>
+          <div class="example-code">
+            Basic: 3 public frames, 3-day photo TTL Verified: 20 public frames,
+            7-day photo TTL Verified Premium: Unlimited frames & photos
+            Official/Developer: Unlimited + auto-approval
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="social">
+        <div class="endpoint-group">
+          <h3>👥 Social Features</h3>
+
+          <h4>👤 Following Management</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}/following</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's following list with search and pagination
+            </div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=20&search=username
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/user/{username}/following</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Follow a user (sends real-time notification)
+            </div>
+            <div class="example-code">
+              { "following_username": "user_to_follow" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/following/{followingId}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">Unfollow a user</div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/following/check/{targetUsername}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Check if user is following another user
+            </div>
+          </div>
+
+          <h4>👥 Followers Management</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}/follower</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's followers list with search and pagination
+            </div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=20&search=username
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/follower/{followerId}</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Remove a follower (profile owner only)
+            </div>
+          </div>
+
+          <h4>🔔 Social Notifications</h4>
+          <div class="example-code">
+            Real-time notifications sent for: - user_follow: When someone
+            follows you - frame_upload: When someone you follow uploads a public
+            frame Notification data includes: - Follower information (name,
+            username, image) - Frame details (title, thumbnail, layout) -
+            Timestamp and action type
+          </div>
+
+          <h4>📊 Social Features</h4>
+          <div class="example-code">
+            ✅ Mutual follow detection ✅ Search followers/following ✅
+            Pagination support ✅ Real-time notifications ✅ Ban status
+            filtering ✅ Self-follow prevention ✅ Stats integration
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="admin">
+        <div class="endpoint-group">
+          <h3>⚙️ Admin Management</h3>
+
+          <h4>🖼️ Frame Approval</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/framePublicApproval</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get frames pending approval with filters
+            </div>
+            <div class="example-code">
+              Query Parameters:
+              ?status=pending&page=1&limit=20&sort=newest&search=term
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/admin/framePublicApproval/{id}</span
+              >
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get specific frame for detailed review
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/admin/framePublicApproval/{id}</span
+              >
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">Approve or reject frame</div>
+            <div class="example-code">
+              { "approval_status": "approved|rejected", "rejection_reason":
+              "string (required for rejected)" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/admin/framePublicApproval/bulk</span
+              >
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Bulk approve/reject multiple frames
+            </div>
+            <div class="example-code">
+              { "frame_ids": ["id1", "id2", "id3"], "approval_status":
+              "approved|rejected", "rejection_reason": "string (for rejected)" }
+            </div>
+          </div>
+
+          <h4>👥 User Management</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/users</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get all users with filters and search
+            </div>
+            <div class="example-code">
+              Query Parameters:
+              ?page=1&limit=20&role=basic&ban_status=false&search=username&sort=newest
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/users/{username}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get detailed user information and statistics
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/admin/users/{username}/update</span
+              >
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Update user role, ban status, or profile
+            </div>
+            <div class="example-code">
+              { "role":
+              "basic|verified_basic|verified_premium|official|developer",
+              "ban_status": boolean, "ban_release_datetime": "ISO date", "bio":
+              "string", "name": "string" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/admin/users/{username}/delete</span
+              >
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Permanently delete user and all their content
+            </div>
+            <div class="example-code">
+              { "reason": "Detailed reason for deletion" }
+            </div>
+          </div>
+
+          <h4>📋 Reports & Tickets</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/reports</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get content reports with filters
+            </div>
+            <div class="example-code">
+              Query Parameters:
+              ?status=pending&page=1&limit=20&search=term&sort=newest
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/reports/{id}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get detailed report information
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path">/api/admin/reports/{id}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Update report status and take action
+            </div>
+            <div class="example-code">
+              { "report_status": "pending|done|rejected", "admin_response":
+              "Admin response message", "action": "delete_frame|no_action" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/ticket</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get support tickets with priority filtering
+            </div>
+            <div class="example-code">
+              Query Parameters:
+              ?status=pending&priority=high&type=suggestion&page=1&limit=20&sort=priority_high
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/ticket/{id}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Get detailed ticket information
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path">/api/admin/ticket/{id}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Update ticket status and priority
+            </div>
+            <div class="example-code">
+              { "status": "pending|in_progress|resolved|closed", "priority":
+              "low|medium|high|urgent", "admin_response": "Admin response
+              message" }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/serverHealth</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">
+              Comprehensive server health and statistics
+            </div>
+          </div>
+
+          <h4>🔐 Admin Access Levels:</h4>
+          <div class="example-code">
+            Official: Full admin access Developer: Full admin + system access
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="examples">
+        <div class="endpoint-group">
+          <h3>💻 Code Examples</h3>
+
+          <h4>🔑 API Key Authentication (Production)</h4>
+          <div class="example-code">
+            // All production requests require API key header
+            fetch('/api/auth/login', { method: 'POST', headers: {
+            'Content-Type': 'application/json', 'x-api-key': 'your-api-key-here'
+            // Required in production }, body: JSON.stringify({ google_id:
+            'user_google_id', email: 'user@gmail.com' }) });
+          </div>
+
+          <h4>🔐 Authentication</h4>
+          <div class="example-code">
+            // Login Request fetch('/api/auth/login', { method: 'POST', headers:
+            { 'Content-Type': 'application/json' }, body: JSON.stringify({
+            google_id: 'user_google_id', email: 'user@gmail.com' }) })
+            .then(response => response.json()) .then(data => { if (data.success)
+            { localStorage.setItem('token', data.data.token); } });
+          </div>
+
+          <h4>🖼️ Creating a Frame</h4>
+          <div class="example-code">
+            // Create Frame with Images and Thumbnail const formData = new
+            FormData(); formData.append('title', 'My Beautiful Frame');
+            formData.append('desc', 'A frame for nature photos');
+            formData.append('layout_type', '2x1'); formData.append('visibility',
+            'public'); formData.append('tag_label', 'nature,landscape'); // Add
+            frame images frameImages.forEach(file => { formData.append('images',
+            file); }); // Add thumbnail (required for public frames)
+            formData.append('thumbnail', thumbnailFile);
+            fetch('/api/frame/public', { method: 'POST', headers: {
+            'Authorization': `Bearer ${token}` }, body: formData });
+          </div>
+
+          <h4>📸 Capturing a Photo</h4>
+          <div class="example-code">
+            // Capture Photo using Frame const photoData = new FormData();
+            photoData.append('frame_id', 'frame_id_here');
+            photoData.append('title', 'My Photo with Frame');
+            photoData.append('desc', 'Beautiful sunset photo');
+            photoFiles.forEach(file => { photoData.append('images', file); });
+            fetch(`/api/user/${username}/photo/capture`, { method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }, body: photoData });
+          </div>
+
+          <h4>📊 Getting User Stats</h4>
+          <div class="example-code">
+            // Get User Statistics fetch(`/api/user/${username}/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` } }) .then(response =>
+            response.json()) .then(data => { console.log('Total likes:',
+            data.data.public_frames.total_likes_received); console.log('Total
+            uses:', data.data.public_frames.total_uses_received);
+            console.log('Frame performance:', data.data.top_frames); });
+          </div>
+
+          <h4>💖 Like a Frame</h4>
+          <div class="example-code">
+            // Like/Unlike Frame (Toggle)
+            fetch(`/api/frame/public/${frameId}/like`, { method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` } }) .then(response =>
+            response.json()) .then(data => { console.log('Is liked:',
+            data.data.is_liked); console.log('Total likes:',
+            data.data.total_likes); });
+          </div>
+
+          <h4>🔧 Error Handling</h4>
+          <div class="example-code">
+            // Standard Error Response Format { "success": false, "message":
+            "Error description", "errors": [ { "field": "field_name", "message":
+            "Validation error message" } ] } // Standard Success Response Format
+            { "success": true, "message": "Operation successful", "data": { //
+            Response data } }
+          </div>
+
+          <h4>🏆 Leaderboard Queries</h4>
+          <div class="example-code">
+            // Get weekly leaderboard (combined score)
+            fetch('/api/leaderboard/public?period=7d&type=combined&limit=10')
+            .then(response => response.json()) .then(data => {
+            data.data.leaderboard.forEach((entry, index) => {
+            console.log(`#${entry.rank}: ${entry.user.name} - Score:
+            ${entry.stats.score}`); }); }); // Get monthly likes leaders
+            fetch('/api/leaderboard/public?period=1m&type=likes&page=1&limit=25')
+            .then(response => response.json()) .then(data => { console.log('Top
+            creators by likes:', data.data.leaderboard); console.log('Period
+            stats:', data.data.statistics.period_stats); }); // Get all-time
+            most used frames creators
+            fetch('/api/leaderboard/public?period=all&type=uses') .then(response
+            => response.json()) .then(data => { console.log('Most used
+            creators:', data.data.leaderboard); });
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>Built with ❤️ for developers</p>
+        <p id="footer-info">Server information loading...</p>
+      </div>
+    </div>
+
+    <script>
+      function showSection(sectionId) {
+        document.querySelectorAll(".content-section").forEach((section) => {
+          section.classList.remove("active");
+        });
+
+        document.querySelectorAll(".nav-tab").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+
+        document.getElementById(sectionId).classList.add("active");
+
+        event.target.classList.add("active");
+      }
+
+      async function loadServerHealth() {
+        try {
+          const response = await fetch("/health");
+          const data = await response.json();
+
+          if (data.success) {
+            const statusBadge = document.getElementById("status-badge");
+            statusBadge.textContent = `Status: ${
+              data.status.charAt(0).toUpperCase() + data.status.slice(1)
+            }`;
+            statusBadge.className = `status-badge ${
+              data.status === "healthy" ? "status-healthy" : "status-loading"
+            }`;
+
+            document.getElementById("version").textContent = `v${data.version}`;
+
+            document.getElementById("stat-users").textContent =
+              data.statistics.active_users.toLocaleString();
+            document.getElementById("stat-frames").textContent =
+              data.statistics.public_frames.toLocaleString();
+            document.getElementById("stat-photos").textContent =
+              data.statistics.total_photos.toLocaleString();
+            document.getElementById("stat-uptime").textContent =
+              data.uptime.formatted;
+
+            document.getElementById("footer-info").innerHTML = `
+                        Environment: <strong>${data.environment}</strong> | 
+                        Database: <strong>${data.database.status}</strong> | 
+                        Response Time: <strong>${data.performance.response_time_ms}ms</strong>
+                    `;
+          } else {
+            throw new Error("Health check failed");
+          }
+        } catch (error) {
+          console.error("Failed to load server health:", error);
+
+          const statusBadge = document.getElementById("status-badge");
+          statusBadge.textContent = "Status: Error";
+          statusBadge.className = "status-badge status-loading";
+
+          document.getElementById("version").textContent = "Unknown";
+          document.getElementById("footer-info").textContent =
+            "Unable to fetch server information";
+
+          ["stat-users", "stat-frames", "stat-photos", "stat-uptime"].forEach(
+            (id) => {
+              document.getElementById(id).textContent = "-";
+            }
+          );
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadServerHealth);
+
+      setInterval(loadServerHealth, 30000);
+    </script>
+  </body>
+</html>

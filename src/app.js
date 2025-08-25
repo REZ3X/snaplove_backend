@@ -15,6 +15,7 @@ const Frame = require('./models/Frame');
 const Photo = require('./models/Photo');
 
 const createApiKeyAuth = require('./middleware/apiKeyAuth');
+const docsAuth = require('./middleware/docsAuth');
 
 const loginRoute = require('./api/auth/login/route');
 const registerRoute = require('./api/auth/register/route');
@@ -71,7 +72,7 @@ const userFollowingRoute = require('./api/user/[username]/following/route');
 
 const apiKeyAuth = createApiKeyAuth({
   skipPaths: ['/', '/health'],
-  skipPatterns: [/^\/docs/, /^\/images/],
+  skipPatterns: [/^\/docs/, /^\/images/, /^\/uploads/],
   envOnly: 'production'
 });
 
@@ -112,7 +113,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'view', 'index.html'));
 });
 
-app.use('/docs', express.static(path.join(__dirname, 'view')));
+app.use('/docs', docsAuth);
+app.get('/docs', docsAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'view', 'docs.html'));
+});
 
 app.use(helmet({
   ...(process.env.NODE_ENV === 'production' && {
