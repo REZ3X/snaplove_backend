@@ -14,7 +14,7 @@ class LocalImageHandler {
   async ensureDirectoryExists(dirPath) {
     try {
       await fs.access(dirPath);
-    } catch (error) {
+    } catch (error){
       await fs.mkdir(dirPath, { recursive: true });
     }
   }
@@ -29,83 +29,56 @@ class LocalImageHandler {
   getFrameStorage() {
     return multer.diskStorage({
       destination: async (req, file, cb) => {
-        await this.ensureDirectoryExists(this.framesDir);
-        cb(null, this.framesDir);
+        try {
+          await this.ensureDirectoryExists(this.framesDir);
+          cb(null, this.framesDir);
+        } catch (e) {
+          cb(e);
+        }
       },
       filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.originalname) || '.bin';
         cb(null, `frame-${uniqueSuffix}${ext}`);
       }
     });
   }
 
-  getPhotoStorage() {
-    return multer.diskStorage({
-      destination: async (req, file, cb) => {
-        await this.ensureDirectoryExists(this.photosDir);
-        cb(null, this.photosDir);
-      },
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, `photo-${uniqueSuffix}${ext}`);
-      }
-    });
-  }
-
-  getTicketStorage() {
-    return multer.diskStorage({
-      destination: async (req, file, cb) => {
-        await this.ensureDirectoryExists(this.ticketsDir);
-        cb(null, this.ticketsDir);
-      },
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, `ticket-${uniqueSuffix}${ext}`);
-      }
-    });
-  }
-
   imageFileFilter(req, file, cb) {
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg', 'image/avif'];
+    const allowedMimes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg',
+      'image/svg+xml',
+      'image/avif'
+    ];
     if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP, SVG, and AVIF are allowed.'), false);
+      return cb(null, true);
     }
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP, SVG, and AVIF are allowed.'), false);
   }
 
+  // General frame upload (single file usage in other routes if needed)
   getFrameUpload() {
     return multer({
       storage: this.getFrameStorage(),
       fileFilter: this.imageFileFilter,
       limits: {
-        fileSize: 5 * 1024 * 1024,
-        files: 1
+        fileSize: 5 * 1024 * 1024
+        // DO NOT set 'files' here to allow multiple fields (images + thumbnail)
       }
     });
   }
 
-  getPhotoUpload() {
+  // Explicit public frame uploader (same config; split for clarity/future custom)
+  getPublicFrameUpload() {
     return multer({
-      storage: this.getPhotoStorage(),
+      storage: this.getFrameStorage(),
       fileFilter: this.imageFileFilter,
       limits: {
-        fileSize: 10 * 1024 * 1024,
-        files: 5
-      }
-    });
-  }
-
-  getTicketUpload() {
-    return multer({
-      storage: this.getTicketStorage(),
-      fileFilter: this.imageFileFilter,
-      limits: {
-        fileSize: 5 * 1024 * 1024,
-        files: 3
+        fileSize: 5 * 1024 * 1024
       }
     });
   }

@@ -1,117 +1,113 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
+const sharp = require('sharp'); // npm install sharp
 const Frame = require('../../../models/Frame');
+const User = require('../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 const { canCreatePublicFrame } = require('../../../utils/RolePolicy');
 const socketService = require('../../../services/socketService');
+const imageHandler = require('../../../utils/LocalImageHandler');
+const path = require('path');
+const fs = require('fs').promises;
 
 const router = express.Router();
 
-router.get('/', [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
-  query('layout_type').optional().isIn(['2x1', '3x1', '4x1']).withMessage('Invalid layout type'),
-  query('tag').optional().isString().withMessage('Tag must be a string'),
-  query('sort').optional().isIn(['newest', 'oldest', 'most_liked', 'most_used']).withMessage('Invalid sort option')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
+// GET list
+router.get('/',
+  [
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+    query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
+    query('layout_type').optional().isIn(['2x1', '3x1', '4x1']).withMessage('Invalid layout type'),
+    query('tag').optional().isString().withMessage('Tag must be a string'),
+    query('sort').optional().isIn(['newest', 'oldest', 'most_liked', 'most_used']).withMessage('Invalid sort option')
+  ],
+  async (req,res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array()
+        });
+      }
+
+      const page = parseInt(req.query.page)||1;
+      const limit = parseInt(req.query.limit)||20;
+      const skip = (page-1)*limit;
+
+      const filter = { visibility:'public', approval_status:'approved' };
+      if (req.query.layout_type) filter.layout_type = req.query.layout_type;
+      if (req.query.tag) filter.tag_label = { $in: [req.query.tag] };
+
+      let sort = {};
+      switch (req.query.sort) {
+        case 'oldest':
+          sort = { created_at: 1 };
+          break;
+        case 'most_liked':
+          sort = { 'like_count': -1, created_at: -1 };
+          break;
+        case 'most_used':
+          sort = { 'use_count': -1, created_at: -1 };
+          break;
+        default:
+          sort = { created_at: -1 };
+      }
+
+      const frames = await Frame.find(filter)
+        .populate('user_id','name username image_profile role')
+        .sort(sort).skip(skip).limit(limit);
+
+      const total = await Frame.countDocuments(filter);
+      const totalPages = Math.ceil(total/limit);
+
+      return res.json({
+        success: true,
+        data: {
+          frames: frames.map(frame => ({
+            id: frame._id,
+            thumbnail: frame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + frame.thumbnail : null,
+            title: frame.title,
+            desc: frame.desc,
+            total_likes: frame.total_likes,
+            total_uses: frame.total_uses,
+            layout_type: frame.layout_type,
+            official_status: frame.official_status,
+            tag_label: frame.tag_label,
+            user: {
+              id: frame.user_id._id,
+              name: frame.user_id.name,
+              username: frame.user_id.username,
+              image_profile: frame.user_id.image_profile,
+              role: frame.user_id.role
+            },
+            created_at: frame.created_at,
+            updated_at: frame.updated_at
+          })),
+          pagination: {
+            current_page: page,
+            total_pages: totalPages,
+            total_items: total,
+            items_per_page: limit,
+            has_next_page: page < totalPages,
+            has_prev_page: page > 1
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get public frames error:', error);
+      res.status(500).json({
         success: false,
-        message: 'Validation failed',
-        errors: errors.array()
+        message: 'Internal server error'
       });
     }
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
-
-    const filter = {
-      visibility: 'public',
-      approval_status: 'approved'
-    };
-
-    if (req.query.layout_type) {
-      filter.layout_type = req.query.layout_type;
-    }
-
-    if (req.query.tag) {
-      filter.tag_label = { $in: [req.query.tag] };
-    }
-
-    let sort = {};
-    switch (req.query.sort) {
-      case 'oldest':
-        sort = { created_at: 1 };
-        break;
-      case 'most_liked':
-        sort = { 'like_count': -1, created_at: -1 };
-        break;
-      case 'most_used':
-        sort = { 'use_count': -1, created_at: -1 };
-        break;
-      default:
-        sort = { created_at: -1 };
-    }
-
-    const frames = await Frame.find(filter)
-      .populate('user_id', 'name username image_profile role')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Frame.countDocuments(filter);
-    const totalPages = Math.ceil(total / limit);
-
-    res.json({
-      success: true,
-      data: {
-        frames: frames.map(frame => ({
-          id: frame._id,
-          thumbnail: frame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + frame.thumbnail : null,
-          title: frame.title,
-          desc: frame.desc,
-          total_likes: frame.total_likes,
-          total_uses: frame.total_uses,
-          layout_type: frame.layout_type,
-          official_status: frame.official_status,
-          tag_label: frame.tag_label,
-          user: {
-            id: frame.user_id._id,
-            name: frame.user_id.name,
-            username: frame.user_id.username,
-            image_profile: frame.user_id.image_profile,
-            role: frame.user_id.role
-          },
-          created_at: frame.created_at,
-          updated_at: frame.updated_at
-        })),
-        pagination: {
-          current_page: page,
-          total_pages: totalPages,
-          total_items: total,
-          items_per_page: limit,
-          has_next_page: page < totalPages,
-          has_prev_page: page > 1
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get public frames error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
   }
-});
+);
 
 router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
-  const imageHandler = require('../../../utils/LocalImageHandler');
   const upload = imageHandler.getFrameUpload();
-
+  
   upload.fields([
     { name: 'images', maxCount: 10 },
     { name: 'thumbnail', maxCount: 1 }
@@ -149,16 +145,7 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
 
       const frameVisibility = visibility || 'private';
 
-
       if (frameVisibility === 'public') {
-        if (!req.files.thumbnail || req.files.thumbnail.length === 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Thumbnail is required for public frames'
-          });
-        }
-
-
         const canCreate = await canCreatePublicFrame(req.user.userId);
         if (!canCreate.canCreate) {
           return res.status(403).json({
@@ -172,9 +159,7 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
         }
       }
 
-      const User = require('../../../models/User');
       const user = await User.findById(req.user.userId);
-
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -184,14 +169,47 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
 
       const images = req.files.images.map(file => imageHandler.getRelativeImagePath(file.path));
 
-      const thumbnail = req.files.thumbnail ? imageHandler.getRelativeImagePath(req.files.thumbnail[0].path) : null;
+      // Thumbnail handling with auto-generation for public frames
+      const thumbnailFile = (req.files?.thumbnail || [])[0];
+      let thumbnail = thumbnailFile ? imageHandler.getRelativeImagePath(thumbnailFile.path) : null;
 
+      // Auto-generate thumbnail if missing and visibility public
+      if (!thumbnail && frameVisibility === 'public') {
+        const firstPath = req.files.images[0].path;
+        try {
+          const buffer = await fs.readFile(firstPath);
+          if (/\.svg$/i.test(firstPath)) {
+            const outName = 'thumb-' + path.basename(firstPath, path.extname(firstPath)) + '.png';
+            const outAbs = path.join(path.dirname(firstPath), outName);
+            await sharp(buffer).png({ quality: 80 }).resize(600, 600, { fit: 'inside', withoutEnlargement: true }).toFile(outAbs);
+            thumbnail = imageHandler.getRelativeImagePath(outAbs);
+          }
+        } catch (thumbErr) {
+          console.warn('[FRAME_UPLOAD] thumbnail auto-gen failed', thumbErr.message);
+        }
+      }
+
+      // Handle tags
       let tags = [];
       if (tag_label) {
         if (Array.isArray(tag_label)) {
           tags = tag_label;
         } else if (typeof tag_label === 'string') {
-          tags = tag_label.split(',').map(tag => tag.trim()).filter(tag => tag);
+          const raw = tag_label.trim();
+          if (raw.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                tags = parsed.map(x => (x || '').toString().trim()).filter(Boolean);
+              }
+            } catch (error) {
+              console.log(`Error parsing tag_label JSON: ${error.message}`);
+            }
+          } else if (raw.includes(',')) {
+            tags = raw.split(',').map(t => t.trim()).filter(Boolean);
+          } else {
+            tags = [raw];
+          }
         }
       }
 
@@ -211,6 +229,7 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
       await newFrame.save();
       await newFrame.populate('user_id', 'name username image_profile role');
 
+      // Send notification for public frames
       try {
         if (frameVisibility === 'public') {
           await socketService.sendFrameUploadNotification(
