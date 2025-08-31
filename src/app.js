@@ -309,11 +309,6 @@ app.get('/health', async (req, res) => {
 });
 
 
-app.use('/api/user', userReportPrivateRoute);
-app.use('/api/user', userReportDetailRoute);
-app.use('/api/admin/reports', adminReportsRoute);
-app.use('/api/admin/reports', adminReportDetailRoute);
-
 app.use('/api/auth/login', authLimiter, loginRoute);
 app.use('/api/auth/register', authLimiter, registerRoute);
 app.use('/api/auth/logout', logoutRoute);
@@ -325,22 +320,35 @@ app.use('/api/frame/public', frameLikeRoute);
 app.use('/api/frame/public', frameAdminDeleteRoute);
 
 app.use('/api/user', userProfileRoute);
+app.use('/api/user', userFollowingRoute);
 app.use('/api/user', userFrameAllRoute);
-app.use('/api/user', userFramePrivateRoute);
+
 app.use('/api/user', userFramePublicRoute);
 app.use('/api/user', frameEditRoute);
-app.use('/api/user', framePrivateDetailRoute);
 app.use('/api/user', frameDeleteRoute);
 
 app.use('/api/user', photoCaptureRoute);
-app.use('/api/user', photoPrivateRoute);
+app.use('/api/user', photoEditRoute);
+app.use('/api/user', photoDeleteRoute);
+app.use('/api/user', photoCaptureRoute);
 
 app.use('/api/user', userProfileEditRoute);
 app.use('/api/user', userStatsRoute);
-app.use('/api/user', userLikedPrivateRoute);
 app.use('/api/user', userNotificationPrivateRoute);
 app.use('/api/user', userFollowerRoute);
-app.use('/api/user', userFollowingRoute);
+
+app.use('/api/user', userReportDetailRoute);
+
+/* admin routes */
+app.use('/api/admin/reports', adminReportsRoute);
+app.use('/api/admin/reports', adminReportDetailRoute);
+
+app.use('/api/admin/ticket', adminTicketRoute);
+app.use('/api/admin/ticket', adminTicketDetailRoute);
+
+app.use('/api/admin/framePublicApproval', frameApprovalRoute);
+
+app.use('/api/leaderboard/public', leaderboardPublicRoute);
 
 app.use('/api/admin/users', adminUsersRoute);
 app.use('/api/admin/users', adminUserDetailRoute);
@@ -349,21 +357,18 @@ app.use('/api/admin/users', adminUserDeleteRoute);
 
 app.use('/api/admin/serverHealth', adminServerHealthRoute);
 
+/* private routes */
+app.use('/api/user', userReportPrivateRoute);
+app.use('/api/user', framePrivateDetailRoute);
+
+app.use('/api/user', userLikedPrivateRoute);
+app.use('/api/user', userFramePrivateRoute);
+
 app.use('/api/user', userTicketPrivateRoute);
 app.use('/api/user', userTicketDetailRoute);
 
-app.use('/api/admin/ticket', adminTicketRoute);
-app.use('/api/admin/ticket', adminTicketDetailRoute);
-
-app.use('/api/user', photoCaptureRoute);
 app.use('/api/user', photoPrivateRoute);
 app.use('/api/user', photoPrivateDetailRoute);
-app.use('/api/user', photoEditRoute);
-app.use('/api/user', photoDeleteRoute);
-
-app.use('/api/admin/framePublicApproval', frameApprovalRoute);
-
-app.use('/api/leaderboard/public', leaderboardPublicRoute);
 
 app.use('*', (req, res) => {
   res.status(404).json({
