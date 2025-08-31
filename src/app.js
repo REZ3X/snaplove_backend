@@ -324,6 +324,7 @@ app.use('/api/frame/public', frameByIdRoute);
 app.use('/api/frame/public', frameLikeRoute);
 app.use('/api/frame/public', frameAdminDeleteRoute);
 
+app.use('/api/user', userProfileRoute);
 app.use('/api/user', userFrameAllRoute);
 app.use('/api/user', userFramePrivateRoute);
 app.use('/api/user', userFramePublicRoute);
@@ -334,7 +335,6 @@ app.use('/api/user', frameDeleteRoute);
 app.use('/api/user', photoCaptureRoute);
 app.use('/api/user', photoPrivateRoute);
 
-app.use('/api/user', userProfileRoute);
 app.use('/api/user', userProfileEditRoute);
 app.use('/api/user', userStatsRoute);
 app.use('/api/user', userLikedPrivateRoute);
