@@ -155,6 +155,31 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// KHUSUS: CORS untuk static images (TAMBAHKAN SEBELUM express.static)
+app.use('/images', (req, res, next) => {
+  const allowedOrigins = getAllowedOrigins();
+  const origin = req.headers.origin;
+  
+  if (Array.isArray(allowedOrigins)) {
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+  } else if (allowedOrigins === '*') {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use('/images', express.static(path.join(process.cwd(), 'images')));
 
 const limiter = rateLimit({
