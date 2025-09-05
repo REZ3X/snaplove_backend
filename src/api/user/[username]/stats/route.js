@@ -47,7 +47,7 @@ router.get('/:username/stats', [
         }
       }
     ]);
-
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const [followerStats, followingStats] = await Promise.all([
       Follow.aggregate([
         {
@@ -154,19 +154,41 @@ router.get('/:username/stats', [
       topFramesFilter.approval_status = 'approved';
     }
 
-    const topFrames = await Frame.find(topFramesFilter)
-      .sort({
-        $expr: {
-          $add: [
-            { $size: '$like_count' },
-            { $size: '$use_count' }
-          ]
+    const topFrames = await Frame.aggregate([
+      {
+        $match: topFramesFilter
+      },
+      {
+        $addFields: {
+          total_interactions: {
+            $add: [
+              { $size: '$like_count' },
+              { $size: '$use_count' }
+            ]
+          }
         }
-      })
-      .limit(5)
-      .select('title thumbnail images layout_type like_count use_count approval_status created_at');
+      },
+      {
+        $sort: { total_interactions: -1, created_at: -1 }
+      },
+      {
+        $limit: 5
+      },
+      {
+        $project: {
+          title: 1,
+          thumbnail: 1,
+          images: 1,
+          layout_type: 1,
+          like_count: 1,
+          use_count: 1,
+          approval_status: 1,
+          created_at: 1,
+          total_interactions: 1
+        }
+      }
+    ]);
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const recentActivityFilter = {
       user_id: targetUser._id,
@@ -280,7 +302,7 @@ router.get('/:username/stats', [
         layout_type: frame.layout_type,
         total_likes: frame.like_count.length,
         total_uses: frame.use_count.length,
-        total_interactions: frame.like_count.length + frame.use_count.length,
+        total_interactions: frame.total_interactions,
         ...(isOwnStats && { approval_status: frame.approval_status }),
         created_at: frame.created_at
       })),
