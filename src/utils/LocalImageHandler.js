@@ -83,6 +83,35 @@ class LocalImageHandler {
     });
   }
 
+  getTicketStorage() {
+  return multer.diskStorage({
+    destination: async (req, file, cb) => {
+      try {
+        await this.ensureDirectoryExists(this.ticketsDir);
+        cb(null, this.ticketsDir);
+      } catch (e) {
+        cb(e);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const ext = path.extname(file.originalname) || '.bin';
+      cb(null, `ticket-${uniqueSuffix}${ext}`);
+    }
+  });
+}
+
+getTicketUpload() {
+  return multer({
+    storage: this.getTicketStorage(),
+    fileFilter: this.imageFileFilter,
+    limits: {
+      fileSize: 5 * 1024 * 1024,
+      files: 5 // contoh: maksimal 5 gambar per ticket
+    }
+  });
+}
+
   getRelativeImagePath(absolutePath) {
     const relativePath = path.relative(process.cwd(), absolutePath);
     return relativePath.replace(/\\/g, '/');
