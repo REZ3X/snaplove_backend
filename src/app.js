@@ -118,6 +118,118 @@ app.get("/docs", docsAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "view", "docs.html"));
 });
 
+app.get("/health", async (req, res) => {
+  try {
+    const startTime = Date.now();
+
+    const systemInfo = {
+      uptime: os.uptime(),
+      nodeVersion: process.version,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+    };
+
+    const databaseStatus = {
+      connected: mongoose.connection.readyState === 1,
+      status: ["disconnected", "connected", "connecting", "disconnecting"][
+        mongoose.connection.readyState
+      ],
+    };
+
+    const [userCount, frameCount, photoCount] = await Promise.all([
+      User.countDocuments({ ban_status: false }),
+      Frame.countDocuments({
+        visibility: "public",
+        approval_status: "approved",
+      }),
+      Photo.countDocuments(),
+    ]).catch(() => [0, 0, 0]);
+
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [recentFrames, recentUsers] = await Promise.all([
+      Frame.countDocuments({
+        created_at: { $gte: last24Hours },
+        visibility: "public",
+        approval_status: "approved",
+      }),
+      User.countDocuments({
+        created_at: { $gte: last24Hours },
+        ban_status: false,
+      }),
+    ]).catch(() => [0, 0]);
+
+    const responseTime = Date.now() - startTime;
+    const memoryUsage = process.memoryUsage();
+
+    const healthChecks = {
+      database: databaseStatus.connected,
+      response_time: responseTime < 1000,
+      memory: memoryUsage.heapUsed / memoryUsage.heapTotal < 0.9,
+    };
+
+    const overallHealth = Object.values(healthChecks).every((check) => check);
+
+    res.json({
+      success: true,
+      status: overallHealth ? "healthy" : "degraded",
+      message: "Snaplove Backend API is running",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      version: require("../package.json").version,
+      uptime: {
+        seconds: Math.floor(systemInfo.uptime),
+        formatted: formatUptime(systemInfo.uptime),
+      },
+      database: {
+        status: databaseStatus.status,
+        connected: databaseStatus.connected,
+      },
+      statistics: {
+        active_users: userCount,
+        public_frames: frameCount,
+        total_photos: photoCount,
+        recent_activity: {
+          new_frames_24h: recentFrames,
+          new_users_24h: recentUsers,
+        },
+      },
+      performance: {
+        response_time_ms: responseTime,
+        memory_usage_mb: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+        node_version: systemInfo.nodeVersion,
+      },
+      health_checks: {
+        database: healthChecks.database ? "pass" : "fail",
+        response_time: healthChecks.response_time ? "pass" : "slow",
+        memory: healthChecks.memory ? "pass" : "high",
+        overall: overallHealth ? "healthy" : "degraded",
+      },
+      ...(process.env.NODE_ENV !== "production" && {
+        debug: {
+          ip: req.ip,
+          ips: req.ips,
+          "cf-connecting-ip": req.headers["cf-connecting-ip"],
+          "x-forwarded-for": req.headers["x-forwarded-for"],
+          "x-real-ip": req.headers["x-real-ip"],
+        },
+      }),
+    });
+  } catch (error) {
+    console.error("Health check error:", error);
+    res.status(503).json({
+      success: false,
+      status: "unhealthy",
+      message: "Service temporarily unavailable",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      error:
+        process.env.NODE_ENV !== "production"
+          ? error.message
+          : "Internal server error",
+    });
+  }
+});
+
 app.use(
   helmet({
     ...(process.env.NODE_ENV === "production" && {
@@ -310,118 +422,6 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-});
-
-app.get("/health", async (req, res) => {
-  try {
-    const startTime = Date.now();
-
-    const systemInfo = {
-      uptime: os.uptime(),
-      nodeVersion: process.version,
-      environment: process.env.NODE_ENV,
-      timestamp: new Date().toISOString(),
-    };
-
-    const databaseStatus = {
-      connected: mongoose.connection.readyState === 1,
-      status: ["disconnected", "connected", "connecting", "disconnecting"][
-        mongoose.connection.readyState
-      ],
-    };
-
-    const [userCount, frameCount, photoCount] = await Promise.all([
-      User.countDocuments({ ban_status: false }),
-      Frame.countDocuments({
-        visibility: "public",
-        approval_status: "approved",
-      }),
-      Photo.countDocuments(),
-    ]).catch(() => [0, 0, 0]);
-
-    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [recentFrames, recentUsers] = await Promise.all([
-      Frame.countDocuments({
-        created_at: { $gte: last24Hours },
-        visibility: "public",
-        approval_status: "approved",
-      }),
-      User.countDocuments({
-        created_at: { $gte: last24Hours },
-        ban_status: false,
-      }),
-    ]).catch(() => [0, 0]);
-
-    const responseTime = Date.now() - startTime;
-    const memoryUsage = process.memoryUsage();
-
-    const healthChecks = {
-      database: databaseStatus.connected,
-      response_time: responseTime < 1000,
-      memory: memoryUsage.heapUsed / memoryUsage.heapTotal < 0.9,
-    };
-
-    const overallHealth = Object.values(healthChecks).every((check) => check);
-
-    res.json({
-      success: true,
-      status: overallHealth ? "healthy" : "degraded",
-      message: "Snaplove Backend API is running",
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      version: require("../package.json").version,
-      uptime: {
-        seconds: Math.floor(systemInfo.uptime),
-        formatted: formatUptime(systemInfo.uptime),
-      },
-      database: {
-        status: databaseStatus.status,
-        connected: databaseStatus.connected,
-      },
-      statistics: {
-        active_users: userCount,
-        public_frames: frameCount,
-        total_photos: photoCount,
-        recent_activity: {
-          new_frames_24h: recentFrames,
-          new_users_24h: recentUsers,
-        },
-      },
-      performance: {
-        response_time_ms: responseTime,
-        memory_usage_mb: Math.round(memoryUsage.heapUsed / 1024 / 1024),
-        node_version: systemInfo.nodeVersion,
-      },
-      health_checks: {
-        database: healthChecks.database ? "pass" : "fail",
-        response_time: healthChecks.response_time ? "pass" : "slow",
-        memory: healthChecks.memory ? "pass" : "high",
-        overall: overallHealth ? "healthy" : "degraded",
-      },
-      ...(process.env.NODE_ENV !== "production" && {
-        debug: {
-          ip: req.ip,
-          ips: req.ips,
-          "cf-connecting-ip": req.headers["cf-connecting-ip"],
-          "x-forwarded-for": req.headers["x-forwarded-for"],
-          "x-real-ip": req.headers["x-real-ip"],
-        },
-      }),
-    });
-  } catch (error) {
-    console.error("Health check error:", error);
-    res.status(503).json({
-      success: false,
-      status: "unhealthy",
-      message: "Service temporarily unavailable",
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      error:
-        process.env.NODE_ENV !== "production"
-          ? error.message
-          : "Internal server error",
-    });
-  }
 });
 
 app.use("/api/auth/login", authLimiter, loginRoute);
