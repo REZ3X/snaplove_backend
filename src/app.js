@@ -360,7 +360,7 @@ const getAllowedOrigins = () => {
   return ["*"];
 };
 
-app.use((err, req, res) => {
+app.use((err, req, res, _next) => {
   console.error('\n🚨 ERROR MIDDLEWARE TRIGGERED:');
   console.error('Error message:', err?.message || 'No error message');
   console.error('Error stack:', err?.stack || 'No stack trace');
