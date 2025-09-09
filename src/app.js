@@ -259,11 +259,7 @@ app.use((req, res, next) => {
   console.log(`   Method: ${method}`);
   console.log(`   Path: ${path}`);
   console.log(`   Origin: "${origin}"`);
-  console.log(`   Headers:`, {
-    'access-control-request-method': req.headers['access-control-request-method'],
-    'access-control-request-headers': req.headers['access-control-request-headers'],
-    'user-agent': req.headers['user-agent']?.substring(0, 50) + '...'
-  });
+  console.log(`   User-Agent: ${req.headers['user-agent']?.substring(0, 30) || 'unknown'}...`);
 
   // Get allowed origins
   const allowedOrigins = getAllowedOrigins();
@@ -278,24 +274,23 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, Accept, Origin');
     res.header('Access-Control-Max-Age', '86400');
     res.header('Vary', 'Origin');
-    
-    // Additional headers that might help
     res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
   };
 
   // Handle CORS logic
   if (Array.isArray(allowedOrigins)) {
-    // Check exact origin match
     if (origin && allowedOrigins.includes(origin)) {
+      // Origin is in allowed list
       setCorsHeaders(origin);
-    } 
-    // For production, be more strict
-    else if (process.env.NODE_ENV === "production") {
+    } else if (!origin) {
+      // No origin header (Postman, server-to-server requests, etc.)
+      console.log(`   🟡 No origin header - allowing for tools/APIs`);
+      setCorsHeaders('*');
+    } else if (process.env.NODE_ENV === "production") {
+      // Production: strict checking for browser requests
       console.log(`   ❌ CORS BLOCKED: "${origin}" not in allowed list`);
       
-      // For preflight requests, we need to respond with error but still set some headers
       if (method === 'OPTIONS') {
-        res.header('Access-Control-Allow-Origin', 'null');
         return res.status(403).json({
           success: false,
           message: 'CORS policy violation - origin not allowed',
@@ -304,9 +299,9 @@ app.use((req, res, next) => {
           timestamp: new Date().toISOString()
         });
       }
-    }
-    // For development, be more lenient
-    else if (process.env.NODE_ENV === "development") {
+      // For non-preflight requests, we'll let them continue but the browser will block them
+    } else {
+      // Development: be lenient
       if (origin) {
         setCorsHeaders(origin);
         console.log(`   🟡 DEV: Allowing origin "${origin}"`);
@@ -314,11 +309,6 @@ app.use((req, res, next) => {
         setCorsHeaders('*');
         console.log(`   🟡 DEV: No origin, allowing all`);
       }
-    }
-    // No origin in non-production (like Postman)
-    else if (!origin && process.env.NODE_ENV !== "production") {
-      setCorsHeaders('*');
-      console.log(`   🟡 No origin, allowing all (non-production)`);
     }
   } else if (allowedOrigins.includes("*")) {
     setCorsHeaders('*');
@@ -380,36 +370,26 @@ const getAllowedOrigins = () => {
   return ["*"];
 };
 
-// Add a specific test endpoint to verify CORS is working
-app.get("/api/test-cors", (req, res) => {
-  res.json({
-    success: true,
-    message: "CORS is working!",
-    origin: req.headers.origin,
-    timestamp: new Date().toISOString(),
-    headers: {
-      'access-control-allow-origin': res.getHeader('Access-Control-Allow-Origin'),
-      'access-control-allow-credentials': res.getHeader('Access-Control-Allow-Credentials')
-    }
-  });
-});
-
-// Enhanced error handling middleware (add this after all your routes)
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   console.error('\n🚨 ERROR MIDDLEWARE TRIGGERED:');
-  console.error('Error:', err.message);
-  console.error('Request:', {
-    method: req.method,
-    url: req.url,
-    origin: req.headers.origin,
-    userAgent: req.headers['user-agent']
-  });
+  console.error('Error message:', err?.message || 'No error message');
+  console.error('Error stack:', err?.stack || 'No stack trace');
+  
+  // Safe request logging
+  const requestInfo = {
+    method: req?.method || 'unknown',
+    url: req?.url || 'unknown',
+    origin: req?.headers?.origin || 'no-origin',
+    userAgent: req?.headers?.['user-agent']?.substring(0, 50) || 'unknown'
+  };
+  console.error('Request info:', requestInfo);
 
-  // If it's a CORS error, make sure we still set CORS headers
-  if (err.message && err.message.includes("CORS")) {
-    const origin = req.headers.origin;
+  // Handle CORS errors specifically
+  if (err?.message && err.message.includes("CORS")) {
+    const origin = req?.headers?.origin;
     const allowedOrigins = getAllowedOrigins();
     
+    // Set CORS headers even for error responses if origin is allowed
     if (Array.isArray(allowedOrigins) && origin && allowedOrigins.includes(origin)) {
       res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Credentials', 'true');
@@ -418,22 +398,45 @@ app.use((err, req, res) => {
     return res.status(403).json({
       success: false,
       message: "CORS policy violation",
-      origin,
+      origin: origin || 'no-origin',
       timestamp: new Date().toISOString()
     });
   }
 
   // Regular error handling
-  const statusCode = err.status || err.statusCode || 500;
+  const statusCode = err?.status || err?.statusCode || 500;
+  const errorMessage = process.env.NODE_ENV === "production" 
+    ? "Internal server error" 
+    : (err?.message || "Unknown error");
+
   res.status(statusCode).json({
     success: false,
-    message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
+    message: errorMessage,
     timestamp: new Date().toISOString(),
     ...(process.env.NODE_ENV !== "production" && { 
-      stack: err.stack,
-      path: req.path,
-      method: req.method
+      stack: err?.stack,
+      path: req?.path,
+      method: req?.method
     })
+  });
+});
+
+// Updated test endpoint that handles both with and without origin
+app.get("/api/test-cors", (req, res) => {
+  const origin = req.headers.origin;
+  const corsHeaders = {
+    'access-control-allow-origin': res.getHeader('Access-Control-Allow-Origin'),
+    'access-control-allow-credentials': res.getHeader('Access-Control-Allow-Credentials')
+  };
+
+  res.json({
+    success: true,
+    message: "CORS is working!",
+    origin: origin || 'no-origin-header',
+    timestamp: new Date().toISOString(),
+    headers: corsHeaders,
+    userAgent: req.headers['user-agent']?.substring(0, 50) || 'unknown',
+    requestType: origin ? 'browser' : 'tool/api'
   });
 });
 
