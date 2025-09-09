@@ -247,9 +247,18 @@ app.use(
 
 const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === "production") {
-    return process.env.PRODUCTION_FRONTEND_URLS
-      ? process.env.PRODUCTION_FRONTEND_URLS.split(",").map((url) => url.trim())
-      : ["https://slaviors.xyz"];
+    const productionUrls = process.env.PRODUCTION_FRONTEND_URLS;
+    if (productionUrls) {
+      const urls = productionUrls.split(",").map((url) => url.trim()).filter(Boolean);
+      console.log('🌐 Production CORS Origins:', urls);
+      return urls;
+    }
+    
+    console.warn('⚠️ PRODUCTION_FRONTEND_URLS not set, using fallback');
+    return [
+      "https://snaplove.pics",
+      "https://www.snaplove.pics"
+    ];
   } else if (process.env.NODE_ENV === "development") {
     return [
       process.env.FRONTEND_URL || "http://localhost:3000",
@@ -259,58 +268,51 @@ const getAllowedOrigins = () => {
       "http://localhost:3000",
     ];
   }
+  return "*";
 };
+
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = getAllowedOrigins();
+  
+  if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
+    res.header('Access-Control-Max-Age', '86400');
+    return res.sendStatus(200);
+  }
+  
+  res.sendStatus(403);
+});
 
 app.use(
   cors({
     origin: (origin, callback) => {
       const allowedOrigins = getAllowedOrigins();
 
-      // Log untuk debugging (hanya di development)
-      if (process.env.NODE_ENV === "development") {
-        console.log(
-          `CORS check - Origin: ${origin}, Allowed: ${JSON.stringify(
-            allowedOrigins
-          )}`
-        );
-      }
-
-      if (
-        !origin &&
-        (process.env.NODE_ENV === "development" ||
-          process.env.NODE_ENV === "test")
-      ) {
+      if (!origin && process.env.NODE_ENV !== "production") {
         return callback(null, true);
       }
 
-      // Di production, WAJIB ada origin
       if (!origin && process.env.NODE_ENV === "production") {
         return callback(new Error("Origin required in production"), false);
       }
 
-      // Jika allowedOrigins adalah array (production/development)
       if (Array.isArray(allowedOrigins)) {
         if (allowedOrigins.includes(origin)) {
           return callback(null, true);
         } else {
-          console.warn(
-            `CORS BLOCKED: ${origin} not in allowed origins: ${allowedOrigins.join(
-              ", "
-            )}`
-          );
-          return callback(
-            new Error(`Origin ${origin} not allowed by CORS policy`),
-            false
-          );
+          console.error(`❌ CORS BLOCKED: ${origin} not in ${allowedOrigins.join(", ")}`);
+          return callback(new Error(`Origin ${origin} not allowed by CORS policy`), false);
         }
       }
 
-      // Fallback untuk test environment
       if (allowedOrigins === "*" && process.env.NODE_ENV === "test") {
         return callback(null, true);
       }
 
-      // Default deny
       callback(new Error("CORS configuration error"), false);
     },
     credentials: true,
@@ -322,6 +324,7 @@ app.use(
       "X-API-Key",
     ],
     exposedHeaders: ["Content-Length", "X-Kuma-Revision"],
+    maxAge: 86400
   })
 );
 
