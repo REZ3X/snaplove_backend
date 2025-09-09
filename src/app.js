@@ -2,7 +2,7 @@ require("dotenv").config();
 const http = require("http");
 const socketService = require("./services/socketService");
 const express = require("express");
-const cors = require("cors");
+// const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
@@ -254,9 +254,9 @@ const getAllowedOrigins = () => {
         .filter(Boolean)
         .flatMap(url => {
           const cleanUrl = url.replace(/\/$/, ''); 
-          return [cleanUrl, cleanUrl + '/']; 
+          return [cleanUrl, cleanUrl + '/'];
         })
-        .filter((value, index, self) => self.indexOf(value) === index); 
+        .filter((value, index, self) => self.indexOf(value) === index);
       
       console.log('🌐 Production CORS Origins (with variants):', urls);
       return urls;
@@ -308,8 +308,15 @@ app.use((req, res, next) => {
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
     } else {
       console.error(`❌ CORS BLOCKED: "${origin}" not in allowed origins`);
+      console.error(`❌ Available origins: ${JSON.stringify(allowedOrigins)}`);
+
       if (req.method === 'OPTIONS') {
-        return res.status(403).end();
+        return res.status(403).json({
+          success: false,
+          message: 'CORS policy violation',
+          origin,
+          allowed: allowedOrigins
+        });
       }
     }
   } else if (allowedOrigins === "*" && process.env.NODE_ENV === "test") {
