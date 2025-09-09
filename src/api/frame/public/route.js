@@ -1,6 +1,6 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
-const sharp = require('sharp'); // npm install sharp
+const sharp = require('sharp');
 const Frame = require('../../../models/Frame');
 const User = require('../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
@@ -12,7 +12,7 @@ const fs = require('fs').promises;
 
 const router = express.Router();
 
-// GET list
+
 router.get('/',
   [
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -21,7 +21,7 @@ router.get('/',
     query('tag').optional().isString().withMessage('Tag must be a string'),
     query('sort').optional().isIn(['newest', 'oldest', 'most_liked', 'most_used']).withMessage('Invalid sort option')
   ],
-  async (req,res) => {
+  async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -32,11 +32,11 @@ router.get('/',
         });
       }
 
-      const page = parseInt(req.query.page)||1;
-      const limit = parseInt(req.query.limit)||20;
-      const skip = (page-1)*limit;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 20;
+      const skip = (page - 1) * limit;
 
-      const filter = { visibility:'public', approval_status:'approved' };
+      const filter = { visibility: 'public', approval_status: 'approved' };
       if (req.query.layout_type) filter.layout_type = req.query.layout_type;
       if (req.query.tag) filter.tag_label = { $in: [req.query.tag] };
 
@@ -56,11 +56,11 @@ router.get('/',
       }
 
       const frames = await Frame.find(filter)
-        .populate('user_id','name username image_profile role')
+        .populate('user_id', 'name username image_profile role')
         .sort(sort).skip(skip).limit(limit);
 
       const total = await Frame.countDocuments(filter);
-      const totalPages = Math.ceil(total/limit);
+      const totalPages = Math.ceil(total / limit);
 
       return res.json({
         success: true,
@@ -107,7 +107,7 @@ router.get('/',
 
 router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
   const upload = imageHandler.getFrameUpload();
-  
+
   upload.fields([
     { name: 'images', maxCount: 10 },
     { name: 'thumbnail', maxCount: 1 }
@@ -169,11 +169,11 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
 
       const images = req.files.images.map(file => imageHandler.getRelativeImagePath(file.path));
 
-      // Thumbnail handling with auto-generation for public frames
+
       const thumbnailFile = (req.files?.thumbnail || [])[0];
       let thumbnail = thumbnailFile ? imageHandler.getRelativeImagePath(thumbnailFile.path) : null;
 
-      // Auto-generate thumbnail if missing and visibility public
+
       if (!thumbnail && frameVisibility === 'public') {
         const firstPath = req.files.images[0].path;
         try {
@@ -189,7 +189,7 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
         }
       }
 
-      // Handle tags
+
       let tags = [];
       if (tag_label) {
         if (Array.isArray(tag_label)) {
@@ -229,7 +229,7 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
       await newFrame.save();
       await newFrame.populate('user_id', 'name username image_profile role');
 
-      // Send notification for public frames
+
       try {
         if (frameVisibility === 'public') {
           await socketService.sendFrameUploadNotification(
