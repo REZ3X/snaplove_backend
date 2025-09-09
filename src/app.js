@@ -249,15 +249,25 @@ const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === "production") {
     const productionUrls = process.env.PRODUCTION_FRONTEND_URLS;
     if (productionUrls) {
-      const urls = productionUrls.split(",").map((url) => url.trim()).filter(Boolean);
-      console.log('🌐 Production CORS Origins:', urls);
+      const urls = productionUrls.split(",")
+        .map((url) => url.trim())
+        .filter(Boolean)
+        .flatMap(url => {
+          const cleanUrl = url.replace(/\/$/, ''); 
+          return [cleanUrl, cleanUrl + '/']; 
+        })
+        .filter((value, index, self) => self.indexOf(value) === index); 
+      
+      console.log('🌐 Production CORS Origins (with variants):', urls);
       return urls;
     }
     
     console.warn('⚠️ PRODUCTION_FRONTEND_URLS not set, using fallback');
     return [
       "https://snaplove.pics",
-      "https://www.snaplove.pics"
+      "https://www.snaplove.pics",
+      "https://snaplove.pics/",
+      "https://www.snaplove.pics/"
     ];
   } else if (process.env.NODE_ENV === "development") {
     return [
@@ -271,62 +281,52 @@ const getAllowedOrigins = () => {
   return "*";
 };
 
-app.options('*', (req, res) => {
+app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowedOrigins = getAllowedOrigins();
-  
-  if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
+
+  if (process.env.NODE_ENV === "production") {
+    console.log(`🔍 CORS Request: ${req.method} ${req.path}`);
+    console.log(`🌐 Origin: "${origin}"`);
+    console.log(`📋 Allowed: ${JSON.stringify(allowedOrigins)}`);
+  }
+
+  if (Array.isArray(allowedOrigins)) {
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
+      res.header('Access-Control-Max-Age', '86400');
+      
+      if (process.env.NODE_ENV === "production") {
+        console.log(`✅ CORS allowed for: "${origin}"`);
+      }
+    } else if (!origin && process.env.NODE_ENV !== "production") {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
+    } else {
+      console.error(`❌ CORS BLOCKED: "${origin}" not in allowed origins`);
+      if (req.method === 'OPTIONS') {
+        return res.status(403).end();
+      }
+    }
+  } else if (allowedOrigins === "*" && process.env.NODE_ENV === "test") {
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
-    res.header('Access-Control-Max-Age', '86400');
+  }
+
+  if (req.method === 'OPTIONS') {
+    if (process.env.NODE_ENV === "production") {
+      console.log(`🚀 OPTIONS preflight handled for: "${origin}"`);
+    }
     return res.sendStatus(200);
   }
-  
-  res.sendStatus(403);
+
+  next();
 });
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = getAllowedOrigins();
-
-      if (!origin && process.env.NODE_ENV !== "production") {
-        return callback(null, true);
-      }
-
-      if (!origin && process.env.NODE_ENV === "production") {
-        return callback(new Error("Origin required in production"), false);
-      }
-
-      if (Array.isArray(allowedOrigins)) {
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        } else {
-          console.error(`❌ CORS BLOCKED: ${origin} not in ${allowedOrigins.join(", ")}`);
-          return callback(new Error(`Origin ${origin} not allowed by CORS policy`), false);
-        }
-      }
-
-      if (allowedOrigins === "*" && process.env.NODE_ENV === "test") {
-        return callback(null, true);
-      }
-
-      callback(new Error("CORS configuration error"), false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "X-API-Key",
-    ],
-    exposedHeaders: ["Content-Length", "X-Kuma-Revision"],
-    maxAge: 86400
-  })
-);
 
 // KHUSUS: CORS untuk static images (TAMBAHKAN SEBELUM express.static)
 app.use("/images", (req, res, next) => {
