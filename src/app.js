@@ -245,141 +245,203 @@ app.use(
   })
 );
 
-const getAllowedOrigins = () => {
-  if (process.env.NODE_ENV === "production") {
-    const productionUrls = process.env.PRODUCTION_FRONTEND_URLS;
-    if (productionUrls) {
-      const urls = productionUrls.split(",")
-        .map((url) => url.trim())
-        .filter(Boolean)
-        .flatMap(url => {
-          // Remove trailing slash for consistency
-          const cleanUrl = url.replace(/\/$/, ''); 
-          // Return both with and without trailing slash, plus www variants
-          const variants = [
-            cleanUrl,
-            cleanUrl + '/',
-          ];
-          
-          // Add www variants if not already present
-          if (!cleanUrl.includes('www.')) {
-            const withWww = cleanUrl.replace('https://', 'https://www.');
-            variants.push(withWww, withWww + '/');
-          }
-          
-          return variants;
-        })
-        .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
-      
-      console.log('🌐 Production CORS Origins:', urls);
-      return urls;
-    }
-    
-    console.warn('⚠️ PRODUCTION_FRONTEND_URLS not set, using fallback');
-    return [
-      "https://snaplove.pics",
-      "https://www.snaplove.pics",
-      "https://snaplove.pics/",
-      "https://www.snaplove.pics/"
-    ];
-  } else if (process.env.NODE_ENV === "development") {
-    return [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:5173",
-      "http://localhost:4173",
-      "http://localhost:3000",
-      // Add HTTPS variants for development
-      "https://localhost:3000",
-      "https://localhost:3001",
-    ];
-  }
-  return ["*"];
-};
+// Replace your CORS middleware with this enhanced debug version
+// Add this BEFORE any other middleware that handles routes
 
-// Improved CORS middleware
+// Enhanced CORS middleware with detailed logging
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const referer = req.headers.referer;
+  const method = req.method;
+  const path = req.path;
+  
+  // Always log CORS requests for debugging
+  console.log(`\n🔍 CORS REQUEST DEBUG:`);
+  console.log(`   Method: ${method}`);
+  console.log(`   Path: ${path}`);
+  console.log(`   Origin: "${origin}"`);
+  console.log(`   Headers:`, {
+    'access-control-request-method': req.headers['access-control-request-method'],
+    'access-control-request-headers': req.headers['access-control-request-headers'],
+    'user-agent': req.headers['user-agent']?.substring(0, 50) + '...'
+  });
+
+  // Get allowed origins
   const allowedOrigins = getAllowedOrigins();
+  console.log(`   Allowed origins: ${JSON.stringify(allowedOrigins)}`);
 
-  // Log CORS requests in production
-  if (process.env.NODE_ENV === "production") {
-    console.log(`🔍 CORS Request: ${req.method} ${req.path}`);
-    console.log(`🌐 Origin: "${origin}"`);
-    console.log(`🔗 Referer: "${referer}"`);
-  }
-
-  // Set CORS headers
+  // Function to set CORS headers
   const setCorsHeaders = (allowedOrigin) => {
+    console.log(`   ✅ Setting CORS headers for: "${allowedOrigin}"`);
     res.header('Access-Control-Allow-Origin', allowedOrigin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, Accept, Origin');
     res.header('Access-Control-Max-Age', '86400');
-    res.header('Vary', 'Origin'); // Important for caching
+    res.header('Vary', 'Origin');
+    
+    // Additional headers that might help
+    res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
   };
 
+  // Handle CORS logic
   if (Array.isArray(allowedOrigins)) {
-    // Check if origin is in allowed list
+    // Check exact origin match
     if (origin && allowedOrigins.includes(origin)) {
       setCorsHeaders(origin);
-      if (process.env.NODE_ENV === "production") {
-        console.log(`✅ CORS allowed for origin: "${origin}"`);
-      }
     } 
-    // Fallback: check referer if no origin (some requests don't send origin)
-    else if (!origin && referer) {
-      try {
-        const refererOrigin = new URL(referer).origin;
-        if (allowedOrigins.includes(refererOrigin)) {
-          setCorsHeaders(refererOrigin);
-          if (process.env.NODE_ENV === "production") {
-            console.log(`✅ CORS allowed via referer: "${refererOrigin}"`);
-          }
-        } else {
-          console.error(`❌ CORS BLOCKED (referer): "${refererOrigin}" not in allowed origins`);
-        }
-      } catch (e) {
-        console.error(`❌ Invalid referer URL: "${referer}"`);
-      }
-    }
-    // Development: allow requests without origin
-    else if (!origin && process.env.NODE_ENV !== "production") {
-      setCorsHeaders('*');
-    } 
-    // Production: strict origin checking
-    else {
-      console.error(`❌ CORS BLOCKED: "${origin}" not in allowed origins`);
-      console.error(`❌ Available origins: ${JSON.stringify(allowedOrigins)}`);
-
-      // For preflight requests, return error
-      if (req.method === 'OPTIONS') {
+    // For production, be more strict
+    else if (process.env.NODE_ENV === "production") {
+      console.log(`   ❌ CORS BLOCKED: "${origin}" not in allowed list`);
+      
+      // For preflight requests, we need to respond with error but still set some headers
+      if (method === 'OPTIONS') {
+        res.header('Access-Control-Allow-Origin', 'null');
         return res.status(403).json({
           success: false,
           message: 'CORS policy violation - origin not allowed',
           origin,
-          allowed: allowedOrigins
+          allowed: allowedOrigins,
+          timestamp: new Date().toISOString()
         });
       }
-      
-      // For actual requests, let it continue but log the violation
-      // The browser will still block it, but this helps with debugging
+    }
+    // For development, be more lenient
+    else if (process.env.NODE_ENV === "development") {
+      if (origin) {
+        setCorsHeaders(origin);
+        console.log(`   🟡 DEV: Allowing origin "${origin}"`);
+      } else {
+        setCorsHeaders('*');
+        console.log(`   🟡 DEV: No origin, allowing all`);
+      }
+    }
+    // No origin in non-production (like Postman)
+    else if (!origin && process.env.NODE_ENV !== "production") {
+      setCorsHeaders('*');
+      console.log(`   🟡 No origin, allowing all (non-production)`);
     }
   } else if (allowedOrigins.includes("*")) {
     setCorsHeaders('*');
+    console.log(`   🟡 Wildcard allowed`);
   }
 
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    if (process.env.NODE_ENV === "production") {
-      console.log(`🚀 OPTIONS preflight handled for: "${origin}"`);
-    }
+  // Handle preflight OPTIONS requests
+  if (method === 'OPTIONS') {
+    console.log(`   🚀 Handling OPTIONS preflight request`);
+    console.log(`   Response headers:`, {
+      'Access-Control-Allow-Origin': res.getHeader('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Methods': res.getHeader('Access-Control-Allow-Methods'),
+      'Access-Control-Allow-Headers': res.getHeader('Access-Control-Allow-Headers')
+    });
     return res.status(200).end();
   }
 
+  console.log(`   ➡️ Continuing to next middleware\n`);
   next();
 });
+
+// Simplified getAllowedOrigins function with better logging
+const getAllowedOrigins = () => {
+  if (process.env.NODE_ENV === "production") {
+    const productionUrls = process.env.PRODUCTION_FRONTEND_URLS;
+    console.log(`🌐 PRODUCTION_FRONTEND_URLS env var: "${productionUrls}"`);
+    
+    if (productionUrls) {
+      const urls = productionUrls.split(",")
+        .map((url) => url.trim())
+        .filter(Boolean);
+      
+      console.log(`🌐 Parsed production URLs: ${JSON.stringify(urls)}`);
+      return urls;
+    }
+    
+    console.warn('⚠️ PRODUCTION_FRONTEND_URLS not set, using fallback');
+    const fallback = [
+      "https://snaplove.pics",
+      "https://www.snaplove.pics"
+    ];
+    console.log(`🌐 Using fallback URLs: ${JSON.stringify(fallback)}`);
+    return fallback;
+  } else if (process.env.NODE_ENV === "development") {
+    const devUrls = [
+      process.env.FRONTEND_URL || "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:5173",
+      "http://localhost:4173",
+      "http://localhost:3000",
+      "https://localhost:3000",
+      "https://localhost:3001",
+    ];
+    console.log(`🌐 Development URLs: ${JSON.stringify(devUrls)}`);
+    return devUrls;
+  }
+  
+  console.log(`🌐 Test environment - allowing wildcard`);
+  return ["*"];
+};
+
+// Add a specific test endpoint to verify CORS is working
+app.get("/api/test-cors", (req, res) => {
+  res.json({
+    success: true,
+    message: "CORS is working!",
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString(),
+    headers: {
+      'access-control-allow-origin': res.getHeader('Access-Control-Allow-Origin'),
+      'access-control-allow-credentials': res.getHeader('Access-Control-Allow-Credentials')
+    }
+  });
+});
+
+// Enhanced error handling middleware (add this after all your routes)
+app.use((err, req, res) => {
+  console.error('\n🚨 ERROR MIDDLEWARE TRIGGERED:');
+  console.error('Error:', err.message);
+  console.error('Request:', {
+    method: req.method,
+    url: req.url,
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']
+  });
+
+  // If it's a CORS error, make sure we still set CORS headers
+  if (err.message && err.message.includes("CORS")) {
+    const origin = req.headers.origin;
+    const allowedOrigins = getAllowedOrigins();
+    
+    if (Array.isArray(allowedOrigins) && origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+    
+    return res.status(403).json({
+      success: false,
+      message: "CORS policy violation",
+      origin,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Regular error handling
+  const statusCode = err.status || err.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
+    timestamp: new Date().toISOString(),
+    ...(process.env.NODE_ENV !== "production" && { 
+      stack: err.stack,
+      path: req.path,
+      method: req.method
+    })
+  });
+});
+
+console.log('\n🔧 CORS Debug Mode Activated');
+console.log('📊 Environment:', process.env.NODE_ENV);
+console.log('🌐 Allowed Origins:', JSON.stringify(getAllowedOrigins()));
+console.log('🔑 API Key Auth:', process.env.NODE_ENV === "production" ? "Enabled" : "Disabled");
+console.log('📍 Test endpoint: GET /api/test-cors\n');
 
 // KHUSUS: CORS untuk static images (TAMBAHKAN SEBELUM express.static)
 app.use("/images", (req, res, next) => {
