@@ -2,7 +2,7 @@ require("dotenv").config();
 const http = require("http");
 const socketService = require("./services/socketService");
 const express = require("express");
-// const cors = require("cors");
+
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
@@ -243,27 +243,20 @@ app.use(
   })
 );
 
-// Replace your CORS middleware with this enhanced debug version
-// Add this BEFORE any other middleware that handles routes
-
-// Enhanced CORS middleware with detailed logging
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const method = req.method;
   const path = req.path;
-  
-  // Always log CORS requests for debugging
+
   console.log(`\n🔍 CORS REQUEST DEBUG:`);
   console.log(`   Method: ${method}`);
   console.log(`   Path: ${path}`);
   console.log(`   Origin: "${origin}"`);
   console.log(`   User-Agent: ${req.headers['user-agent']?.substring(0, 30) || 'unknown'}...`);
 
-  // Get allowed origins
   const allowedOrigins = getAllowedOrigins();
   console.log(`   Allowed origins: ${JSON.stringify(allowedOrigins)}`);
 
-  // Function to set CORS headers
   const setCorsHeaders = (allowedOrigin) => {
     console.log(`   ✅ Setting CORS headers for: "${allowedOrigin}"`);
     res.header('Access-Control-Allow-Origin', allowedOrigin);
@@ -275,19 +268,18 @@ app.use((req, res, next) => {
     res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
   };
 
-  // Handle CORS logic
   if (Array.isArray(allowedOrigins)) {
     if (origin && allowedOrigins.includes(origin)) {
-      // Origin is in allowed list
+
       setCorsHeaders(origin);
     } else if (!origin) {
-      // No origin header (Postman, server-to-server requests, etc.)
+
       console.log(`   🟡 No origin header - allowing for tools/APIs`);
       setCorsHeaders('*');
     } else if (process.env.NODE_ENV === "production") {
-      // Production: strict checking for browser requests
+
       console.log(`   ❌ CORS BLOCKED: "${origin}" not in allowed list`);
-      
+
       if (method === 'OPTIONS') {
         return res.status(403).json({
           success: false,
@@ -297,9 +289,9 @@ app.use((req, res, next) => {
           timestamp: new Date().toISOString()
         });
       }
-      // For non-preflight requests, we'll let them continue but the browser will block them
+
     } else {
-      // Development: be lenient
+
       if (origin) {
         setCorsHeaders(origin);
         console.log(`   🟡 DEV: Allowing origin "${origin}"`);
@@ -313,7 +305,7 @@ app.use((req, res, next) => {
     console.log(`   🟡 Wildcard allowed`);
   }
 
-  // Handle preflight OPTIONS requests
+
   if (method === 'OPTIONS') {
     console.log(`   🚀 Handling OPTIONS preflight request`);
     console.log(`   Response headers:`, {
@@ -328,21 +320,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// Simplified getAllowedOrigins function with better logging
+
 const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === "production") {
     const productionUrls = process.env.PRODUCTION_FRONTEND_URLS;
     console.log(`🌐 PRODUCTION_FRONTEND_URLS env var: "${productionUrls}"`);
-    
+
     if (productionUrls) {
       const urls = productionUrls.split(",")
         .map((url) => url.trim())
         .filter(Boolean);
-      
+
       console.log(`🌐 Parsed production URLs: ${JSON.stringify(urls)}`);
       return urls;
     }
-    
+
     console.warn('⚠️ PRODUCTION_FRONTEND_URLS not set, using fallback');
     const fallback = [
       "https://snaplove.pics",
@@ -363,17 +355,17 @@ const getAllowedOrigins = () => {
     console.log(`🌐 Development URLs: ${JSON.stringify(devUrls)}`);
     return devUrls;
   }
-  
+
   console.log(`🌐 Test environment - allowing wildcard`);
   return ["*"];
 };
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error('\n🚨 ERROR MIDDLEWARE TRIGGERED:');
   console.error('Error message:', err?.message || 'No error message');
   console.error('Error stack:', err?.stack || 'No stack trace');
-  
-  // Safe request logging
+
+
   const requestInfo = {
     method: req?.method || 'unknown',
     url: req?.url || 'unknown',
@@ -382,17 +374,15 @@ app.use((err, req, res, next) => {
   };
   console.error('Request info:', requestInfo);
 
-  // Handle CORS errors specifically
   if (err?.message && err.message.includes("CORS")) {
     const origin = req?.headers?.origin;
     const allowedOrigins = getAllowedOrigins();
-    
-    // Set CORS headers even for error responses if origin is allowed
+
     if (Array.isArray(allowedOrigins) && origin && allowedOrigins.includes(origin)) {
       res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Credentials', 'true');
     }
-    
+
     return res.status(403).json({
       success: false,
       message: "CORS policy violation",
@@ -401,17 +391,16 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Regular error handling
   const statusCode = err?.status || err?.statusCode || 500;
-  const errorMessage = process.env.NODE_ENV === "production" 
-    ? "Internal server error" 
+  const errorMessage = process.env.NODE_ENV === "production"
+    ? "Internal server error"
     : (err?.message || "Unknown error");
 
   res.status(statusCode).json({
     success: false,
     message: errorMessage,
     timestamp: new Date().toISOString(),
-    ...(process.env.NODE_ENV !== "production" && { 
+    ...(process.env.NODE_ENV !== "production" && {
       stack: err?.stack,
       path: req?.path,
       method: req?.method
@@ -419,7 +408,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Updated test endpoint that handles both with and without origin
 app.get("/api/test-cors", (req, res) => {
   const origin = req.headers.origin;
   const corsHeaders = {
@@ -444,7 +432,6 @@ console.log('🌐 Allowed Origins:', JSON.stringify(getAllowedOrigins()));
 console.log('🔑 API Key Auth:', process.env.NODE_ENV === "production" ? "Enabled" : "Disabled");
 console.log('📍 Test endpoint: GET /api/test-cors\n');
 
-// KHUSUS: CORS untuk static images (TAMBAHKAN SEBELUM express.static)
 app.use("/images", (req, res, next) => {
   const allowedOrigins = getAllowedOrigins();
   const origin = req.headers.origin;
@@ -461,7 +448,7 @@ app.use("/images", (req, res, next) => {
     if (allowedOrigins.includes(origin)) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header("Access-Control-Allow-Credentials", "true");
-      // Allow no-origin requests hanya di development/test
+
     } else if (
       !origin &&
       (process.env.NODE_ENV === "development" ||
@@ -486,7 +473,7 @@ app.use("/images", (req, res, next) => {
   );
   res.header("Cross-Origin-Resource-Policy", "cross-origin");
 
-  // Handle preflight requests
+
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
   } else {
@@ -614,7 +601,7 @@ app.use("*", (req, res) => {
 });
 
 app.use((err, req, res, _next) => {
-  // Handle CORS errors specifically
+
   if (err.message && err.message.includes("CORS")) {
     console.warn(
       `CORS blocked request from origin: ${req.headers.origin || "unknown"}`
