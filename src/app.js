@@ -107,8 +107,6 @@ if (process.env.NODE_ENV !== "test") {
   connectDB();
 }
 
-app.use(apiKeyAuth);
-
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "view", "index.html"));
 });
@@ -497,6 +495,8 @@ app.use("/images", (req, res, next) => {
 });
 
 app.use("/images", express.static(path.join(process.cwd(), "images")));
+
+app.use(apiKeyAuth);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
