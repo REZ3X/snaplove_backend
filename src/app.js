@@ -253,12 +253,25 @@ const getAllowedOrigins = () => {
         .map((url) => url.trim())
         .filter(Boolean)
         .flatMap(url => {
+          // Remove trailing slash for consistency
           const cleanUrl = url.replace(/\/$/, ''); 
-          return [cleanUrl, cleanUrl + '/'];
+          // Return both with and without trailing slash, plus www variants
+          const variants = [
+            cleanUrl,
+            cleanUrl + '/',
+          ];
+          
+          // Add www variants if not already present
+          if (!cleanUrl.includes('www.')) {
+            const withWww = cleanUrl.replace('https://', 'https://www.');
+            variants.push(withWww, withWww + '/');
+          }
+          
+          return variants;
         })
-        .filter((value, index, self) => self.indexOf(value) === index);
+        .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
       
-      console.log('🌐 Production CORS Origins (with variants):', urls);
+      console.log('🌐 Production CORS Origins:', urls);
       return urls;
     }
     
@@ -276,60 +289,93 @@ const getAllowedOrigins = () => {
       "http://localhost:5173",
       "http://localhost:4173",
       "http://localhost:3000",
+      // Add HTTPS variants for development
+      "https://localhost:3000",
+      "https://localhost:3001",
     ];
   }
-  return "*";
+  return ["*"];
 };
 
+// Improved CORS middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const referer = req.headers.referer;
   const allowedOrigins = getAllowedOrigins();
 
+  // Log CORS requests in production
   if (process.env.NODE_ENV === "production") {
     console.log(`🔍 CORS Request: ${req.method} ${req.path}`);
     console.log(`🌐 Origin: "${origin}"`);
-    console.log(`📋 Allowed: ${JSON.stringify(allowedOrigins)}`);
+    console.log(`🔗 Referer: "${referer}"`);
   }
 
+  // Set CORS headers
+  const setCorsHeaders = (allowedOrigin) => {
+    res.header('Access-Control-Allow-Origin', allowedOrigin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, Accept, Origin');
+    res.header('Access-Control-Max-Age', '86400');
+    res.header('Vary', 'Origin'); // Important for caching
+  };
+
   if (Array.isArray(allowedOrigins)) {
-    if (allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
-      res.header('Access-Control-Max-Age', '86400');
-      
+    // Check if origin is in allowed list
+    if (origin && allowedOrigins.includes(origin)) {
+      setCorsHeaders(origin);
       if (process.env.NODE_ENV === "production") {
-        console.log(`✅ CORS allowed for: "${origin}"`);
+        console.log(`✅ CORS allowed for origin: "${origin}"`);
       }
-    } else if (!origin && process.env.NODE_ENV !== "production") {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
-    } else {
+    } 
+    // Fallback: check referer if no origin (some requests don't send origin)
+    else if (!origin && referer) {
+      try {
+        const refererOrigin = new URL(referer).origin;
+        if (allowedOrigins.includes(refererOrigin)) {
+          setCorsHeaders(refererOrigin);
+          if (process.env.NODE_ENV === "production") {
+            console.log(`✅ CORS allowed via referer: "${refererOrigin}"`);
+          }
+        } else {
+          console.error(`❌ CORS BLOCKED (referer): "${refererOrigin}" not in allowed origins`);
+        }
+      } catch (e) {
+        console.error(`❌ Invalid referer URL: "${referer}"`);
+      }
+    }
+    // Development: allow requests without origin
+    else if (!origin && process.env.NODE_ENV !== "production") {
+      setCorsHeaders('*');
+    } 
+    // Production: strict origin checking
+    else {
       console.error(`❌ CORS BLOCKED: "${origin}" not in allowed origins`);
       console.error(`❌ Available origins: ${JSON.stringify(allowedOrigins)}`);
 
+      // For preflight requests, return error
       if (req.method === 'OPTIONS') {
         return res.status(403).json({
           success: false,
-          message: 'CORS policy violation',
+          message: 'CORS policy violation - origin not allowed',
           origin,
           allowed: allowedOrigins
         });
       }
+      
+      // For actual requests, let it continue but log the violation
+      // The browser will still block it, but this helps with debugging
     }
-  } else if (allowedOrigins === "*" && process.env.NODE_ENV === "test") {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key');
+  } else if (allowedOrigins.includes("*")) {
+    setCorsHeaders('*');
   }
 
+  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     if (process.env.NODE_ENV === "production") {
       console.log(`🚀 OPTIONS preflight handled for: "${origin}"`);
     }
-    return res.sendStatus(200);
+    return res.status(200).end();
   }
 
   next();
