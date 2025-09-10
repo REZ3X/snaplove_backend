@@ -981,6 +981,24 @@
             </div>
           </div>
 
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/frame/public/trending</span>
+            </div>
+            <div class="endpoint-description">
+              Get trending frames based on usage and likes with time filtering
+              and velocity analysis
+            </div>
+            <div class="example-code">
+              Query Parameters: - type: "uses"|"likes"|"both" (default: "both")
+              - period: "1d"|"3d"|"7d"|"1m"|"all" (default: "7d") - limit:
+              number (1-50, default: 20) - page: number (default: 1) -
+              layout_type: "2x1"|"3x1"|"4x1" (optional) - official_only: boolean
+              (optional)
+            </div>
+          </div>
+
           <h4>👤 User Frame Management</h4>
           <div class="endpoint">
             <div class="endpoint-header">
@@ -1982,6 +2000,35 @@
             "statistics": { "total_uses_in_period": 192,
             "unique_users_in_period": 35, "average_uses_per_user": 5.49 },
             "frame_owner_position": { "rank": 8, "usage_stats": { ... } } } }
+          </div>
+
+          <h4>📈 Trending Features</h4>
+          <div class="example-code">
+            ✅ Usage velocity analysis (activity per day) ✅ Like velocity
+            tracking (likes per day) ✅ Unique user engagement metrics ✅
+            Multiple time period filtering ✅ Combined trending score
+            calculation ✅ Layout and official status filtering ✅ Pagination
+            support for all types
+          </div>
+
+          <h4>🔥 Trending Response Structure</h4>
+          <div class="example-code">
+            { "success": true, "data": { "period": { "type": "7d",
+            "description": "Trending frames in the last 7 days", "date_range": {
+            "start": "2024-01-08T10:00:00.000Z", "end":
+            "2024-01-15T10:00:00.000Z" } }, "most_used": { "data": [ { "rank":
+            1, "frame": { "id": "frame_id", "title": "Trending Frame",
+            "thumbnail": "thumbnail_url", "layout_type": "2x1",
+            "official_status": true, "total_likes": 150, "total_uses": 89 },
+            "user": { "id": "user_id", "name": "Creator Name", "username":
+            "creator", "role": "verified_premium" }, "trending_stats": {
+            "period_uses": 45, "unique_users_in_period": 38,
+            "usage_velocity_per_day": 6.43, "trending_score": 892 } } ] },
+            "most_liked": { "data": [...] }, "statistics": {
+            "total_frames_analyzed": 1250, "total_period_likes": 4820,
+            "total_period_uses": 3150, "activity_rate": 68.5,
+            "average_likes_per_frame": 3.86, "average_uses_per_frame": 2.52 } }
+            }
           </div>
 
           <h4>🔧 Error Handling</h4>
