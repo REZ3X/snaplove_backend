@@ -486,26 +486,40 @@ app.use("/images", express.static(path.join(process.cwd(), "images")));
 app.use(apiKeyAuth);
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === "test" ? 1000000 : 100,
+  windowMs: 15 * 60 * 1000, 
+  max: process.env.NODE_ENV === "test" ? 1000000 : 
+       process.env.NODE_ENV === "production" ? 500 : 200,
   message: {
     success: false,
     message: "Too many requests from this IP, please try again later.",
+    resetTime: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
   },
   skip: process.env.NODE_ENV === "test" ? () => true : () => false,
   keyGenerator: (req) => {
     if (process.env.NODE_ENV === "production") {
-      return (
-        req.headers["cf-connecting-ip"] ||
+      const ip = req.headers["cf-connecting-ip"] ||
         req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+        req.headers["x-real-ip"] ||
         req.connection.remoteAddress ||
-        req.ip
-      );
+        req.socket.remoteAddress ||
+        req.ip;
+      
+      console.log(`Rate limit key for production: ${ip}`);
+      return ip;
     }
     return req.ip;
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    console.warn(`Rate limit exceeded for IP: ${req.ip}, Path: ${req.path}`);
+    res.status(429).json({
+      success: false,
+      message: "Too many requests from this IP, please try again later.",
+      retryAfter: 15 * 60, 
+      resetTime: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    });
+  },
 });
 app.use(limiter);
 
