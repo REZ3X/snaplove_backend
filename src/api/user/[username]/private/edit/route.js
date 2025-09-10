@@ -5,7 +5,7 @@ const { authenticateToken, checkBanStatus } = require('../../../../../middleware
 
 const router = express.Router();
 
-router.put('/:username/edit', [
+router.put('/:username/private/edit', [
   param('username').notEmpty().withMessage('Username is required'),
   body('name').optional().isLength({ min: 1, max: 100 }).withMessage('Name must be 1-100 characters'),
   body('bio').optional().isLength({ max: 500 }).withMessage('Bio must be max 500 characters'),
