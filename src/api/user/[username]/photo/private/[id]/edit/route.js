@@ -3,6 +3,7 @@ const { param, body, validationResult } = require('express-validator');
 const Photo = require('../../../../../../../models/Photo');
 const User = require('../../../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -79,7 +80,7 @@ router.put('/:username/photo/private/:id/edit', [
             id: photo.user_id._id,
             name: photo.user_id.name,
             username: photo.user_id.username,
-            image_profile: photo.user_id.image_profile,
+            image_profile: getDisplayProfileImage(photo.user_id, req),
             role: photo.user_id.role
           },
           expires_at: photo.expires_at,

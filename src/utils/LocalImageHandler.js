@@ -44,6 +44,42 @@ class LocalImageHandler {
     });
   }
 
+  getProfileStorage() {
+    return multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          await this.ensureDirectoryExists(this.profilesDir);
+          cb(null, this.profilesDir);
+        } catch (e) {
+          cb(e);
+        }
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.originalname) || '.bin';
+        cb(null, `profile-${uniqueSuffix}${ext}`);
+      }
+    });
+  }
+
+  getPhotoStorage() {
+    return multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          await this.ensureDirectoryExists(this.photosDir);
+          cb(null, this.photosDir);
+        } catch (e) {
+          cb(e);
+        }
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.originalname) || '.bin';
+        cb(null, `photo-${uniqueSuffix}${ext}`);
+      }
+    });
+  }
+
   imageFileFilter(req, file, cb) {
     const allowedMimes = [
       'image/jpeg',
@@ -60,18 +96,35 @@ class LocalImageHandler {
     cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP, SVG, and AVIF are allowed.'), false);
   }
 
-
   getFrameUpload() {
     return multer({
       storage: this.getFrameStorage(),
       fileFilter: this.imageFileFilter,
       limits: {
         fileSize: 5 * 1024 * 1024
-
       }
     });
   }
 
+  getProfileUpload() {
+    return multer({
+      storage: this.getProfileStorage(),
+      fileFilter: this.imageFileFilter,
+      limits: {
+        fileSize: 5 * 1024 * 1024
+      }
+    });
+  }
+
+  getPhotoUpload() {
+    return multer({
+      storage: this.getPhotoStorage(),
+      fileFilter: this.imageFileFilter,
+      limits: {
+        fileSize: 5 * 1024 * 1024
+      }
+    });
+  }
 
   getPublicFrameUpload() {
     return multer({

@@ -3,6 +3,7 @@ const { param, body, validationResult } = require('express-validator');
 const Report = require('../../../../models/Report');
 const Frame = require('../../../../models/Frame');
 const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.get('/:id', [
                         name: report.user_id.name,
                         username: report.user_id.username,
                         email: report.user_id.email,
-                        image_profile: report.user_id.image_profile,
+                        image_profile: getDisplayProfileImage(report.user_id, req),
                         role: report.user_id.role
                     },
                     frame: report.frame_id ? {
@@ -201,7 +202,7 @@ router.put('/:id', [
                         name: updatedReport.user_id.name,
                         username: updatedReport.user_id.username,
                         email: updatedReport.user_id.email,
-                        image_profile: updatedReport.user_id.image_profile,
+                        image_profile: getDisplayProfileImage(updatedReport.user_id, req),
                         role: updatedReport.user_id.role
                     },
                     frame: updatedReport.frame_id ? {

@@ -1,6 +1,7 @@
 const express = require('express');
 const { param, validationResult } = require('express-validator');
 const User = require('../../../models/User');
+const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ router.get('/:username', [
           id: user._id,
           name: user.name,
           username: user.username,
-          image_profile: user.image_profile,
+          image_profile: getDisplayProfileImage(user, req),
           role: user.role,
           bio: user.bio,
           birthdate: user.birthdate,

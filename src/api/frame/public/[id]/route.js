@@ -1,6 +1,7 @@
 const express = require('express');
 const { param, validationResult } = require('express-validator');
 const Frame = require('../../../../models/Frame');
+const { getDisplayProfileImage } = require('../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.get('/:id', [
             id: frame.user_id._id,
             name: frame.user_id.name,
             username: frame.user_id.username,
-            image_profile: frame.user_id.image_profile,
+            image_profile: getDisplayProfileImage(frame.user_id, req),
             role: frame.user_id.role
           },
           created_at: frame.created_at,

@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const User = require('../../../models/User');
+const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -80,7 +81,7 @@ router.post('/', [
           name: user.name,
           username: user.username,
           email: user.email,
-          image_profile: user.image_profile,
+          image_profile: getDisplayProfileImage(user, req),
           role: user.role,
           bio: user.bio,
           ban_status: user.ban_status

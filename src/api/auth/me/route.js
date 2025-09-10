@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -15,12 +16,14 @@ router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
           name: user.name,
           username: user.username,
           email: user.email,
-          image_profile: user.image_profile,
+          image_profile: getDisplayProfileImage(user, req),
           role: user.role,
           bio: user.bio,
           birthdate: user.birthdate,
           ban_status: user.ban_status,
           ban_release_datetime: user.ban_release_datetime,
+          use_google_profile: user.use_google_profile !== false,
+          has_custom_image: !!user.custom_profile_image,
           created_at: user.created_at,
           updated_at: user.updated_at
         },

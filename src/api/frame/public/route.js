@@ -7,6 +7,7 @@ const { authenticateToken, checkBanStatus } = require('../../../middleware/middl
 const { canCreatePublicFrame } = require('../../../utils/RolePolicy');
 const socketService = require('../../../services/socketService');
 const imageHandler = require('../../../utils/LocalImageHandler');
+const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
 const path = require('path');
 const fs = require('fs').promises;
 
@@ -79,7 +80,7 @@ router.get('/',
               id: frame.user_id._id,
               name: frame.user_id.name,
               username: frame.user_id.username,
-              image_profile: frame.user_id.image_profile,
+    image_profile: getDisplayProfileImage(frame.user_id, req),
               role: frame.user_id.role
             },
             created_at: frame.created_at,
@@ -270,7 +271,7 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
               id: newFrame.user_id._id,
               name: newFrame.user_id.name,
               username: newFrame.user_id.username,
-              image_profile: newFrame.user_id.image_profile,
+              image_profile: getDisplayProfileImage(newFrame.user_id, req),
               role: newFrame.user_id.role
             },
             created_at: newFrame.created_at,

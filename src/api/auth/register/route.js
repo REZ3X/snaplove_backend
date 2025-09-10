@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const User = require('../../../models/User');
+const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -65,23 +66,29 @@ router.post('/', [
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        user: {
-          id: newUser._id,
-          name: newUser.name,
-          username: newUser.username,
-          email: newUser.email,
-          image_profile: newUser.image_profile,
-          role: newUser.role,
-          bio: newUser.bio,
-          ban_status: newUser.ban_status
-        },
-        token
-      }
-    });
+res.status(201).json({
+  success: true,
+  message: 'User registered successfully',
+  data: {
+    user: {
+      id: newUser._id,
+      name: newUser.name,
+      username: newUser.username,
+      email: newUser.email,
+      image_profile: getDisplayProfileImage(newUser, req),
+      role: newUser.role,
+      bio: newUser.bio,
+      birthdate: newUser.birthdate,
+      ban_status: newUser.ban_status,
+      ban_release_datetime: newUser.ban_release_datetime,
+      use_google_profile: newUser.use_google_profile !== false,
+      has_custom_image: !!newUser.custom_profile_image,
+      created_at: newUser.created_at,
+      updated_at: newUser.updated_at
+    },
+    token
+  }
+});
 
   } catch (error) {
     console.error('Register error:', error);

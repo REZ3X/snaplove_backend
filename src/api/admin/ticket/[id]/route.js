@@ -2,6 +2,7 @@ const express = require('express');
 const { param, body, validationResult } = require('express-validator');
 const Ticket = require('../../../../models/Ticket');
 const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.get('/:id', [
             name: ticket.user_id.name,
             username: ticket.user_id.username,
             email: ticket.user_id.email,
-            image_profile: ticket.user_id.image_profile,
+            image_profile: getDisplayProfileImage(ticket.user_id, req),
             role: ticket.user_id.role
           },
           admin: ticket.admin_id ? {
@@ -149,7 +150,7 @@ router.put('/:id', [
             name: updatedTicket.user_id.name,
             username: updatedTicket.user_id.username,
             email: updatedTicket.user_id.email,
-            image_profile: updatedTicket.user_id.image_profile,
+            image_profile: getDisplayProfileImage(updatedTicket.user_id, req),
             role: updatedTicket.user_id.role
           },
           admin: updatedTicket.admin_id ? {

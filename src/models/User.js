@@ -5,6 +5,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  custom_profile_image: {
+    type: String,
+    default: null
+  },
+  use_google_profile: {
+    type: Boolean,
+    default: true
+  },
   name: {
     type: String,
     required: true

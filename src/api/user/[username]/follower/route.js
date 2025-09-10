@@ -4,6 +4,7 @@ const { param, query, validationResult } = require('express-validator');
 const Follow = require('../../../../models/Follow');
 const User = require('../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -151,14 +152,14 @@ router.get('/:username/follower', [
           id: targetUser._id,
           name: targetUser.name,
           username: targetUser.username,
-          image_profile: targetUser.image_profile,
+          image_profile: getDisplayProfileImage(targetUser, req),
           role: targetUser.role
         },
         followers: followers.map(follow => ({
           id: follow.follower._id,
           name: follow.follower.name,
           username: follow.follower.username,
-          image_profile: follow.follower.image_profile,
+          image_profile: getDisplayProfileImage(follow.follower, req),
           role: follow.follower.role,
           followed_since: follow.created_at,
           is_mutual: follow.mutual_follow.length > 0,

@@ -5,6 +5,7 @@ const Follow = require('../../../../models/Follow');
 const User = require('../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../middleware/middleware');
 const socketService = require('../../../../services/socketService');
+const { getDisplayProfileImage } = require('../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -152,14 +153,14 @@ router.get('/:username/following', [
           id: targetUser._id,
           name: targetUser.name,
           username: targetUser.username,
-          image_profile: targetUser.image_profile,
+          image_profile: getDisplayProfileImage(targetUser, req),
           role: targetUser.role
         },
         following: following.map(follow => ({
           id: follow.following._id,
           name: follow.following.name,
           username: follow.following.username,
-          image_profile: follow.following.image_profile,
+          image_profile: getDisplayProfileImage(follow.following, req),
           role: follow.following.role,
           followed_since: follow.created_at,
           is_mutual: follow.mutual_follow.length > 0,
@@ -287,7 +288,7 @@ router.post('/:username/following', [
           id: userToFollow._id,
           name: userToFollow.name,
           username: userToFollow.username,
-          image_profile: userToFollow.image_profile,
+          image_profile: getDisplayProfileImage(userToFollow, req),
           role: userToFollow.role
         },
         followed_at: new Date()
@@ -436,7 +437,7 @@ router.get('/:username/following/check/:targetUsername', [
           id: checkUser._id,
           name: checkUser.name,
           username: checkUser.username,
-          image_profile: checkUser.image_profile
+          image_profile: getDisplayProfileImage(checkUser, req)
         }
       }
     });

@@ -3,6 +3,7 @@ const { query, param, body, validationResult } = require('express-validator');
 const Frame = require('../../../models/Frame');
 const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../middleware/middleware');
 const socketService = require('../../../services/socketService');
+const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -102,7 +103,7 @@ router.get('/', [
             id: frame.user_id._id,
             name: frame.user_id.name,
             username: frame.user_id.username,
-            image_profile: frame.user_id.image_profile,
+            image_profile: getDisplayProfileImage(frame.user_id, req),
             role: frame.user_id.role,
             email: frame.user_id.email
           },
@@ -190,7 +191,7 @@ router.get('/:id', [
             id: frame.user_id._id,
             name: frame.user_id.name,
             username: frame.user_id.username,
-            image_profile: frame.user_id.image_profile,
+            image_profile: getDisplayProfileImage(frame.user_id, req),
             role: frame.user_id.role,
             email: frame.user_id.email,
             member_since: frame.user_id.created_at
@@ -312,7 +313,7 @@ router.put('/:id', [
             id: updatedFrame.user_id._id,
             name: updatedFrame.user_id.name,
             username: updatedFrame.user_id.username,
-            image_profile: updatedFrame.user_id.image_profile,
+            image_profile: getDisplayProfileImage(updatedFrame.user_id, req),
             role: updatedFrame.user_id.role,
             email: updatedFrame.user_id.email
           },

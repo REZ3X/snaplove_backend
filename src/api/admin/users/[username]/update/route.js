@@ -2,6 +2,7 @@ const express = require('express');
 const { param, body, validationResult } = require('express-validator');
 const User = require('../../../../../models/User');
 const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -109,7 +110,7 @@ router.put('/:username/update', [
           name: updatedUser.name,
           username: updatedUser.username,
           email: updatedUser.email,
-          image_profile: updatedUser.image_profile,
+          image_profile: getDisplayProfileImage(updatedUser, req),
           role: updatedUser.role,
           bio: updatedUser.bio,
           birthdate: updatedUser.birthdate,

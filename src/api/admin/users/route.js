@@ -2,6 +2,7 @@ const express = require('express');
 const { query, validationResult } = require('express-validator');
 const User = require('../../../models/User');
 const { authenticateToken, checkBanStatus, requireAdmin } = require('../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -92,7 +93,7 @@ router.get('/', [
           name: user.name,
           username: user.username,
           email: user.email,
-          image_profile: user.image_profile,
+          image_profile: getDisplayProfileImage(user, req),
           role: user.role,
           bio: user.bio,
           birthdate: user.birthdate,
