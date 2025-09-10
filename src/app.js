@@ -558,9 +558,9 @@ app.use("/api/frame/public", frameAdminDeleteRoute);
 
 app.use("/api/user", userProfileRoute);
 app.use("/api/user", userFollowingRoute);
+app.use("/api/user", userFramePublicRoute);
 app.use("/api/user", userFrameAllRoute);
 
-app.use("/api/user", userFramePublicRoute);
 app.use("/api/user", frameEditRoute);
 app.use("/api/user", frameDeleteRoute);
 
