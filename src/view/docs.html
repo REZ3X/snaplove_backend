@@ -637,6 +637,10 @@
           <i class="fas fa-bell"></i>
           Notifications
         </button>
+        <button class="nav-tab" onclick="showSection('search')">
+          <i class="fas fa-search"></i>
+          Search
+        </button>
         <button class="nav-tab" onclick="showSection('admin')">
           <i class="fas fa-cog"></i>
           Admin
@@ -765,6 +769,96 @@
           </div>
         </div>
       </div>
+
+      <div class="content-section" id="search">
+  <div class="endpoint-group">
+    <h3>🔍 Search</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/api/search</span>
+      </div>
+      <div class="endpoint-description">
+        Search frames and users with advanced filtering and relevance scoring
+      </div>
+      <div class="example-code">
+        Query Parameters:
+        - q: string (required) - Search query
+        - type: "frames"|"users"|"all" (default: "all")
+        - page: number (default: 1)
+        - limit: number (1-50, default: 20)
+        
+        Frame Filters:
+        - layout_type: "2x1"|"3x1"|"4x1"
+        - tag: string - Search specific tag
+        - approval_status: "approved"|"pending"|"rejected"
+        - official_only: boolean
+        - sort_frames: "relevance"|"newest"|"oldest"|"most_liked"|"most_used"
+        
+        User Filters:
+        - role: "basic"|"verified_basic"|"verified_premium"|"official"|"developer"
+        - sort_users: "relevance"|"newest"|"oldest"|"name_asc"|"name_desc"
+      </div>
+    </div>
+
+    <h4>🎯 Search Examples</h4>
+    <div class="example-code">
+      // Search everything
+      GET /api/search?q=nature
+
+      // Search only frames with filters
+      GET /api/search?q=landscape&type=frames&layout_type=2x1&official_only=true
+
+      // Search users by role
+      GET /api/search?q=john&type=users&role=verified_premium
+
+      // Advanced frame search with sorting
+      GET /api/search?q=sunset&type=frames&tag=photography&sort_frames=most_liked
+    </div>
+
+    <h4>📊 Search Features</h4>
+    <div class="example-code">
+      ✅ Relevance scoring (title > description > tags/bio)
+      ✅ Fuzzy matching for typos and partial words
+      ✅ Multi-word search support
+      ✅ Advanced filtering options
+      ✅ Search suggestions
+      ✅ Statistics and performance metrics
+      ✅ Pagination for all result types
+      ✅ Secure search (no banned users/unapproved content)
+    </div>
+
+    <h4>🔍 Response Structure</h4>
+    <div class="example-code">
+      {
+        "success": true,
+        "message": "Search completed for 'nature'",
+        "data": {
+          "query": "nature",
+          "type": "all",
+          "frames": {
+            "data": [...],
+            "pagination": { "current_page": 1, "total_pages": 5, ... }
+          },
+          "users": {
+            "data": [...],
+            "pagination": { "current_page": 1, "total_pages": 2, ... }
+          },
+          "suggestions": [
+            { "type": "tag", "text": "nature", "count": 45 },
+            { "type": "user", "text": "naturelover", "display_name": "Nature Lover" }
+          ],
+          "statistics": {
+            "total_results": 127,
+            "search_time_ms": 45,
+            "filters_applied": { ... }
+          }
+        }
+      }
+    </div>
+  </div>
+</div>
 
       <div class="content-section" id="auth">
         <div class="endpoint-group">

@@ -70,6 +70,8 @@ const userNotificationPrivateRoute = require("./api/user/[username]/notification
 const userFollowerRoute = require("./api/user/[username]/follower/route");
 const userFollowingRoute = require("./api/user/[username]/following/route");
 
+const searchRoute = require("./api/search/route");
+
 const apiKeyAuth = createApiKeyAuth({
   skipPaths: ["/", "/health"],
   skipPatterns: [/^\/docs/, /^\/images/, /^\/uploads/],
@@ -606,6 +608,8 @@ app.use("/api/user", userTicketDetailRoute);
 
 app.use("/api/user", photoPrivateRoute);
 app.use("/api/user", photoPrivateDetailRoute);
+
+app.use("/api/search", searchRoute);
 
 app.use("*", (req, res) => {
   res.status(404).json({
