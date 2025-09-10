@@ -732,8 +732,16 @@
                 role-based TTL
               </li>
               <li>
+                <strong>Profile Management:</strong> Upload custom profile
+                images or use Google profile with seamless switching
+              </li>
+              <li>
                 <strong>User System:</strong> Role-based permissions and content
                 moderation
+              </li>
+              <li>
+                <strong>Social Features:</strong> Follow/unfollow system with
+                real-time notifications
               </li>
               <li>
                 <strong>Admin Tools:</strong> Comprehensive administration and
@@ -798,7 +806,15 @@
                 AUTH
               </span>
             </div>
-            <div class="endpoint-description">Get current user information</div>
+            <div class="endpoint-description">
+              Get current user information including profile image settings
+            </div>
+            <div class="example-code">
+              Response includes: - image_profile: Current active profile image
+              URL - use_google_profile: Whether using Google or custom image -
+              has_custom_image: Whether user has uploaded custom image - Profile
+              management permissions
+            </div>
           </div>
 
           <div class="endpoint">
@@ -1337,11 +1353,19 @@
               <span class="auth-required">🔒 AUTH</span>
             </div>
             <div class="endpoint-description">
-              Edit user profile (own profile only)
+              Edit user profile including custom profile image upload (own
+              profile only)
             </div>
             <div class="example-code">
-              { "name": "Updated Name", "bio": "Updated bio", "birthdate":
-              "1990-01-01" }
+              // JSON Body (for text updates only): { "name": "Updated Name",
+              "bio": "Updated bio text", "birthdate": "1990-01-01",
+              "use_google_profile": true } // FormData (for profile image
+              upload): const formData = new FormData();
+              formData.append('profile_image', imageFile); // JPG, PNG, GIF,
+              WebP, SVG, AVIF (max 5MB) formData.append('name', 'Updated Name');
+              formData.append('bio', 'Updated bio');
+              formData.append('use_google_profile', 'false'); // Switch to
+              custom image
             </div>
           </div>
 
@@ -1395,11 +1419,36 @@
             </div>
           </div>
 
+          <h4>👤 Profile Image System:</h4>
+          <div class="example-code">
+            Profile Image Logic: - Google Profile: Default profile image from
+            Google OAuth - Custom Profile: User-uploaded image stored locally on
+            server - Switching: Users can toggle between Google and custom
+            images - Storage: Custom images stored in /images/profiles/
+            directory - Formats: JPEG, PNG, GIF, WebP, SVG, AVIF (max 5MB) -
+            Cleanup: Old custom images automatically deleted when uploading new
+            ones
+          </div>
+
           <h4>👤 User Roles & Limits:</h4>
           <div class="example-code">
             Basic: 3 public frames, 3-day photo TTL Verified: 20 public frames,
             7-day photo TTL Verified Premium: Unlimited frames & photos
             Official/Developer: Unlimited + auto-approval
+          </div>
+
+          <h4>🖼️ Profile Response Structure:</h4>
+          <div class="example-code">
+            { "success": true, "data": { "user": { "id": "user_id", "name":
+            "User Name", "username": "username", "email": "user@example.com",
+            "image_profile":
+            "https://domain.com/images/profiles/profile-123.jpg", // Full URL
+            "role": "verified_basic", "bio": "User bio text", "birthdate":
+            "1990-01-01T00:00:00.000Z", "use_google_profile": false, // Whether
+            using Google or custom image "has_custom_image": true, // Whether
+            user has uploaded custom image "created_at":
+            "2024-01-01T00:00:00.000Z", "updated_at": "2024-01-15T10:30:00.000Z"
+            } } }
           </div>
         </div>
       </div>
@@ -1747,6 +1796,33 @@
             'Content-Type': 'application/json', 'x-api-key': 'your-api-key-here'
             // Required in production }, body: JSON.stringify({ google_id:
             'user_google_id', email: 'user@gmail.com' }) });
+          </div>
+
+          <h4>🖼️ Profile Image Management</h4>
+          <div class="example-code">
+            // Upload Custom Profile Image const formData = new FormData();
+            formData.append('profile_image', imageFile); formData.append('name',
+            'Updated Name'); formData.append('bio', 'Updated bio');
+            fetch(`/api/user/${username}/edit`, { method: 'PUT', headers: {
+            'Authorization': `Bearer ${token}` // Don't set Content-Type for
+            FormData }, body: formData }) .then(response => response.json())
+            .then(data => { console.log('Profile updated:', data.data.user);
+            console.log('Has custom image:', data.data.user.has_custom_image);
+            console.log('Using Google profile:',
+            data.data.user.use_google_profile); }); // Switch Back to Google
+            Profile Image fetch(`/api/user/${username}/edit`, { method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type':
+            'application/json' }, body: JSON.stringify({ use_google_profile:
+            true }) }) .then(response => response.json()) .then(data => {
+            console.log('Switched to Google profile:',
+            data.data.user.image_profile); }); // Update Profile Text Only
+            fetch(`/api/user/${username}/edit`, { method: 'PUT', headers: {
+            'Authorization': `Bearer ${token}`, 'Content-Type':
+            'application/json' }, body: JSON.stringify({ name: 'New Display
+            Name', bio: 'Updated bio text', birthdate: '1990-12-25' }) })
+            .then(response => response.json()) .then(data => {
+            console.log('Profile updated:', data.data.user);
+            console.log('Changes made:', data.data.changes); });
           </div>
 
           <h4>🔐 Authentication</h4>
