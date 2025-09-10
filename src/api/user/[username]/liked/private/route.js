@@ -3,6 +3,7 @@ const { param, query, validationResult } = require('express-validator');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
+const { getDisplayProfileImage } = require('../../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -114,7 +115,7 @@ router.get('/:username/liked/private', [
           id: frame.user_id._id,
           name: frame.user_id.name,
           username: frame.user_id.username,
-          image_profile: frame.user_id.image_profile,
+          image_profile: getDisplayProfileImage(frame.user_id, req),
           role: frame.user_id.role
         },
         liked_at: userLike ? userLike.created_at : null,
@@ -130,7 +131,7 @@ router.get('/:username/liked/private', [
           id: targetUser._id,
           name: targetUser.name,
           username: targetUser.username,
-          image_profile: targetUser.image_profile,
+          image_profile: getDisplayProfileImage(targetUser, req),
           role: targetUser.role
         },
         liked_frames: processedFrames,

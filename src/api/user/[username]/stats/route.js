@@ -4,6 +4,7 @@ const Frame = require('../../../../models/Frame');
 const User = require('../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../middleware/middleware');
 const Follow = require('../../../../models/Follow');
+const { getDisplayProfileImage } = require('../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -273,7 +274,7 @@ router.get('/:username/stats', [
         id: targetUser._id,
         name: targetUser.name,
         username: targetUser.username,
-        image_profile: targetUser.image_profile,
+        image_profile: getDisplayProfileImage(targetUser, req),
         role: targetUser.role
       },
       public_frames: {

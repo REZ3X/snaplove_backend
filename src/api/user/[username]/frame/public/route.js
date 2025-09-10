@@ -2,6 +2,7 @@ const express = require('express');
 const { param, query, validationResult } = require('express-validator');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
+const { getDisplayProfileImage } = require('../../../../../utils/profileImageHelper');
 
 const router = express.Router();
 
@@ -53,7 +54,7 @@ router.get('/:username/frame/public', [
           id: targetUser._id,
           name: targetUser.name,
           username: targetUser.username,
-          image_profile: targetUser.image_profile,
+          image_profile: getDisplayProfileImage(targetUser, req),
           role: targetUser.role
         },
         frames: frames.map(frame => ({
