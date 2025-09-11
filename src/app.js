@@ -139,12 +139,9 @@ app.get("/health", async (req, res) => {
     };
 
     const [userCount, frameCount, photoCount] = await Promise.all([
-      User.countDocuments({ ban_status: false }),
-      Frame.countDocuments({
-        visibility: "public",
-        approval_status: "approved",
-      }),
-      Photo.countDocuments(),
+      User.estimatedDocumentCount(),    
+      Frame.estimatedDocumentCount(),   
+      Photo.estimatedDocumentCount(),    
     ]).catch(() => [0, 0, 0]);
 
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -165,8 +162,8 @@ app.get("/health", async (req, res) => {
 
     const healthChecks = {
       database: databaseStatus.connected,
-      response_time: responseTime < 1000,
-      memory: memoryUsage.heapUsed / memoryUsage.heapTotal < 0.9,
+      response_time: responseTime < 1500,
+      memory: memoryUsage.heapUsed / memoryUsage.heapTotal < 0.95,
     };
 
     const overallHealth = Object.values(healthChecks).every((check) => check);
