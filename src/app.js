@@ -452,19 +452,17 @@ app.use("/images", (req, res, next) => {
     if (allowedOrigins.includes(origin)) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header("Access-Control-Allow-Credentials", "true");
-
-    } else if (
-      !origin &&
-      (process.env.NODE_ENV === "development" ||
-        process.env.NODE_ENV === "test")
-    ) {
+    } else if (!origin) {
+      console.log(`🟡 Images: No origin header - allowing for CDN/server requests`);
       res.header("Access-Control-Allow-Origin", "*");
-    } else {
+    } else if (process.env.NODE_ENV === "production") {
       console.warn(`CORS BLOCKED for images: ${origin} not in allowed origins`);
       return res.status(403).json({
         success: false,
         message: "CORS policy violation for image access",
       });
+    } else {
+      res.header("Access-Control-Allow-Origin", "*");
     }
   } else if (allowedOrigins === "*" && process.env.NODE_ENV === "test") {
     res.header("Access-Control-Allow-Origin", "*");
@@ -476,7 +474,6 @@ app.use("/images", (req, res, next) => {
     "Origin, X-Requested-With, Content-Type, Accept"
   );
   res.header("Cross-Origin-Resource-Policy", "cross-origin");
-
 
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
