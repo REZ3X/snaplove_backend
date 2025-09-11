@@ -14,7 +14,11 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
 - **📸 Photo Capture**: Take photos using frames with role-based TTL
 - **👥 Social System**: Follow/unfollow users with mutual connections
 - **🔔 Real-time Notifications**: Live updates via WebSocket connections
-- **🏆 Leaderboard**: Rankings based on likes and frame usage over time periods
+- **🏆 Leaderboard & Trending**: Rankings based on likes, usage, and trending analysis
+- **🔍 Advanced Search**: Comprehensive search for frames and users with relevance scoring and filtering
+- **📈 Trending Analysis**: Real-time trending frames with velocity scoring and time periods
+- **🎯 Frame Leaderboards**: Individual frame usage rankings and user statistics
+- **👤 Profile Management**: Custom profile image uploads with Google OAuth fallback
 - **⚙️ Admin Tools**: Comprehensive administration and reporting
 - **🔐 Security**: JWT authentication, API key protection, rate limiting
 - **📊 Analytics**: Real-time stats and performance metrics
@@ -42,43 +46,52 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/REZ3X/snaplove_backend.git
    cd snaplove_backend
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Environment setup**
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Configure your `.env` file:
+
    ```env
    # Database
    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/snaplove
-   
+
    # Authentication
    JWT_SECRET=your_jwt_secret_here
    GOOGLE_CLIENT_ID=your_google_client_id
    GOOGLE_CLIENT_SECRET=your_google_client_secret
-   
+
    # Environment
    NODE_ENV=development
-   PORT=3000
-   
+   PORT=4000
+
    # Frontend URLs (production)
    PRODUCTION_FRONTEND_URLS=https://yourfrontend.com
-   
+
    # API Keys (production only)
    API_KEYS=your_production_api_key_1,your_production_api_key_2
+
+   # Documentation Authentication
+   DOCS_USERNAME=admin
+   DOCS_PASSWORD=admin
    ```
 
 4. **Start development server**
+
    ```bash
    npm run dev
    ```
@@ -91,11 +104,14 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
 ## 📖 API Documentation
 
 ### Base URLs
+
 - **Development**: `http://localhost:3000`
 - **Production**: `https://snaploveapi.slaviors.xyz`
 
 ### Authentication
+
 All authenticated endpoints require a JWT token in the Authorization header:
+
 ```javascript
 headers: {
   'Authorization': 'Bearer your_jwt_token_here'
@@ -103,7 +119,9 @@ headers: {
 ```
 
 ### Production API Access
+
 Production requests require an API key:
+
 ```javascript
 headers: {
   'x-api-key': 'your_api_key_here'
@@ -113,12 +131,14 @@ headers: {
 ### Core Endpoints
 
 #### 🔐 Authentication
+
 - `POST /api/auth/register` - Register with Google OAuth
 - `POST /api/auth/login` - Login with credentials
 - `GET /api/auth/me` - Get current user
 - `POST /api/auth/logout` - Logout user
 
 #### 🖼️ Frame Management
+
 - `GET /api/frame/public` - Get public frames with filters
 - `POST /api/frame/public` - Create new frame
 - `GET /api/frame/public/{id}` - Get specific frame
@@ -127,12 +147,14 @@ headers: {
 - `PUT /api/user/{username}/frame/private/{id}/edit` - Edit frame
 
 #### 📸 Photo Management
+
 - `POST /api/user/{username}/photo/capture` - Capture photo with frame
 - `GET /api/user/{username}/photo/private` - Get user's photos
 - `PUT /api/user/{username}/photo/private/{id}/edit` - Edit photo
 - `DELETE /api/user/{username}/photo/private/{id}/delete` - Delete photo
 
 #### 👥 Social Features
+
 - `GET /api/user/{username}/following` - Get following list
 - `POST /api/user/{username}/following` - Follow user (with notifications)
 - `DELETE /api/user/{username}/following/{id}` - Unfollow user
@@ -141,27 +163,62 @@ headers: {
 - `GET /api/user/{username}/following/check/{target}` - Check follow status
 
 #### 🔔 Real-time Notifications
+
 - `GET /api/user/{username}/notification/private` - Get notifications
 - `PUT /api/user/{username}/notification/private/{id}/read` - Mark as read
 - `PUT /api/user/{username}/notification/private/mark-all-read` - Mark all read
 - `GET /api/user/{username}/notification/private/unread-count` - Get unread count
 
 #### 🏆 Leaderboard
+
 - `GET /api/leaderboard/public` - Get user rankings by time period
 
-#### 📊 User Analytics
+#### � Advanced Search
+
+- `GET /api/search` - Search frames and users with advanced filtering
+  - **Query Parameters**:
+    - `q` - Search query (required)
+    - `type` - Search type: `frames`, `users`, or `all`
+    - `layout_type` - Frame layout filter: `2x1`, `3x1`, `4x1`
+    - `tag` - Frame tag filter
+    - `official_only` - Show only official frames
+    - `role` - User role filter
+    - `sort_frames` - Sort frames by: `relevance`, `newest`, `most_liked`, `most_used`
+    - `sort_users` - Sort users by: `relevance`, `newest`, `name_asc`
+
+#### 📈 Trending Analysis
+
+- `GET /api/frame/public/trending` - Get trending frames with velocity scoring
+  - **Query Parameters**:
+    - `type` - Trending type: `uses`, `likes`, or `both`
+    - `period` - Time period: `1d`, `3d`, `7d`, `1m`, or `all`
+    - `layout_type` - Frame layout filter
+    - `official_only` - Show only official frames
+
+#### 🎯 Frame Leaderboards
+
+- `GET /api/frame/public/{id}/leaderboard` - Get users who used specific frame most
+  - **Query Parameters**:
+    - `period` - Time period: `7d`, `1m`, or `all`
+    - `limit` - Results per page (1-50)
+    - `page` - Page number
+
+#### � User Analytics
+
 - `GET /api/user/{username}` - Get user profile
 - `GET /api/user/{username}/stats` - Get user statistics (including social stats)
 - `GET /api/user/{username}/liked/private` - Get liked frames
-- `PUT /api/user/{username}/private/edit` - Edit profile
+- `PUT /api/user/{username}/private/edit` - Edit profile with custom image upload
 
 #### 📋 Reports & Tickets
+
 - `GET /api/user/{username}/report/private` - Get user reports
 - `POST /api/user/{username}/report/private` - Submit content report
 - `GET /api/user/{username}/ticket/private` - Get support tickets
 - `POST /api/user/{username}/ticket/private` - Create support ticket
 
 #### ⚙️ Admin (Admin only)
+
 - `GET /api/admin/framePublicApproval` - Frame approval queue
 - `PUT /api/admin/framePublicApproval/{id}` - Approve/reject frame
 - `GET /api/admin/users` - User management
@@ -175,26 +232,28 @@ For complete API documentation, visit `/` when the server is running.
 ## 🔔 Real-time Features
 
 ### WebSocket Connection
-```javascript
-import io from 'socket.io-client';
 
-const socket = io('ws://localhost:3000', {
+```javascript
+import io from "socket.io-client";
+
+const socket = io("ws://localhost:3000", {
   auth: {
-    token: localStorage.getItem('authToken')
-  }
+    token: localStorage.getItem("authToken"),
+  },
 });
 
 // Listen for real-time notifications
-socket.on('new_notification', (notification) => {
-  console.log('New notification:', notification);
+socket.on("new_notification", (notification) => {
+  console.log("New notification:", notification);
 });
 
-socket.on('unread_count', (data) => {
-  console.log('Unread count:', data.count);
+socket.on("unread_count", (data) => {
+  console.log("Unread count:", data.count);
 });
 ```
 
 ### Notification Types
+
 - **`frame_like`**: Someone liked your frame
 - **`frame_use`**: Someone used your frame to take a photo
 - **`user_follow`**: Someone started following you
@@ -210,18 +269,20 @@ src/
 ├── api/                    # API route handlers
 │   ├── admin/             # Admin-only endpoints
 │   ├── auth/              # Authentication
-│   ├── frame/             # Frame management
+│   ├── frame/             # Frame management & trending
+│   ├── search/            # Advanced search functionality
 │   ├── user/              # User operations & social features
 │   └── leaderboard/       # Rankings & competitions
 ├── lib/                   # Core libraries
 │   └── mongodb.js         # Database connection
 ├── middleware/            # Custom middleware
 │   ├── apiKeyAuth.js      # API key protection
+│   ├── docsAuth.js        # Documentation authentication
 │   └── middleware.js      # Authentication & permissions
 ├── models/                # MongoDB schemas
-│   ├── User.js            # User model
-│   ├── Frame.js           # Frame model
-│   ├── Photo.js           # Photo model
+│   ├── User.js            # User model with profile images
+│   ├── Frame.js           # Frame model with trending metrics
+│   ├── Photo.js           # Photo model with TTL
 │   ├── Follow.js          # Social relationships
 │   ├── Notification.js    # Real-time notifications
 │   ├── Report.js          # Content reports
@@ -229,9 +290,11 @@ src/
 ├── services/              # Business logic
 │   └── socketService.js   # Real-time notifications
 ├── utils/                 # Utility functions
-│   ├── LocalImageHandler.js # Image processing
-│   └── RolePolicy.js      # Permission policies
+│   ├── LocalImageHandler.js    # Image processing
+│   ├── profileImageHelper.js   # Profile image management
+│   └── RolePolicy.js           # Permission policies
 └── view/                  # API documentation
+    ├── docs.html          # Protected documentation
     └── index.html         # Interactive docs
 ```
 
@@ -281,43 +344,62 @@ npm run lint:fix    # Auto-fix issues
 
 ## 👥 User Roles & Permissions
 
-| Role | Frame Limit | Photo TTL | Auto-Approval | Admin Access | Social Features |
-|------|-------------|-----------|---------------|-------------|----------------|
-| **Basic** | 3 public | 3 days | ❌ | ❌ | ✅ Full |
-| **Verified** | 20 public | 7 days | ❌ | ❌ | ✅ Full |
-| **Verified Premium** | Unlimited | Unlimited | ❌ | ❌ | ✅ Full |
-| **Official** | Unlimited | Unlimited | ✅ | ✅ | ✅ Full |
-| **Developer** | Unlimited | Unlimited | ✅ | ✅ | ✅ Full |
+| Role                 | Frame Limit | Photo TTL | Auto-Approval | Admin Access | Social Features |
+| -------------------- | ----------- | --------- | ------------- | ------------ | --------------- |
+| **Basic**            | 3 public    | 3 days    | ❌            | ❌           | ✅ Full         |
+| **Verified**         | 20 public   | 7 days    | ❌            | ❌           | ✅ Full         |
+| **Verified Premium** | Unlimited   | Unlimited | ❌            | ❌           | ✅ Full         |
+| **Official**         | Unlimited   | Unlimited | ✅            | ✅           | ✅ Full         |
+| **Developer**        | Unlimited   | Unlimited | ✅            | ✅           | ✅ Full         |
 
 ## 📊 Social & Analytics Features
 
 ### Social Interactions
+
 - **Follow/Unfollow System**: Build connections with other users
 - **Mutual Follow Detection**: Identify mutual connections
 - **Follower Management**: Remove followers from your profile
 - **Real-time Social Notifications**: Get notified of new followers and frame uploads
 
 ### Analytics & Leaderboards
+
 - **User Statistics**: Comprehensive stats including social metrics
 - **Time-based Leaderboards**: 7-day, 30-day, and all-time rankings
 - **Multiple Ranking Types**: Likes, uses, or combined scoring
 - **Growth Metrics**: Track performance over time
 - **Top Performers**: Showcase best-performing frames
 
-### Content Engagement
-- **Frame Likes**: Like/unlike with real-time notifications
-- **Frame Usage Tracking**: Monitor how often frames are used
-- **Photo TTL System**: Role-based photo expiration
-- **Content Moderation**: Admin approval system for public frames
+### Advanced Search & Discovery
+
+- **Multi-type Search**: Search frames and users simultaneously with relevance scoring
+- **Smart Filtering**: Filter by layout type, tags, official status, user roles
+- **Flexible Sorting**: Sort by relevance, popularity, date, or usage statistics
+- **Pagination Support**: Efficient pagination with configurable limits
+
+### Trending & Analytics
+
+- **Velocity-based Trending**: Smart trending algorithm considering recency and engagement
+- **Time Period Analysis**: Compare performance across different time windows
+- **Frame-specific Leaderboards**: See top users for any individual frame
+- **Engagement Metrics**: Track likes, uses, and combined performance scores
+
+### Profile & Image Management
+
+- **Custom Profile Images**: Upload and manage custom profile pictures
+- **Google OAuth Integration**: Seamless fallback to Google profile images
+- **Image Processing**: Automatic resizing and optimization
+- **Flexible Display**: Dynamic switching between custom and OAuth images
 
 ## 📊 Monitoring & Health
 
 ### Health Check
+
 ```bash
 GET /health
 ```
 
 Provides comprehensive system status:
+
 - Database connectivity and response times
 - Memory usage and system performance
 - Active users, frames, and photos statistics
@@ -325,6 +407,7 @@ Provides comprehensive system status:
 - API response times
 
 ### Metrics Tracked
+
 - API response times and error rates
 - Database query performance
 - User engagement (likes, uses, uploads, follows)
@@ -367,6 +450,7 @@ CMD ["npm", "start"]
 ### Environment Variables (Production)
 
 Ensure these are set in production:
+
 ```env
 NODE_ENV=production
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/snaplove
@@ -432,6 +516,7 @@ npm run dev
 ## 📄 API Response Format
 
 ### Success Response
+
 ```javascript
 {
   "success": true,
@@ -443,6 +528,7 @@ npm run dev
 ```
 
 ### Error Response
+
 ```javascript
 {
   "success": false,
@@ -457,6 +543,7 @@ npm run dev
 ```
 
 ### Real-time Events
+
 ```javascript
 // WebSocket event structure
 {
@@ -486,35 +573,6 @@ npm run dev
 - **Discussions**: [GitHub Discussions](https://github.com/REZ3X/snaplove_backend/discussions)
 - **API Support**: Include detailed error logs and request examples
 
-## 📈 Roadmap
-
-### Current Features ✅
-- [x] Frame management with approval system
-- [x] Photo capture with role-based TTL
-- [x] Social following system
-- [x] Real-time notifications via WebSocket
-- [x] Leaderboard rankings
-- [x] Comprehensive admin tools
-- [x] API key security for production
-
-### Upcoming Features 🚧
-- [ ] Redis caching layer for improved performance
-- [ ] Image CDN integration (AWS S3/CloudFront)
-- [ ] Advanced analytics dashboard
-- [ ] Mobile push notifications
-- [ ] Third-party integrations (Instagram, TikTok)
-- [ ] Content recommendation engine
-- [ ] Advanced search and filtering
-- [ ] User verification system
-- [ ] Frame categories and collections
-
-### Future Considerations 💭
-- [ ] GraphQL API endpoint
-- [ ] Microservices architecture
-- [ ] Advanced AI content moderation
-- [ ] Blockchain integration for frame ownership
-- [ ] AR/VR frame previews
-
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -522,6 +580,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## ⭐ Show Your Support
 
 If this project helped you, please give it a ⭐ on GitHub and consider:
+
 - Starring the repository
 - Following [@REZ3X](https://github.com/REZ3X) for updates
 - Sharing with other developers
