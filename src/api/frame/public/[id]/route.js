@@ -22,7 +22,7 @@ router.get('/:id', [
       _id: req.params.id,
       visibility: 'public'
 
-    }).populate('user_id', 'name username image_profile role');
+    }).populate('user_id', 'name username image_profile role custom_profile_image use_google_profile');
 
     if (!frame) {
       return res.status(404).json({
