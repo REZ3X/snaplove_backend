@@ -6,7 +6,7 @@ const socketService = require('../../../../../services/socketService');
 
 const router = express.Router();
 
-router.post('/:id', [
+router.post('/:id/like', [
   param('id').isMongoId().withMessage('Invalid frame ID')
 ], authenticateToken, checkBanStatus, async (req, res) => {
   try {
