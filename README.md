@@ -17,6 +17,7 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
 - **🏆 Leaderboard & Trending**: Rankings based on likes, usage, and trending analysis
 - **🔍 Advanced Search**: Comprehensive search for frames and users with relevance scoring and filtering
 - **📈 Trending Analysis**: Real-time trending frames with velocity scoring and time periods
+- **🔍 Smart Discovery**: Intelligent frame discovery with hybrid algorithms combining trending, recency, and engagement signals
 - **🎯 Frame Leaderboards**: Individual frame usage rankings and user statistics
 - **👤 Profile Management**: Custom profile image uploads with Google OAuth fallback
 - **⚙️ Admin Tools**: Comprehensive administration and reporting
@@ -192,6 +193,16 @@ headers: {
   - **Query Parameters**:
     - `type` - Trending type: `uses`, `likes`, or `both`
     - `period` - Time period: `1d`, `3d`, `7d`, `1m`, or `all`
+    - `layout_type` - Frame layout filter
+    - `official_only` - Show only official frames
+
+#### 🔍 Discovery
+
+- `GET /api/frame/public/discover` - Intelligent frame discovery with multiple algorithms
+  - **Query Parameters**:
+    - `algorithm` - Discovery type: `hybrid`, `trending`, `recent`, or `random`
+    - `limit` - Results per page (1-50)
+    - `page` - Page number
     - `layout_type` - Frame layout filter
     - `official_only` - Show only official frames
 
