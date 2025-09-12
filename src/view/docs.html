@@ -728,32 +728,35 @@
               style="margin: 1.5rem 0; padding-left: 1.5rem; line-height: 1.8"
             >
               <li>
-                <strong>Frame Management:</strong> Create, edit, and manage
-                frames with approval system
+                <strong>🖼️ Frame Management:</strong> Create, edit, and manage
+                frames with approval system and trending analysis
               </li>
               <li>
-                <strong>Photo Capture:</strong> Take photos using frames with
-                role-based TTL
+                <strong>📸 Photo Capture:</strong> Take photos using frames with
+                role-based TTL and automatic cleanup
               </li>
               <li>
-                <strong>Profile Management:</strong> Upload custom profile
+                <strong>🎂 Birthday System:</strong> One-time birthday setting with automatic celebrations, 24-hour badges, and real-time notifications
+              </li>
+              <li>
+                <strong>📢 Broadcast System:</strong> Admin broadcast messages with targeting, scheduling, and comprehensive delivery tracking
+              </li>
+              <li>
+                <strong>👤 Profile Management:</strong> Upload custom profile
                 images or use Google profile with seamless switching
               </li>
               <li>
-                <strong>User System:</strong> Role-based permissions and content
-                moderation
+                <strong>👥 Social Features:</strong> Follow/unfollow system with
+                real-time notifications and mutual connections
               </li>
               <li>
-                <strong>Social Features:</strong> Follow/unfollow system with
-                real-time notifications
+                <strong>🏆 Leaderboard & Analytics:</strong> Rankings, trending analysis, frame leaderboards, and comprehensive statistics
               </li>
               <li>
-                <strong>Admin Tools:</strong> Comprehensive administration and
-                reporting
+                <strong>🔔 Real-time Notifications:</strong> Live updates via WebSocket for follows, likes, birthdays, and broadcasts
               </li>
               <li>
-                <strong>Real-time Stats:</strong> Live performance and usage
-                metrics
+                <strong>⚙️ Admin Tools:</strong> Comprehensive administration, content moderation, and broadcast management
               </li>
             </ul>
           </div>
@@ -1406,11 +1409,55 @@
 
           <h4>🔔 Notification Types</h4>
           <div class="example-code">
-            frame_like: Someone liked your frame frame_use: Someone used your
-            frame to take a photo frame_approved: Your frame was approved by
-            admin frame_rejected: Your frame was rejected by admin user_follow:
-            Someone started following you frame_upload: Someone you follow
-            uploaded a new frame system: System notifications
+            frame_like: Someone liked your frame
+            frame_use: Someone used your frame to take a photo
+            frame_approved: Your frame was approved by admin
+            frame_rejected: Your frame was rejected by admin
+            user_follow: Someone started following you
+            frame_upload: Someone you follow uploaded a new frame
+            birthday_celebration: 🎉 Birthday celebration notifications
+            broadcast: 📢 Admin broadcast messages
+            system: System notifications
+          </div>
+
+          <h4>🎂 Birthday Notifications</h4>
+          <div class="example-code">
+            // Birthday notification structure
+            {
+              "type": "birthday_celebration",
+              "title": "🎉 Happy Birthday!",
+              "message": "Wishing you a fantastic birthday! 🎂✨",
+              "data": {
+                "birthday_user": "johndoe",
+                "has_badge": true,
+                "badge_expires_at": "2024-01-16T00:00:00Z"
+              },
+              "created_at": "2024-01-15T00:00:00Z"
+            }
+
+            // Sent to followers when someone has a birthday
+            // Includes 24-hour birthday badge information
+            // Automatically delivered by birthday service
+          </div>
+
+          <h4>📢 Broadcast Notifications</h4>
+          <div class="example-code">
+            // Broadcast notification structure  
+            {
+              "type": "broadcast",
+              "title": "Platform Update",
+              "message": "New features have been added to the platform!",
+              "data": {
+                "broadcast_id": "broadcast_123",
+                "admin_sender": "admin_username",
+                "priority": "normal"
+              },
+              "created_at": "2024-01-15T11:00:00Z"
+            }
+
+            // Targeted messages from administrators
+            // Can be sent to specific user groups
+            // Includes delivery and read tracking
           </div>
 
           <h4>⚡ WebSocket Connection</h4>
@@ -1546,9 +1593,196 @@
             "role": "verified_basic", "bio": "User bio text", "birthdate":
             "1990-01-01T00:00:00.000Z", "use_google_profile": false, // Whether
             using Google or custom image "has_custom_image": true, // Whether
-            user has uploaded custom image "created_at":
-            "2024-01-01T00:00:00.000Z", "updated_at": "2024-01-15T10:30:00.000Z"
+            user has uploaded custom image 
+            // NEW: Birthday-related fields
+            "birthdate_changed": true, // Whether user has used their one-time birthday change
+            "birthdate_changeable": false, // Whether user can still change birthday
+            "birthday_badge": {
+              "is_birthday": false, // Whether today is their birthday
+              "age": null,
+              "expires_at": null,
+              "badge_text": null
+            },
+            // END NEW FIELDS
+            "created_at": "2024-01-01T00:00:00.000Z", "updated_at": "2024-01-15T10:30:00.000Z"
             } } }
+          </div>
+
+          <h4>🎂 Birthday Management</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/{username}/birthday</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's birthday information, badge status, countdown, and celebration details
+            </div>
+            <div class="example-code">
+              Features:
+              - 24-hour birthday badge with age display ("🎂 25 Today!")
+              - Days countdown until next birthday
+              - Privacy controls (full birthdate only visible to profile owner or on birthday)
+              - Birthday change tracking (one-time change policy)
+              - Real-time badge calculation
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/user/today</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get all users celebrating their birthday today (public celebration list)
+            </div>
+            <div class="example-code">
+              Returns list of birthday users with:
+              - Current age and birthday badge
+              - Member since date for context
+              - Profile information and role
+              - Maximum 50 results for performance
+              - Celebration message with count
+            </div>
+          </div>
+
+          <h4>🎂 Birthday System Features</h4>
+          <div class="example-code">
+            ✅ One-time birthday change policy (permanent after first change)
+            ✅ 24-hour birthday badge with age display ("🎂 25 Today!")
+            ✅ Automatic real-time birthday notifications to all followers
+            ✅ Self-birthday notifications with special celebration message
+            ✅ Age verification (13+ required for COPPA compliance)
+            ✅ Privacy controls for birthdate visibility
+            ✅ Birthday countdown calculation (days until next birthday)
+            ✅ Hourly automated birthday detection service
+            ✅ Anti-spam notification system (one per day maximum)
+            ✅ Comprehensive birthday statistics and tracking
+            ✅ Member anniversary integration
+          </div>
+
+          <h4>🎉 Birthday Badge System</h4>
+          <div class="example-code">
+            Birthday Badge Structure:
+            {
+              "is_birthday": true,
+              "age": 25,
+              "expires_at": "2024-01-16T00:00:00.000Z", // End of birthday (midnight)
+              "badge_text": "🎂 25 Today!"
+            }
+            
+            Badge Rules:
+            ✅ Appears only on user's actual birthday (24-hour TTL)
+            ✅ Shows current age with celebration emoji
+            ✅ Calculated dynamically (no database storage needed)
+            ✅ Visible on profile, birthday users list, and notifications
+            ✅ Automatically expires at end of birthday
+            ✅ Works with any timezone (server-based calculation)
+          </div>
+
+          <h4>🔔 Birthday Notifications</h4>
+          <div class="example-code">
+            Automatic Notification Types:
+            
+            📢 Follower Notifications:
+            - Sent to all active followers when it's someone's birthday
+            - Includes birthday person's age and celebration details
+            - Real-time WebSocket delivery + stored notification
+            - Message: "It's Alice's birthday today! She's turning 28 years old."
+            
+            🎉 Self Birthday Notifications:  
+            - Special birthday message sent to the birthday person
+            - Celebratory tone with personalized age message
+            - Message: "Happy 28th Birthday! Enjoy your special day! 🎂"
+            
+            Notification Features:
+            ✅ One notification per follower per day (prevents spam)
+            ✅ Special birthday emojis and celebration messages
+            ✅ Includes age and birthday person details
+            ✅ Real-time delivery for online users
+            ✅ Stored for offline users to see later
+            ✅ Tracks delivery success rates
+          </div>
+
+          <h4>🎂 Birthday Response Examples</h4>
+          <div class="example-code">
+            // Get Birthday Information Response
+            {
+              "success": true,
+              "data": {
+                "user": {
+                  "id": "user_id_here",
+                  "name": "John Doe", 
+                  "username": "johndoe",
+                  "image_profile": "https://api.example.com/images/profiles/profile-123.jpg",
+                  "role": "verified_basic"
+                },
+                "birthday_info": {
+                  "has_birthday": true,
+                  "is_birthday_today": true,
+                  "days_until_birthday": null, // null when it's their birthday
+                  "badge": {
+                    "is_birthday": true,
+                    "age": 25,
+                    "expires_at": "2024-01-16T00:00:00.000Z",
+                    "badge_text": "🎂 25 Today!"
+                  },
+                  "birthdate": "1999-01-15T00:00:00.000Z", // Only shown to owner or on birthday
+                  
+                  // Private information (only for profile owner):
+                  "birthdate_changeable": false, // Already used their one-time change
+                  "birthdate_changed_at": "2023-06-10T14:30:00.000Z",
+                  "last_birthday_notification": "2024-01-15T09:00:00.000Z"
+                }
+              }
+            }
+
+            // Today's Birthday Users Response  
+            {
+              "success": true,
+              "message": "Found 3 birthdays today!",
+              "data": {
+                "birthday_users": [
+                  {
+                    "id": "user_id_1",
+                    "name": "Alice Smith",
+                    "username": "alice",
+                    "image_profile": "https://api.example.com/images/profiles/alice.jpg",
+                    "role": "verified_premium",
+                    "age": 28,
+                    "badge_text": "🎂 28 Today!",
+                    "member_since": "2022-03-15T10:00:00.000Z"
+                  }
+                ],
+                "total_count": 3,
+                "date": "2024-01-15" // Today's date
+              }
+            }
+          </div>
+
+          <h4>🚨 Birthday Error Responses</h4>
+          <div class="example-code">
+            // Already Changed Birthday Error (One-time Policy)
+            {
+              "success": false,
+              "message": "Birthday can only be changed once. You already changed it on Mon Jun 10 2023.",
+              "details": {
+                "current_birthdate": "1999-01-15T00:00:00.000Z",
+                "changed_at": "2023-06-10T14:30:00.000Z", 
+                "reason": "BIRTHDAY_ALREADY_CHANGED"
+              }
+            }
+
+            // Age Restriction Error (COPPA Compliance)
+            {
+              "success": false,
+              "message": "You must be at least 13 years old to use this platform",
+              "details": {
+                "minimum_birthdate": "2011-01-15",
+                "reason": "AGE_RESTRICTION"
+              }
+            }
           </div>
         </div>
       </div>
@@ -1783,7 +2017,271 @@
             </div>
           </div>
 
-          <h4>📋 Reports & Tickets</h4>
+          <h4>� Broadcast System</h4>
+          <div class="feature-info">
+            <strong>🌟 Admin Messaging Platform:</strong> Send targeted messages to specific user groups or the entire platform
+            <br><strong>🎯 Smart Targeting:</strong> Audience filtering by role, verification status, follower count
+            <br><strong>⏰ Scheduling:</strong> Schedule messages for future delivery or send immediately
+            <br><strong>📊 Delivery Tracking:</strong> Real-time statistics on message delivery and read status
+            <br><strong>🔔 Multiple Channels:</strong> Socket notifications + in-app notification storage
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/admin/broadcast</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">Create and optionally send broadcast message</div>
+            <div class="example-code">
+{
+  "title": "Platform Update",
+  "message": "New features have been added!",
+  "target_audience": {
+    "roles": ["basic", "verified_basic", "verified_premium"],
+    "verification_status": "verified",
+    "min_followers": 100,
+    "max_followers": 10000
+  },
+  "scheduled_for": "2024-12-31T00:00:00Z", // Optional: schedule for later
+  "send_immediately": false // true to send now, false to save as draft
+}
+
+// Response:
+{
+  "success": true,
+  "data": {
+    "broadcast": {
+      "_id": "broadcast_id",
+      "title": "Platform Update",
+      "message": "New features have been added!",
+      "status": "draft|scheduled|sending|sent|cancelled",
+      "target_audience": {...},
+      "scheduled_for": "2024-12-31T00:00:00Z",
+      "statistics": {
+        "total_recipients": 0,
+        "delivered_count": 0,
+        "read_count": 0
+      },
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/broadcast</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">List all broadcast messages with filtering</div>
+            <div class="example-code">
+// Query Parameters:
+?status=draft&page=1&limit=20&sort=newest
+
+// Response:
+{
+  "success": true,
+  "data": {
+    "broadcasts": [
+      {
+        "_id": "broadcast_id",
+        "title": "Platform Update",
+        "status": "sent",
+        "statistics": {
+          "total_recipients": 1250,
+          "delivered_count": 1200,
+          "read_count": 800
+        },
+        "created_at": "2024-01-15T10:30:00Z",
+        "sent_at": "2024-01-15T11:00:00Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "total_pages": 5,
+      "total_count": 25,
+      "has_next": true
+    }
+  }
+}
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/admin/broadcast/{id}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">Get detailed broadcast information with recipient list</div>
+            <div class="example-code">
+{
+  "success": true,
+  "data": {
+    "broadcast": {
+      "_id": "broadcast_id",
+      "title": "Platform Update",
+      "message": "New features have been added!",
+      "status": "sent",
+      "target_audience": {
+        "roles": ["verified_basic"],
+        "verification_status": "verified",
+        "min_followers": 100
+      },
+      "statistics": {
+        "total_recipients": 856,
+        "delivered_count": 820,
+        "read_count": 645,
+        "delivery_rate": 95.8,
+        "read_rate": 75.4
+      },
+      "recipients": [
+        {
+          "username": "johndoe",
+          "delivered": true,
+          "read": true,
+          "delivered_at": "2024-01-15T11:00:15Z",
+          "read_at": "2024-01-15T11:05:22Z"
+        }
+      ],
+      "created_at": "2024-01-15T10:30:00Z",
+      "sent_at": "2024-01-15T11:00:00Z"
+    }
+  }
+}
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path">/api/admin/broadcast/{id}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">Update broadcast message (only drafts and scheduled)</div>
+            <div class="example-code">
+{
+  "title": "Updated Platform Notice",
+  "message": "Updated message content",
+  "target_audience": {
+    "roles": ["basic", "verified_basic"],
+    "verification_status": "all"
+  },
+  "scheduled_for": "2024-12-31T12:00:00Z"
+}
+
+// Error for sent broadcasts:
+{
+  "success": false,
+  "error": "Cannot update broadcast that has already been sent"
+}
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/admin/broadcast/{id}/send</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">Send draft or scheduled broadcast immediately</div>
+            <div class="example-code">
+// Empty body or optional override scheduling
+{}
+
+// Response:
+{
+  "success": true,
+  "data": {
+    "broadcast": {
+      "_id": "broadcast_id",
+      "status": "sending",
+      "statistics": {
+        "total_recipients": 1250,
+        "delivered_count": 0,
+        "read_count": 0
+      },
+      "sent_at": "2024-01-15T11:00:00Z"
+    },
+    "message": "Broadcast is being sent to 1,250 recipients"
+  }
+}
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/admin/broadcast/{id}/cancel</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">Cancel scheduled broadcast</div>
+            <div class="example-code">
+// Response:
+{
+  "success": true,
+  "data": {
+    "broadcast": {
+      "_id": "broadcast_id",
+      "status": "cancelled",
+      "cancelled_at": "2024-01-15T10:45:00Z"
+    },
+    "message": "Broadcast cancelled successfully"
+  }
+}
+
+// Error for non-scheduled broadcasts:
+{
+  "success": false,
+  "error": "Can only cancel scheduled broadcasts"
+}
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path">/api/admin/broadcast/{id}</span>
+              <span class="auth-required">🔒 ADMIN</span>
+            </div>
+            <div class="endpoint-description">Permanently delete broadcast message</div>
+            <div class="example-code">
+// Response:
+{
+  "success": true,
+  "message": "Broadcast deleted permanently"
+}
+
+// Error for sent broadcasts with recipients:
+{
+  "success": false,
+  "error": "Cannot delete broadcast that has been delivered to recipients"
+}
+            </div>
+          </div>
+
+          <div class="feature-info">
+            <strong>🎯 Targeting Options:</strong>
+            <br>• <strong>roles:</strong> ["basic", "verified_basic", "verified_premium", "official", "developer"]
+            <br>• <strong>verification_status:</strong> "all", "verified", "unverified"
+            <br>• <strong>min_followers:</strong> Minimum follower count (number)
+            <br>• <strong>max_followers:</strong> Maximum follower count (number)
+            <br>• <strong>exclude_banned:</strong> true/false (default: true)
+            
+            <br><br><strong>📊 Broadcast Status Flow:</strong>
+            <br>draft → scheduled → sending → sent
+            <br>draft/scheduled → cancelled
+            
+            <br><br><strong>🔔 Notification Delivery:</strong>
+            <br>• Real-time socket notifications to online users
+            <br>• Persistent in-app notifications for offline users
+            <br>• Automatic delivery tracking and read receipts
+          </div>
+
+          <h4>�📋 Reports & Tickets</h4>
           <div class="endpoint">
             <div class="endpoint-header">
               <span class="method get">GET</span>
