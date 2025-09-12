@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['frame_like', 'frame_use', 'frame_approved', 'frame_rejected', 'user_follow', 'frame_upload', 'system'],
+    enum: ['frame_like', 'frame_use', 'frame_approved', 'frame_rejected', 'user_follow', 'frame_upload', 'system', 'birthday'],
     required: true
   },
   title: {
@@ -46,6 +46,13 @@ const notificationSchema = new mongoose.Schema({
     },
     owner_name: String,
     owner_username: String,
+    birthday_user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    birthday_user_name: String,
+    birthday_user_username: String,
+    birthday_user_age: Number,
     additional_info: mongoose.Schema.Types.Mixed
   },
   is_read: {

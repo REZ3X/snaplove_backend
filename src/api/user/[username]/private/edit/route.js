@@ -64,6 +64,21 @@ router.put('/:username/private/edit', [
       }
 
       if (birthdate !== undefined) {
+
+        if (targetUser.birthdate_changed) {
+          return res.status(400).json({
+            success: false,
+            message: 'Birthday can only be changed once. You already changed it on ' +
+              (targetUser.birthdate_changed_at ?
+                targetUser.birthdate_changed_at.toDateString() : 'a previous date') + '.',
+            details: {
+              current_birthdate: targetUser.birthdate,
+              changed_at: targetUser.birthdate_changed_at,
+              reason: 'BIRTHDAY_ALREADY_CHANGED'
+            }
+          });
+        }
+
         const newBirthdate = birthdate ? new Date(birthdate) : null;
 
         if (newBirthdate && newBirthdate > new Date()) {
@@ -73,14 +88,34 @@ router.put('/:username/private/edit', [
           });
         }
 
+        const minAge = new Date();
+        minAge.setFullYear(minAge.getFullYear() - 13);
+
+        if (newBirthdate && newBirthdate > minAge) {
+          return res.status(400).json({
+            success: false,
+            message: 'You must be at least 13 years old to use this platform',
+            details: {
+              minimum_birthdate: minAge.toISOString().split('T')[0],
+              reason: 'AGE_RESTRICTION'
+            }
+          });
+        }
+
         const currentBirthdate = targetUser.birthdate ? targetUser.birthdate.toISOString().split('T')[0] : null;
         const newBirthdateString = newBirthdate ? newBirthdate.toISOString().split('T')[0] : null;
 
         if (currentBirthdate !== newBirthdateString) {
           updateData.birthdate = newBirthdate;
-          changes.push(`Birthdate ${newBirthdate ? 'updated' : 'removed'}`);
+          updateData.birthdate_changed = true;
+          updateData.birthdate_changed_at = new Date();
+
+          changes.push(`Birthday ${newBirthdate ? 'set to ' + newBirthdateString : 'removed'} (permanent change)`);
+
+          console.log(`🎂 BIRTHDAY SET: User ${targetUser.username} set birthday to ${newBirthdateString} (one-time change used)`);
         }
       }
+
 
       if (req.file) {
         if (targetUser.custom_profile_image) {
@@ -132,6 +167,9 @@ router.put('/:username/private/edit', [
 
       console.log(`USER UPDATE: User ${targetUser.username} updated their profile. Changes: ${changes.join(', ')}`);
 
+      const birthdayBadge = updatedUser.birthday_badge;
+
+
       res.json({
         success: true,
         message: 'Profile updated successfully',
@@ -145,6 +183,11 @@ router.put('/:username/private/edit', [
             role: updatedUser.role,
             bio: updatedUser.bio,
             birthdate: updatedUser.birthdate,
+
+            birthdate_changed: updatedUser.birthdate_changed,
+            birthdate_changeable: !updatedUser.birthdate_changed,
+            birthday_badge: birthdayBadge,
+
             ban_status: updatedUser.ban_status,
             ban_release_datetime: updatedUser.ban_release_datetime,
             use_google_profile: updatedUser.use_google_profile !== false,

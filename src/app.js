@@ -1,6 +1,7 @@
 require("dotenv").config();
 const http = require("http");
 const socketService = require("./services/socketService");
+const birthdayService = require("./services/birthdayService");
 const express = require("express");
 
 const helmet = require("helmet");
@@ -71,6 +72,7 @@ const leaderboardPublicRoute = require("./api/leaderboard/public/route");
 const userNotificationPrivateRoute = require("./api/user/[username]/notification/private/route");
 const userFollowerRoute = require("./api/user/[username]/follower/route");
 const userFollowingRoute = require("./api/user/[username]/following/route");
+const userBirthdayRoute = require("./api/user/[username]/birthday/route");
 
 const searchRoute = require("./api/search/route");
 
@@ -573,6 +575,7 @@ app.use("/api/user", userProfileEditRoute);
 app.use("/api/user", userStatsRoute);
 app.use("/api/user", userNotificationPrivateRoute);
 app.use("/api/user", userFollowerRoute);
+app.use("/api/user", userBirthdayRoute);
 
 app.use("/api/user", userReportDetailRoute);
 
@@ -647,6 +650,7 @@ const server = http.createServer(app);
 
 if (process.env.NODE_ENV !== "test") {
   socketService.initialize(server);
+  birthdayService.start();
 
   server.listen(PORT, () => {
     console.log(`🚀 Snaplove Backend running on port ${PORT}`);

@@ -351,6 +351,84 @@ class SocketService {
     return await this.sendNotificationToUser(frameOwnerId, notification);
   }
 
+  async sendBirthdayNotification(birthdayUserId, followerIds, birthdayData) {
+    try {
+      const Follow = require('../models/Follow');
+
+      const followers = await Follow.find({
+        following_id: birthdayUserId,
+        status: 'active'
+      }).populate('follower_id', 'ban_status name username');
+
+      const activeFollowers = followers.filter(follow =>
+        !follow.follower_id.ban_status
+      );
+
+      const notificationPromises = activeFollowers.map(async (follow) => {
+        const notification = {
+          recipient_id: follow.follower_id._id,
+          sender_id: birthdayUserId,
+          type: 'birthday',
+          title: '🎂 Birthday Alert!',
+          message: `It's ${birthdayData.user_name}'s birthday today! They're turning ${birthdayData.age} years old.`,
+          data: {
+            birthday_user_id: birthdayUserId,
+            birthday_user_name: birthdayData.user_name,
+            birthday_user_username: birthdayData.user_username,
+            birthday_user_age: birthdayData.age,
+            additional_info: {
+              action: 'birthday_celebration',
+              celebration_emoji: '🎂🎉🎈',
+              age: birthdayData.age
+            }
+          }
+        };
+
+        return await this.sendNotificationToUser(follow.follower_id._id, notification);
+      });
+
+      const selfBirthdayNotification = {
+        recipient_id: birthdayUserId,
+        sender_id: birthdayUserId,
+        type: 'birthday',
+        title: '🎉 Happy Birthday!',
+        message: `Happy ${birthdayData.age}${this.getOrdinalSuffix(birthdayData.age)} Birthday! Enjoy your special day! 🎂`,
+        data: {
+          birthday_user_id: birthdayUserId,
+          birthday_user_name: birthdayData.user_name,
+          birthday_user_username: birthdayData.user_username,
+          birthday_user_age: birthdayData.age,
+          additional_info: {
+            action: 'self_birthday',
+            celebration_emoji: '🎂🎉🎈🎁',
+            age: birthdayData.age,
+            special_day: true
+          }
+        }
+      };
+
+      const selfNotificationPromise = this.sendNotificationToUser(birthdayUserId, selfBirthdayNotification);
+
+      await Promise.allSettled([...notificationPromises, selfNotificationPromise]);
+
+      console.log(`🎂 Sent birthday notifications for ${birthdayData.user_name} to ${activeFollowers.length} followers + self`);
+
+      return activeFollowers.length + 1;
+    } catch (error) {
+      console.error('Send birthday notifications error:', error);
+      throw error;
+    }
+  }
+
+  getOrdinalSuffix(number) {
+    const j = number % 10;
+    const k = number % 100;
+    if (j === 1 && k !== 11) return "st";
+    if (j === 2 && k !== 12) return "nd";
+    if (j === 3 && k !== 13) return "rd";
+    return "th";
+  }
+
   getConnectedUsersCount() {
     return this.users.size;
   }

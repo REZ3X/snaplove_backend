@@ -35,6 +35,8 @@ router.get('/:username', [
       });
     }
 
+    const isOwnProfile = req.user && req.user.username === user.username;
+
     res.json({
       success: true,
       data: {
@@ -46,6 +48,8 @@ router.get('/:username', [
           role: user.role,
           bio: user.bio,
           birthdate: user.birthdate,
+          birthday_badge: user.birthday_badge,
+          birthdate_changeable: isOwnProfile ? !user.birthdate_changed : undefined,
           created_at: user.created_at,
           updated_at: user.updated_at
         }
