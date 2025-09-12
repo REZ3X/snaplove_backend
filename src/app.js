@@ -48,6 +48,7 @@ const userReportPrivateRoute = require("./api/user/[username]/report/private/rou
 const userReportDetailRoute = require("./api/user/[username]/report/private/[id]/route");
 const adminReportsRoute = require("./api/admin/reports/route");
 const adminReportDetailRoute = require("./api/admin/reports/[id]/route");
+const adminBroadcastRoute = require("./api/admin/broadcast/route");
 
 const userTicketPrivateRoute = require("./api/user/[username]/ticket/private/route");
 const userTicketDetailRoute = require("./api/user/[username]/ticket/private/[id]/route");
@@ -596,6 +597,8 @@ app.use("/api/admin/users", adminUserUpdateRoute);
 app.use("/api/admin/users", adminUserDeleteRoute);
 
 app.use("/api/admin/serverHealth", adminServerHealthRoute);
+
+app.use("/api/admin/broadcast", adminBroadcastRoute);
 
 /* private routes */
 app.use("/api/user", userReportPrivateRoute);

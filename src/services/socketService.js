@@ -420,6 +420,175 @@ class SocketService {
     }
   }
 
+  async sendBroadcastNotification(broadcast) {
+    try {
+      const User = require('../models/User');
+
+
+      const userFilter = { ban_status: false };
+
+      switch (broadcast.target_audience) {
+        case 'verified':
+          userFilter.role = { $in: ['verified_basic', 'verified_premium'] };
+          break;
+        case 'premium':
+          userFilter.role = 'verified_premium';
+          break;
+        case 'basic':
+          userFilter.role = 'basic';
+          break;
+        case 'official':
+          userFilter.role = 'official';
+          break;
+        case 'developer':
+          userFilter.role = 'developer';
+          break;
+        case 'online_users': {
+
+          const onlineUserIds = Array.from(this.users.keys());
+          userFilter._id = { $in: onlineUserIds };
+          break;
+        }
+        case 'all':
+        default:
+
+          break;
+      }
+
+
+      if (broadcast.target_roles && broadcast.target_roles.length > 0) {
+        userFilter.role = { $in: broadcast.target_roles };
+      }
+
+
+      const targetUsers = await User.find(userFilter).select('_id name username');
+
+      if (targetUsers.length === 0) {
+        console.log(`📢 No users found matching broadcast criteria for broadcast ${broadcast._id}`);
+        return {
+          total_recipients: 0,
+          notifications_created: 0,
+          delivery_stats: {
+            online_delivery: 0,
+            offline_delivery: 0,
+            failed_delivery: 0
+          }
+        };
+      }
+
+      console.log(`📢 Sending broadcast "${broadcast.title}" to ${targetUsers.length} users`);
+
+
+      const notificationPromises = targetUsers.map(async (user) => {
+        try {
+          const notification = {
+            recipient_id: user._id,
+            sender_id: broadcast.created_by,
+            type: 'broadcast',
+            title: `${broadcast.type_emoji} ${broadcast.title}`,
+            message: broadcast.message,
+            is_dismissible: broadcast.settings.dismissible,
+            expires_at: broadcast.expires_at,
+            data: {
+              broadcast_id: broadcast._id,
+              broadcast_type: broadcast.type,
+              broadcast_priority: broadcast.priority,
+              action_url: broadcast.settings.action_url,
+              custom_icon: broadcast.settings.icon,
+              custom_color: broadcast.settings.color,
+              additional_info: {
+                priority_emoji: broadcast.priority_emoji,
+                type_emoji: broadcast.type_emoji,
+                target_audience: broadcast.target_audience,
+                persistent: broadcast.settings.persistent,
+                dismissible: broadcast.settings.dismissible,
+                metadata: broadcast.metadata
+              }
+            }
+          };
+
+
+          const savedNotification = await this.createNotification(notification);
+
+
+          const isOnline = this.isUserOnline(user._id);
+
+          if (isOnline) {
+
+            this.io.to(`user_${user._id}`).emit('new_notification', {
+              id: savedNotification._id,
+              type: savedNotification.type,
+              title: savedNotification.title,
+              message: savedNotification.message,
+              data: savedNotification.data,
+              sender: savedNotification.sender_id,
+              is_read: savedNotification.is_read,
+              is_dismissible: savedNotification.is_dismissible,
+              expires_at: savedNotification.expires_at,
+              created_at: savedNotification.created_at
+            });
+
+
+            this.sendUnreadCount(user._id.toString());
+
+            return { status: 'online_delivered', user_id: user._id };
+          } else {
+            return { status: 'offline_delivered', user_id: user._id };
+          }
+
+        } catch (error) {
+          console.error(`Failed to send broadcast notification to user ${user._id}:`, error);
+          return { status: 'failed', user_id: user._id, error: error.message };
+        }
+      });
+
+
+      const results = await Promise.allSettled(notificationPromises);
+
+
+      const deliveryStats = {
+        online_delivery: 0,
+        offline_delivery: 0,
+        failed_delivery: 0
+      };
+
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          const delivery = result.value;
+          if (delivery.status === 'online_delivered') {
+            deliveryStats.online_delivery++;
+          } else if (delivery.status === 'offline_delivered') {
+            deliveryStats.offline_delivery++;
+          } else {
+            deliveryStats.failed_delivery++;
+          }
+        } else {
+          deliveryStats.failed_delivery++;
+        }
+      });
+
+      const totalNotifications = deliveryStats.online_delivery + deliveryStats.offline_delivery;
+
+      console.log(`📢 Broadcast ${broadcast._id} delivery completed:`, {
+        total_recipients: targetUsers.length,
+        notifications_created: totalNotifications,
+        online_delivery: deliveryStats.online_delivery,
+        offline_delivery: deliveryStats.offline_delivery,
+        failed_delivery: deliveryStats.failed_delivery
+      });
+
+      return {
+        total_recipients: targetUsers.length,
+        notifications_created: totalNotifications,
+        delivery_stats: deliveryStats
+      };
+
+    } catch (error) {
+      console.error('Send broadcast notification error:', error);
+      throw error;
+    }
+  }
+
   getOrdinalSuffix(number) {
     const j = number % 10;
     const k = number % 100;

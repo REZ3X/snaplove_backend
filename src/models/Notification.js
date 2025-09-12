@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['frame_like', 'frame_use', 'frame_approved', 'frame_rejected', 'user_follow', 'frame_upload', 'system', 'birthday'],
+    enum: ['frame_like', 'frame_use', 'frame_approved', 'frame_rejected', 'user_follow', 'frame_upload', 'system', 'birthday', 'broadcast'],
     required: true
   },
   title: {
@@ -53,6 +53,17 @@ const notificationSchema = new mongoose.Schema({
     birthday_user_name: String,
     birthday_user_username: String,
     birthday_user_age: Number,
+
+    broadcast_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Broadcast'
+    },
+    broadcast_type: String,
+    broadcast_priority: String,
+    action_url: String,
+    custom_icon: String,
+    custom_color: String,
+
     additional_info: mongoose.Schema.Types.Mixed
   },
   is_read: {
@@ -62,7 +73,17 @@ const notificationSchema = new mongoose.Schema({
   read_at: {
     type: Date,
     default: null
+  },
+
+  is_dismissible: {
+    type: Boolean,
+    default: true
+  },
+  expires_at: {
+    type: Date,
+    default: null
   }
+
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
@@ -70,5 +91,6 @@ const notificationSchema = new mongoose.Schema({
 notificationSchema.index({ recipient_id: 1, created_at: -1 });
 notificationSchema.index({ recipient_id: 1, is_read: 1 });
 notificationSchema.index({ recipient_id: 1, type: 1 });
+notificationSchema.index({ expires_at: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);
