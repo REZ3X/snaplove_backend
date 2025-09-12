@@ -177,11 +177,44 @@ class LocalImageHandler {
 
   async deleteImage(relativePath) {
     try {
-      const fullPath = path.join(process.cwd(), relativePath);
+      let fullPath;
+
+      if (path.isAbsolute(relativePath)) {
+        fullPath = relativePath;
+      } else if (relativePath.startsWith('images/')) {
+        fullPath = path.join(process.cwd(), relativePath);
+      } else {
+        const filename = path.basename(relativePath);
+
+        let subDir;
+        if (filename.startsWith('frame-')) {
+          subDir = this.framesDir;
+        } else if (filename.startsWith('photo-')) {
+          subDir = this.photosDir;
+        } else if (filename.startsWith('profile-')) {
+          subDir = this.profilesDir;
+        } else if (filename.startsWith('ticket-')) {
+          subDir = this.ticketsDir;
+        } else {
+          fullPath = path.join(process.cwd(), relativePath);
+        }
+
+        if (subDir) {
+          fullPath = path.join(subDir, filename);
+        }
+      }
+
+      await fs.access(fullPath);
       await fs.unlink(fullPath);
+
+      console.log(`✅ Successfully deleted image: ${fullPath}`);
       return true;
     } catch (error) {
-      console.error('Error deleting image:', error);
+      if (error.code === 'ENOENT') {
+        console.warn(`⚠️ Image file not found (may already be deleted): ${relativePath}`);
+        return true;
+      }
+      console.error(`❌ Error deleting image ${relativePath}:`, error.message);
       return false;
     }
   }
