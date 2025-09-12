@@ -51,14 +51,32 @@ router.delete('/:username/frame/private/:id/delete', [
     const frameData = {
       id: frame._id,
       title: frame.title,
-      images: frame.images
+      images: frame.images,
+      thumbnail: frame.thumbnail
     };
 
-    const imageDeletePromises = frame.images.map(async (imagePath) => {
+    const allImagesToDelete = [];
+
+    if (frame.images && Array.isArray(frame.images)) {
+      allImagesToDelete.push(...frame.images);
+    }
+
+    if (frame.thumbnail) {
+      allImagesToDelete.push(frame.thumbnail);
+    }
+
+    console.log(`🗑️ Deleting ${allImagesToDelete.length} images for frame ${frame._id}:`, allImagesToDelete);
+
+    const imageDeletePromises = allImagesToDelete.map(async (imagePath) => {
       try {
-        await imageHandler.deleteImage(imagePath);
+        const result = await imageHandler.deleteImage(imagePath);
+        if (result) {
+          console.log(`✅ Successfully deleted: ${imagePath}`);
+        } else {
+          console.warn(`⚠️ Failed to delete: ${imagePath}`);
+        }
       } catch (error) {
-        console.error(`Failed to delete image ${imagePath}:`, error);
+        console.error(`❌ Failed to delete image ${imagePath}:`, error);
       }
     });
 
@@ -73,7 +91,9 @@ router.delete('/:username/frame/private/:id/delete', [
         deleted_frame: {
           id: frameData.id,
           title: frameData.title,
-          deleted_images_count: frameData.images.length
+          deleted_images_count: frameData.images.length,
+          deleted_thumbnail: frameData.thumbnail ? 1 : 0,
+          total_deleted_files: allImagesToDelete.length
         }
       }
     });

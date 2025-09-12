@@ -35,6 +35,7 @@ router.delete('/:id/admin/delete', [
       id: frame._id,
       title: frame.title,
       images: frame.images,
+      thumbnail: frame.thumbnail,
       owner: {
         id: frame.user_id._id,
         name: frame.user_id.name,
@@ -49,12 +50,28 @@ router.delete('/:id/admin/delete', [
 
     console.log(`ADMIN DELETE: Admin ${req.user.userId} deleted frame ${frame._id} by user ${frame.user_id.username}`);
 
-    const imageDeletePromises = frame.images.map(async (imagePath) => {
+    const allImagesToDelete = [];
+ 
+    if (frame.images && Array.isArray(frame.images)) {
+      allImagesToDelete.push(...frame.images);
+    }
+
+    if (frame.thumbnail) {
+      allImagesToDelete.push(frame.thumbnail);
+    }
+
+    console.log(`🗑️ Admin deleting ${allImagesToDelete.length} images for frame ${frame._id}:`, allImagesToDelete);
+
+    const imageDeletePromises = allImagesToDelete.map(async (imagePath) => {
       try {
-        await imageHandler.deleteImage(imagePath);
-        console.log(`Deleted image: ${imagePath}`);
+        const result = await imageHandler.deleteImage(imagePath);
+        if (result) {
+          console.log(`✅ Admin successfully deleted: ${imagePath}`);
+        } else {
+          console.warn(`⚠️ Admin failed to delete: ${imagePath}`);
+        }
       } catch (error) {
-        console.error(`Failed to delete image ${imagePath}:`, error);
+        console.error(`❌ Admin failed to delete image ${imagePath}:`, error);
       }
     });
 
@@ -71,6 +88,8 @@ router.delete('/:id/admin/delete', [
           title: frameData.title,
           owner: frameData.owner,
           deleted_images_count: frameData.images.length,
+          deleted_thumbnail: frameData.thumbnail ? 1 : 0,
+          total_deleted_files: allImagesToDelete.length,
           total_likes: frameData.total_likes,
           total_uses: frameData.total_uses,
           created_at: frameData.created_at
