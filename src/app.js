@@ -79,7 +79,7 @@ const userBirthdayRoute = require("./api/user/[username]/birthday/route");
 const searchRoute = require("./api/search/route");
 
 const apiKeyAuth = createApiKeyAuth({
-  skipPaths: ["/", "/health"],
+  skipPaths: ["/", "/health", "/lore", "/dev"],
   skipPatterns: [/^\/docs/, /^\/images/, /^\/uploads/],
   envOnly: "production",
 });
@@ -143,9 +143,9 @@ app.get("/health", async (req, res) => {
     };
 
     const [userCount, frameCount, photoCount] = await Promise.all([
-      User.estimatedDocumentCount(),    
-      Frame.estimatedDocumentCount(),   
-      Photo.estimatedDocumentCount(),    
+      User.estimatedDocumentCount(),
+      Frame.estimatedDocumentCount(),
+      Photo.estimatedDocumentCount(),
     ]).catch(() => [0, 0, 0]);
 
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -231,6 +231,43 @@ app.get("/health", async (req, res) => {
           : "Internal server error",
     });
   }
+});
+
+app.get("/lore", (req, res) => {
+  res.status(222).json({
+    project: "The Hope Replacement",
+    version: "0.0.2r",
+    status: 222,
+    messages: [
+      "A hope replacement, that what I called this piece of shitty project.. with shitty routes and paths. Cuz honestly I create this backend app like creating Next.js API route which why it looks.. like shit. Started at August 13, the day I remember after days of planning for this projects. Taking the role as Project Manager and Backend Developer I sail the journey of bravery.. and of.. loss and.. suffer.",
+      "That is the day after a YOLO question I asked to her.. then shattered me. Now I fully in the glimps of void.. fighting with my own mind for the rest of August 2025. Become distant, mad, and emosional.. and like drugs.. this backend project filled the hole of hope once I lost. Make me wonder and realize I just back to my stock spec.",
+      "Until then.. early September.. I take all the courage to confess.. already knew the answer at August yet my mind and my heart couldn't bear the feeling. Rejection.. it's a big slap.. once again in my life. But hell this one just stay for normal relation.. that's why I continue this shit, pour all of my effort and time.. to distract myself.. and I always say to my friend that.. failing in love will always give you coding buff.",
+      "- REZ3X"
+    ],
+    timestamp: "2025-09-13T18:00:00.000Z",
+  });
+});
+
+app.get("/dev", (req, res) => {
+  res.status(200).json({
+    status: 200,
+    developers: [
+      {
+        name: "Rejaka Abimanyu Susanto",
+        occupation: [
+          "Chief Technology Officer at Slaviors",
+          "Project Manager and Lead Backend Developer at Snaplove Project"
+        ],
+      },
+      {
+        name: "Muhammad Ridhwan Kurniawan",
+        occupation: [
+          "Cyber Security Specialist at Slaviors",
+          "Backend Developer and PenTest at Snaplove Project"
+        ],
+      }
+    ]
+  });
 });
 
 app.use(
@@ -488,9 +525,9 @@ app.use("/images", express.static(path.join(process.cwd(), "images")));
 app.use(apiKeyAuth);
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: process.env.NODE_ENV === "test" ? 1000000 : 
-       process.env.NODE_ENV === "production" ? 500 : 200,
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "test" ? 1000000 :
+    process.env.NODE_ENV === "production" ? 500 : 200,
   message: {
     success: false,
     message: "Too many requests from this IP, please try again later.",
@@ -505,7 +542,7 @@ const limiter = rateLimit({
         req.connection.remoteAddress ||
         req.socket.remoteAddress ||
         req.ip;
-      
+
       console.log(`Rate limit key for production: ${ip}`);
       return ip;
     }
@@ -518,7 +555,7 @@ const limiter = rateLimit({
     res.status(429).json({
       success: false,
       message: "Too many requests from this IP, please try again later.",
-      retryAfter: 15 * 60, 
+      retryAfter: 15 * 60,
       resetTime: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     });
   },
