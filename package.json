@@ -17,8 +17,10 @@
   "license": "ISC",
   "description": "Snaplove photobooth backend API",
   "dependencies": {
+    "axios": "^1.12.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "discord.js": "^14.22.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^6.10.0",

@@ -2,6 +2,8 @@ require("dotenv").config();
 const http = require("http");
 const socketService = require("./services/socketService");
 const birthdayService = require("./services/birthdayService");
+const discordBotService = require('./services/discordBotService');
+const discordHandler = require('./utils/DiscordHookHandler');
 const express = require("express");
 
 const helmet = require("helmet");
@@ -66,6 +68,7 @@ const photoEditRoute = require("./api/user/[username]/photo/private/[id]/edit/ro
 const photoDeleteRoute = require("./api/user/[username]/photo/private/[id]/delete/route");
 
 const adminServerHealthRoute = require("./api/admin/serverHealth/route");
+const adminDiscordRoute = require("./api/admin/discord/route");
 
 const frameApprovalRoute = require("./api/admin/framePublicApproval/route");
 
@@ -636,6 +639,7 @@ app.use("/api/admin/users", adminUserUpdateRoute);
 app.use("/api/admin/users", adminUserDeleteRoute);
 
 app.use("/api/admin/serverHealth", adminServerHealthRoute);
+app.use("/api/admin/discord", adminDiscordRoute);
 
 app.use("/api/admin/broadcast", adminBroadcastRoute);
 
@@ -693,6 +697,14 @@ const server = http.createServer(app);
 if (process.env.NODE_ENV !== "test") {
   socketService.initialize(server);
   birthdayService.start();
+
+  discordBotService.start()
+    .then(() => console.log('🤖 Discord bot integration started'))
+    .catch(err => console.log('⚠️ Discord bot not available:', err.message));
+
+  discordHandler.sendStartupMessage()
+    .then(() => console.log('📢 Discord webhook connected with profile data'))
+    .catch(err => console.log('⚠️ Discord webhook not available:', err.message));
 
   server.listen(PORT, () => {
     console.log(`🚀 Snaplove Backend running on port ${PORT}`);
