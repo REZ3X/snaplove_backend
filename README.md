@@ -4,9 +4,10 @@
 [![Express.js](https://img.shields.io/badge/Express.js-4.x-blue.svg)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.x-green.svg)](https://www.mongodb.com/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-black.svg)](https://socket.io/)
+[![Discord.js](https://img.shields.io/badge/Discord.js-14.x-5865F2.svg)](https://discord.js.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A comprehensive RESTful API backend for **Snaplove** - a frame-based photo sharing platform where users can create custom frames, capture photos using those frames, and build social connections with real-time interactions.
+A comprehensive RESTful API backend for **Snaplove** - a frame-based photo sharing platform where users can create custom frames, capture photos using those frames, and build social connections with real-time interactions. Features integrated Discord admin bot for seamless administration.
 
 ## 🌟 Features
 
@@ -20,6 +21,10 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
 - **🔍 Smart Discovery**: Intelligent frame discovery with hybrid algorithms combining trending, recency, and engagement signals
 - **🎯 Frame Leaderboards**: Individual frame usage rankings and user statistics
 - **👤 Profile Management**: Custom profile image uploads with Google OAuth fallback
+- **🤖 Discord Integration**: Full admin panel access via Discord bot with slash commands
+- **📢 Broadcasting System**: Admin broadcast messages with targeting and delivery tracking
+- **📋 Report & Ticket System**: Content moderation and user support workflows
+- **🎂 Birthday System**: One-time birthday setting with automatic celebrations
 - **⚙️ Admin Tools**: Comprehensive administration and reporting
 - **🔐 Security**: JWT authentication, API key protection, rate limiting
 - **📊 Analytics**: Real-time stats and performance metrics
@@ -32,6 +37,7 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
 - **Real-time**: Socket.IO for WebSocket connections
 - **Authentication**: JWT + Google OAuth
 - **File Storage**: Local file system with image processing
+- **Discord Integration**: Discord.js v14 with slash commands
 - **Security**: Helmet, CORS, Rate Limiting, API Keys
 - **Testing**: Jest
 - **Deployment**: PM2 compatible
@@ -43,6 +49,7 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
 - Node.js 18 or higher
 - MongoDB 6.x
 - Google OAuth credentials
+- Discord Bot Token (optional, for admin integration)
 
 ### Installation
 
@@ -86,6 +93,13 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
    # API Keys (production only)
    API_KEYS=your_production_api_key_1,your_production_api_key_2
 
+   # Discord Integration (optional)
+   DISCORD_BOT_TOKEN=your_discord_bot_token
+   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/id/token
+   DISCORD_GUILD_ID=your_discord_server_id
+   DISCORD_CHANNEL_ID=your_admin_channel_id
+   DISCORD_ADMIN_IDS=your_discord_user_id,another_admin_id
+
    # Documentation Authentication
    DOCS_USERNAME=admin
    DOCS_PASSWORD=admin
@@ -101,6 +115,72 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
    ```
    http://localhost:3000/
    ```
+
+## 🤖 Discord Admin Bot Integration
+
+### Features
+
+- **Slash Commands**: Modern Discord slash command interface
+- **Full Admin Access**: Complete admin panel functionality via Discord
+- **Real-time Updates**: Instant notifications and status updates
+- **Secure Authentication**: Discord user ID-based authorization
+- **Rich Embeds**: Beautiful formatted responses with detailed information
+
+### Available Commands
+
+| Command           | Description                 | Usage                                              |
+| ----------------- | --------------------------- | -------------------------------------------------- |
+| `/help`           | Show all available commands | `/help`                                            |
+| `/test`           | Test bot functionality      | `/test`                                            |
+| `/stats`          | Get system statistics       | `/stats`                                           |
+| `/health`         | Check server health         | `/health`                                          |
+| `/frames`         | List frames by status       | `/frames status:pending limit:10`                  |
+| `/approve`        | Approve a frame             | `/approve frame_id:123`                            |
+| `/reject`         | Reject a frame              | `/reject frame_id:123 reason:"Inappropriate"`      |
+| `/users`          | List users by role          | `/users role:basic limit:15`                       |
+| `/user`           | Get user details            | `/user username:john_doe`                          |
+| `/ban`            | Ban a user                  | `/ban username:spammer duration:7d reason:"Spam"`  |
+| `/unban`          | Unban a user                | `/unban username:john_doe`                         |
+| `/role`           | Change user role            | `/role username:john_doe new_role:verified_basic`  |
+| `/broadcast`      | Send broadcast message      | `/broadcast message:"Server maintenance tonight!"` |
+| `/reports`        | List content reports        | `/reports status:pending limit:10`                 |
+| `/report`         | Get report details          | `/report report_id:abc123`                         |
+| `/resolve-report` | Resolve a report            | `/resolve-report report_id:abc123 action:done`     |
+| `/tickets`        | List support tickets        | `/tickets status:pending priority:high`            |
+| `/ticket`         | Get ticket details          | `/ticket ticket_id:def456`                         |
+| `/resolve-ticket` | Update ticket status        | `/resolve-ticket ticket_id:def456 status:resolved` |
+
+### Setup Discord Bot
+
+1. **Create Discord Application**
+
+   - Go to [Discord Developer Portal](https://discord.com/developers/applications)
+   - Create new application → Add Bot
+   - Copy bot token to `DISCORD_BOT_TOKEN`
+
+2. **Configure Bot Permissions**
+
+   - Enable "Message Content Intent"
+   - Bot permissions: Send Messages, Use Slash Commands, Embed Links
+
+3. **Invite Bot to Server**
+
+   - Use OAuth2 URL generator with `bot` and `applications.commands` scopes
+   - Add to your Discord server
+
+4. **Configure Environment**
+
+   ```env
+   DISCORD_BOT_TOKEN=your_bot_token_here
+   DISCORD_GUILD_ID=your_server_id_here
+   DISCORD_CHANNEL_ID=your_admin_channel_id_here
+   DISCORD_ADMIN_IDS=your_discord_user_id,another_admin_id
+   ```
+
+5. **Test the Integration**
+   - Bot will auto-register slash commands on startup
+   - Use `/test` command to verify functionality
+   - Use `/help` to see all available commands
 
 ## 📖 API Documentation
 
@@ -279,9 +359,40 @@ socket.on("unread_count", (data) => {
 src/
 ├── api/                    # API route handlers
 │   ├── admin/             # Admin-only endpoints
+│   │   ├── broadcast/     # Broadcasting system
+│   │   ├── discord/       # Discord integration routes
+│   │   ├── framePublicApproval/  # Frame approval system
+│   │   ├── reports/       # Content report management
+│   │   ├── ticket/        # Support ticket system
+│   │   └── users/         # User administration
 │   ├── auth/              # Authentication
-│   ├── frame/             # Frame management & trending
+│   ├── frame/             # Frame management & discovery
+│   │   └── public/        # Public frame operations
+│   │       ├── discover/  # Intelligent frame discovery
+│   │       └── trending/  # Trending frames algorithm
+│   ├── leaderboard/       # Leaderboard system
 │   ├── search/            # Advanced search functionality
+│   └── user/              # User profile & private operations
+├── lib/                   # Database connections & setup
+├── middleware/            # Authentication & security middleware
+├── models/                # MongoDB schemas
+│   ├── User.js           # User model with birthday system
+│   ├── Frame.js          # Frame model with engagement tracking
+│   ├── Broadcast.js      # Broadcasting system model
+│   └── ...               # Other data models
+├── services/              # Business logic services
+│   ├── birthdayService.js    # Automated birthday celebrations
+│   ├── discordBotService.js  # Discord bot with slash commands
+│   ├── socketService.js      # WebSocket real-time events
+│   └── ...                   # Other services
+├── utils/                 # Helper utilities
+│   ├── LocalImageHandler.js  # Image management & cleanup
+│   ├── DiscordHookHandler.js # Discord webhook integration
+│   ├── profileImageHelper.js # Profile image processing
+│   └── RolePolicy.js         # Role-based access control
+└── view/                  # HTML documentation & pages
+    ├── docs.html         # Comprehensive API documentation
+    └── index.html        # Landing page
 │   ├── user/              # User operations & social features
 │   └── leaderboard/       # Rankings & competitions
 ├── lib/                   # Core libraries
@@ -386,13 +497,34 @@ npm run lint:fix    # Auto-fix issues
 - **Smart Filtering**: Filter by layout type, tags, official status, user roles
 - **Flexible Sorting**: Sort by relevance, popularity, date, or usage statistics
 - **Pagination Support**: Efficient pagination with configurable limits
+- **Intelligent Discovery**: Hybrid algorithm combining trending, engagement, momentum, and randomization
 
-### Trending & Analytics
+### Frame Discovery Algorithms
 
-- **Velocity-based Trending**: Smart trending algorithm considering recency and engagement
-- **Time Period Analysis**: Compare performance across different time windows
-- **Frame-specific Leaderboards**: See top users for any individual frame
-- **Engagement Metrics**: Track likes, uses, and combined performance scores
+- **Hybrid Algorithm**: Multi-factor scoring system with weighted components
+  - Trending Score (40%): Recent engagement velocity
+  - Engagement Score (30%): Total likes and usage
+  - Momentum Score (20%): Recent activity growth
+  - Random Factor (10%): Serendipity boost for exploration
+- **Trending Frames**: Velocity-based algorithm considering recency and engagement
+- **Recent Frames**: Latest uploads with quality filtering
+- **Random Discovery**: Curated randomization for content exploration
+
+### Birthday & Celebration System
+
+- **Automated Birthday Detection**: Daily birthday notifications
+- **Birthday Badges**: Special 24-hour birthday badges for users
+- **One-time Birthday Updates**: Policy preventing birthday manipulation
+- **Real-time Celebrations**: Socket notifications for birthday events
+- **Birthday Analytics**: Track and celebrate user milestones
+
+### Broadcasting & Communication
+
+- **Admin Broadcasting**: Targeted message delivery system
+- **Delivery Tracking**: Monitor message reach and engagement
+- **User Targeting**: Send messages to specific user groups or roles
+- **Real-time Delivery**: Instant notifications via WebSocket
+- **Broadcast Analytics**: Track message performance and user engagement
 
 ### Profile & Image Management
 
@@ -470,6 +602,11 @@ API_KEYS=key1,key2,key3
 PRODUCTION_FRONTEND_URLS=https://yourfrontend.com,https://www.yourfrontend.com
 GOOGLE_CLIENT_ID=your_google_oauth_client_id
 GOOGLE_CLIENT_SECRET=your_google_oauth_secret
+DISCORD_BOT_TOKEN=your_discord_bot_token
+DISCORD_GUILD_ID=your_discord_server_id
+DISCORD_CHANNEL_ID=your_admin_channel_id
+DISCORD_ADMIN_IDS=admin_user_id1,admin_user_id2
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your/webhook
 PORT=3000
 ```
 
