@@ -530,4 +530,158 @@ router.get('/stats', discordAuth, async (req, res) => {
   }
 });
 
+router.get('/user/:username', [
+  param('username').notEmpty().withMessage('Username required')
+], discordAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username })
+      .select('-password');
+
+    if (!user) {
+      await discordHandler.sendError('User not found');
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const fields = [
+      { name: 'ID', value: user._id.toString(), inline: true },
+      { name: 'Username', value: `@${user.username}`, inline: true },
+      { name: 'Role', value: user.role, inline: true },
+      { name: 'Status', value: user.ban_status ? '🔴 Banned' : '🟢 Active', inline: true },
+      { name: 'Email', value: user.email || 'Not provided', inline: true },
+      { name: 'Created', value: new Date(user.created_at).toLocaleDateString(), inline: true }
+    ];
+
+    if (user.ban_status && user.ban_release_datetime) {
+      fields.push({ name: 'Ban Release', value: new Date(user.ban_release_datetime).toLocaleString(), inline: true });
+    }
+
+    await discordHandler.sendEmbed(
+      `👤 User Details: @${user.username}`,
+      user.bio || 'No bio provided',
+      fields,
+      user.ban_status ? 0xff0000 : 0x00ff00
+    );
+
+    res.json({
+      success: true,
+      data: { user_found: true }
+    });
+
+  } catch (error) {
+    console.error('Discord user detail error:', error);
+    await discordHandler.sendError('Failed to fetch user details', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+
+router.post('/user/:username/unban', [
+  param('username').notEmpty().withMessage('Username required')
+], discordAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) {
+      await discordHandler.sendError('User not found');
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.ban_status) {
+      await discordHandler.sendError('User is not banned');
+      return res.status(400).json({
+        success: false,
+        message: 'User is not banned'
+      });
+    }
+
+    user.ban_status = false;
+    user.ban_release_datetime = null;
+    await user.save();
+
+    await discordHandler.sendSuccess(
+      `User unbanned successfully! ✅`,
+      [
+        { name: 'User', value: `@${user.username}`, inline: true },
+        { name: 'Status', value: '🟢 Active', inline: true },
+        { name: 'Action', value: 'Ban removed', inline: true }
+      ]
+    );
+
+    console.log(`📢 DISCORD UNBAN: User ${user.username} unbanned via Discord by ${req.discordUser.id}`);
+
+    res.json({
+      success: true,
+      message: 'User unbanned successfully',
+      data: { username: user.username }
+    });
+
+  } catch (error) {
+    console.error('Discord user unban error:', error);
+    await discordHandler.sendError('Failed to unban user', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+
+router.post('/user/:username/role', [
+  param('username').notEmpty().withMessage('Username required'),
+  body('role').isIn(['basic', 'verified_basic', 'verified_premium', 'official', 'developer']).withMessage('Invalid role')
+], discordAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) {
+      await discordHandler.sendError('User not found');
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const oldRole = user.role;
+    const { role } = req.body;
+
+    if (oldRole === role) {
+      await discordHandler.sendError('User already has this role');
+      return res.status(400).json({
+        success: false,
+        message: 'User already has this role'
+      });
+    }
+
+    user.role = role;
+    await user.save();
+
+    await discordHandler.sendSuccess(
+      `User role updated successfully! 🔄`,
+      [
+        { name: 'User', value: `@${user.username}`, inline: true },
+        { name: 'Old Role', value: oldRole, inline: true },
+        { name: 'New Role', value: role, inline: true }
+      ]
+    );
+
+    console.log(`📢 DISCORD ROLE: User ${user.username} role changed from ${oldRole} to ${role} via Discord by ${req.discordUser.id}`);
+
+    res.json({
+      success: true,
+      message: 'User role updated successfully',
+      data: {
+        username: user.username,
+        old_role: oldRole,
+        new_role: role
+      }
+    });
+
+  } catch (error) {
+    console.error('Discord user role update error:', error);
+    await discordHandler.sendError('Failed to update user role', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 module.exports = router;

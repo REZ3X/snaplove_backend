@@ -7,7 +7,7 @@ class DiscordBotService {
     this.channelId = process.env.DISCORD_CHANNEL_ID;
     this.adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').filter(Boolean);
     this.baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'http://localhost:4000' 
+      ? process.env.PRODUCTION_BACKEND_URL
       : 'http://localhost:4000';
     this.commandPrefix = '!snap'; 
     this.isReady = false;
@@ -30,7 +30,6 @@ class DiscordBotService {
         ]
       });
 
-
       this.rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
 
       this.setupSlashCommands();
@@ -43,7 +42,6 @@ class DiscordBotService {
   }
 
   setupSlashCommands() {
-
     const commands = [
       new SlashCommandBuilder()
         .setName('help')
@@ -124,6 +122,14 @@ class DiscordBotService {
             .setMaxValue(25)),
 
       new SlashCommandBuilder()
+        .setName('user')
+        .setDescription('Get detailed user information')
+        .addStringOption(option =>
+          option.setName('username')
+            .setDescription('Username to lookup')
+            .setRequired(true)),
+
+      new SlashCommandBuilder()
         .setName('ban')
         .setDescription('Ban a user')
         .addStringOption(option =>
@@ -139,6 +145,33 @@ class DiscordBotService {
             .setDescription('Reason for ban')
             .setRequired(false)
             .setMaxLength(500)),
+
+      new SlashCommandBuilder()
+        .setName('unban')
+        .setDescription('Unban a user')
+        .addStringOption(option =>
+          option.setName('username')
+            .setDescription('Username to unban')
+            .setRequired(true)),
+
+      new SlashCommandBuilder()
+        .setName('role')
+        .setDescription('Change user role')
+        .addStringOption(option =>
+          option.setName('username')
+            .setDescription('Username to update')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('new_role')
+            .setDescription('New role to assign')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Basic', value: 'basic' },
+              { name: 'Verified Basic', value: 'verified_basic' },
+              { name: 'Verified Premium', value: 'verified_premium' },
+              { name: 'Official', value: 'official' },
+              { name: 'Developer', value: 'developer' }
+            )),
 
       new SlashCommandBuilder()
         .setName('broadcast')
@@ -180,7 +213,43 @@ class DiscordBotService {
               { name: 'Pending', value: 'pending' },
               { name: 'Done', value: 'done' },
               { name: 'Rejected', value: 'rejected' }
-            )),
+            ))
+        .addIntegerOption(option =>
+          option.setName('limit')
+            .setDescription('Number of reports to show (1-25)')
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(25)),
+
+      new SlashCommandBuilder()
+        .setName('report')
+        .setDescription('Get detailed report information')
+        .addStringOption(option =>
+          option.setName('report_id')
+            .setDescription('Report ID to lookup')
+            .setRequired(true)),
+
+      new SlashCommandBuilder()
+        .setName('resolve-report')
+        .setDescription('Resolve a report')
+        .addStringOption(option =>
+          option.setName('report_id')
+            .setDescription('Report ID to resolve')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('action')
+            .setDescription('Action to take')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Mark as Done', value: 'done' },
+              { name: 'Delete Frame', value: 'delete_frame' },
+              { name: 'Reject Report', value: 'rejected' }
+            ))
+        .addStringOption(option =>
+          option.setName('response')
+            .setDescription('Admin response/reason')
+            .setRequired(false)
+            .setMaxLength(500)),
 
       new SlashCommandBuilder()
         .setName('tickets')
@@ -205,8 +274,53 @@ class DiscordBotService {
               { name: 'Medium', value: 'medium' },
               { name: 'Low', value: 'low' }
             ))
-    ];
+        .addIntegerOption(option =>
+          option.setName('limit')
+            .setDescription('Number of tickets to show (1-25)')
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(25)),
 
+      new SlashCommandBuilder()
+        .setName('ticket')
+        .setDescription('Get detailed ticket information')
+        .addStringOption(option =>
+          option.setName('ticket_id')
+            .setDescription('Ticket ID to lookup')
+            .setRequired(true)),
+
+      new SlashCommandBuilder()
+        .setName('resolve-ticket')
+        .setDescription('Update ticket status and respond')
+        .addStringOption(option =>
+          option.setName('ticket_id')
+            .setDescription('Ticket ID to update')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('status')
+            .setDescription('New ticket status')
+            .setRequired(true)
+            .addChoices(
+              { name: 'In Progress', value: 'in_progress' },
+              { name: 'Resolved', value: 'resolved' },
+              { name: 'Closed', value: 'closed' }
+            ))
+        .addStringOption(option =>
+          option.setName('response')
+            .setDescription('Admin response to user')
+            .setRequired(false)
+            .setMaxLength(1000))
+        .addStringOption(option =>
+          option.setName('priority')
+            .setDescription('Update priority')
+            .setRequired(false)
+            .addChoices(
+              { name: 'Low', value: 'low' },
+              { name: 'Medium', value: 'medium' },
+              { name: 'High', value: 'high' },
+              { name: 'Urgent', value: 'urgent' }
+            ))
+    ];
 
     commands.forEach(command => {
       this.commands.set(command.name, command);
@@ -221,16 +335,13 @@ class DiscordBotService {
 
       const commands = this.setupSlashCommands();
       
-
       if (process.env.DISCORD_GUILD_ID) {
-
         await this.rest.put(
           Routes.applicationGuildCommands(this.client.user.id, process.env.DISCORD_GUILD_ID),
           { body: commands }
         );
         console.log(`✅ Successfully reloaded ${commands.length} guild application (/) commands.`);
       } else {
-
         await this.rest.put(
           Routes.applicationCommands(this.client.user.id),
           { body: commands }
@@ -243,22 +354,16 @@ class DiscordBotService {
   }
 
   setupEventHandlers() {
-
     this.client.on('clientReady', async () => {
       console.log(`🤖 Discord bot logged in as ${this.client.user.tag}`);
       this.isReady = true;
       
-
       await this.registerSlashCommands();
-      
-
       this.sendStartupNotification();
     });
 
-
     this.client.on('interactionCreate', async (interaction) => {
       if (!interaction.isChatInputCommand()) return;
-
 
       if (!this.isAuthorizedAdmin(interaction.user.id)) {
         await interaction.reply({
@@ -267,7 +372,6 @@ class DiscordBotService {
         });
         return;
       }
-
 
       if (this.channelId && interaction.channel.id !== this.channelId) {
         await interaction.reply({
@@ -280,14 +384,10 @@ class DiscordBotService {
       await this.processSlashCommand(interaction);
     });
 
-
     this.client.on('messageCreate', async (message) => {
-
       if (message.author.bot) return;
 
-
       if (!message.content.startsWith(this.commandPrefix)) return;
-
 
       if (this.isAuthorizedAdmin(message.author.id)) {
         await message.reply({
@@ -311,7 +411,6 @@ class DiscordBotService {
 
   async processSlashCommand(interaction) {
     const { commandName, options } = interaction;
-
 
     await interaction.deferReply();
 
@@ -352,11 +451,27 @@ class DiscordBotService {
             limit: options.getInteger('limit') || 10
           });
           break;
+        case 'user':
+          await this.handleUser(interaction, {
+            username: options.getString('username')
+          });
+          break;
         case 'ban':
           await this.handleBan(interaction, {
             username: options.getString('username'),
             duration: options.getString('duration'),
             reason: options.getString('reason')
+          });
+          break;
+        case 'unban':
+          await this.handleUnban(interaction, {
+            username: options.getString('username')
+          });
+          break;
+        case 'role':
+          await this.handleRole(interaction, {
+            username: options.getString('username'),
+            newRole: options.getString('new_role')
           });
           break;
         case 'broadcast':
@@ -368,12 +483,39 @@ class DiscordBotService {
           break;
         case 'reports':
           await this.handleReports(interaction, {
-            status: options.getString('status')
+            status: options.getString('status'),
+            limit: options.getInteger('limit') || 10
+          });
+          break;
+        case 'report':
+          await this.handleReport(interaction, {
+            reportId: options.getString('report_id')
+          });
+          break;
+        case 'resolve-report':
+          await this.handleResolveReport(interaction, {
+            reportId: options.getString('report_id'),
+            action: options.getString('action'),
+            response: options.getString('response')
           });
           break;
         case 'tickets':
           await this.handleTickets(interaction, {
             status: options.getString('status'),
+            priority: options.getString('priority'),
+            limit: options.getInteger('limit') || 10
+          });
+          break;
+        case 'ticket':
+          await this.handleTicket(interaction, {
+            ticketId: options.getString('ticket_id')
+          });
+          break;
+        case 'resolve-ticket':
+          await this.handleResolveTicket(interaction, {
+            ticketId: options.getString('ticket_id'),
+            status: options.getString('status'),
+            response: options.getString('response'),
             priority: options.getString('priority')
           });
           break;
@@ -395,40 +537,57 @@ class DiscordBotService {
     }
   }
 
-  async sendStartupNotification() {
-    if (!this.isReady) {
-      console.log('⚠️ Bot not ready, skipping startup notification');
-      return;
-    }
 
-    if (!this.channelId) {
-      console.log('⚠️ No channel ID configured, skipping startup notification');
-      return;
+  async getDiscordAuthToken(discordUserId) {
+    try {
+      const response = await this.makeApiRequest('/api/admin/discord/auth', 'POST', {
+        discord_user_id: discordUserId,
+        discord_username: `Discord-${discordUserId}`
+      });
+      
+      return response.data?.token;
+    } catch (error) {
+      console.error('Failed to get Discord auth token:', error);
+      throw new Error('Authentication failed');
     }
+  }
+
+
+  async makeDiscordApiRequest(endpoint, method = 'GET', data = null, discordUserId = null) {
+    try {
+      const token = await this.getDiscordAuthToken(discordUserId);
+      
+      const config = {
+        method,
+        url: `${this.baseUrl}${endpoint}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Discord-Token': token,
+          'X-Discord-User': discordUserId
+        },
+        ...(data && { data })
+      };
+
+      const response = await axios(config);
+      return response.data;
+    } catch (error) {
+      console.error('Discord API request failed:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'API request failed');
+    }
+  }
+
+  async sendStartupNotification() {
+    if (!this.isReady || !this.channelId) return;
 
     try {
-      const channel = await this.client.channels.fetch(this.channelId).catch(error => {
-        console.error(`❌ Cannot access channel ${this.channelId}:`, error.message);
-        console.log('💡 Possible issues:');
-        console.log('   1. Bot is not in the server');
-        console.log('   2. Bot lacks "View Channel" permission');
-        console.log('   3. Channel ID is incorrect');
-        console.log('   4. Bot lacks "Send Messages" permission');
-        return null;
-      });
-
-      if (!channel) {
-        console.log('❌ Failed to fetch channel for startup notification');
-        return;
-      }
-
+      const channel = await this.client.channels.fetch(this.channelId);
       const embed = new EmbedBuilder()
         .setTitle('🚀 Snaplove Admin Bot Online')
-        .setDescription('Discord admin bot is now online with **Slash Commands**!')
+        .setDescription('Discord admin bot is now online with **Full Admin Commands**!')
         .setColor(0x00ff00)
         .addFields(
-          { name: '⚡ New Feature', value: 'Now using Discord **Slash Commands**! Type `/` to see all commands.', inline: false },
-          { name: '🔧 Available Commands', value: `Use \`/help\` to see all available commands`, inline: true },
+          { name: '⚡ Features', value: 'All admin endpoints now available via Discord slash commands!', inline: false },
+          { name: '🔧 Commands', value: `Use \`/help\` to see all ${this.commands.size} available commands`, inline: true },
           { name: '👥 Authorized Admins', value: this.adminIds.length.toString(), inline: true },
           { name: '🌐 Environment', value: process.env.NODE_ENV || 'unknown', inline: true },
           { name: '📡 Channel', value: `<#${this.channelId}>`, inline: true },
@@ -440,19 +599,6 @@ class DiscordBotService {
       console.log('✅ Discord startup notification sent successfully');
     } catch (error) {
       console.error('❌ Failed to send startup notification:', error.message);
-      
-      if (error.code === 50001) {
-        console.log('💡 Discord Error 50001 - Missing Access. Check:');
-        console.log('   1. Bot is invited to the server');
-        console.log('   2. Bot has "View Channel" permission'); 
-        console.log('   3. Bot has "Send Messages" permission');
-        console.log('   4. Channel ID is correct');
-      } else if (error.code === 50013) {
-        console.log('💡 Discord Error 50013 - Missing Permissions. Bot needs:');
-        console.log('   1. "Send Messages" permission');
-        console.log('   2. "Embed Links" permission');
-        console.log('   3. "Use Slash Commands" permission');
-      }
     }
   }
 
@@ -460,7 +606,7 @@ class DiscordBotService {
   async handleTest(interaction) {
     const embed = new EmbedBuilder()
       .setTitle('🧪 Bot Test')
-      .setDescription('Bot is working correctly with slash commands!')
+      .setDescription('Bot is working correctly with full admin commands!')
       .setColor(0x00ff00)
       .addFields(
         { name: '🤖 Bot User', value: this.client.user.tag, inline: true },
@@ -470,7 +616,7 @@ class DiscordBotService {
         { name: '🔐 Admin Access', value: this.isAuthorizedAdmin(interaction.user.id) ? '✅ Yes' : '❌ No', inline: true },
         { name: '🌐 Environment', value: process.env.NODE_ENV || 'unknown', inline: true },
         { name: '⚡ Command Type', value: 'Slash Command', inline: true },
-        { name: '🆔 Command ID', value: interaction.id, inline: true }
+        { name: '📊 Available Commands', value: this.commands.size.toString(), inline: true }
       )
       .setTimestamp();
 
@@ -479,42 +625,47 @@ class DiscordBotService {
 
   async handleHelp(interaction) {
     const embed = new EmbedBuilder()
-      .setTitle('🔧 Snaplove Admin Slash Commands')
-      .setDescription('Available Discord slash commands for admins')
+      .setTitle('🔧 Snaplove Admin Commands')
+      .setDescription('Complete admin panel via Discord slash commands')
       .setColor(0x7289da)
       .addFields(
         { 
-          name: '📊 General', 
-          value: '`/stats` - System statistics\n`/health` - Server health check\n`/test` - Test bot functionality\n`/help` - This help message',
+          name: '📊 System', 
+          value: '`/stats` `/health` `/test` `/help`',
           inline: false 
         },
         { 
           name: '🖼️ Frame Management', 
-          value: '`/frames [status] [limit]` - List frames\n`/approve <frame_id>` - Approve frame\n`/reject <frame_id> <reason>` - Reject frame',
+          value: '`/frames` `/approve` `/reject`',
           inline: false 
         },
         { 
           name: '👥 User Management', 
-          value: '`/users [role] [limit]` - List users\n`/ban <username> [duration] [reason]` - Ban user',
+          value: '`/users` `/user` `/ban` `/unban` `/role`',
+          inline: false 
+        },
+        { 
+          name: '📋 Reports', 
+          value: '`/reports` `/report` `/resolve-report`',
+          inline: false 
+        },
+        { 
+          name: '🎫 Tickets', 
+          value: '`/tickets` `/ticket` `/resolve-ticket`',
           inline: false 
         },
         { 
           name: '📢 Broadcasting', 
-          value: '`/broadcast <message> [audience] [type]` - Send announcement',
-          inline: false 
-        },
-        { 
-          name: '📋 Reports & Tickets', 
-          value: '`/reports [status]` - List reports\n`/tickets [status] [priority]` - List tickets',
+          value: '`/broadcast`',
           inline: false 
         },
         {
-          name: '⚡ Slash Command Benefits',
-          value: '• Auto-completion\n• Parameter validation\n• Better user experience\n• Native Discord integration',
+          name: '✨ Features',
+          value: '• Full admin panel access\n• Real-time updates\n• Secure authentication\n• Rich embed responses',
           inline: false
         }
       )
-      .setFooter({ text: 'Use slash commands responsibly • Snaplove Admin Bot' })
+      .setFooter({ text: `${this.commands.size} commands available • Use responsibly` })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
@@ -552,29 +703,18 @@ class DiscordBotService {
   async handleFrames(interaction, options) {
     try {
       const { status, limit } = options;
-      const frames = await this.makeApiRequest(`/api/admin/framePublicApproval?status=${status}&limit=${limit}`);
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/frames?status=${status}&limit=${limit}`, 
+        'GET', 
+        null, 
+        interaction.user.id
+      );
       
-      if (frames.data.frames.length === 0) {
-        await interaction.editReply({
-          embeds: [this.createInfoEmbed('📂 No Frames', `No ${status} frames found.`)]
-        });
-        return;
-      }
 
-      const embed = new EmbedBuilder()
-        .setTitle(`🖼️ Frames (${status})`)
-        .setDescription(`Found ${frames.data.frames.length} frames`)  
-        .setColor(0x3498db);
-
-      frames.data.frames.slice(0, 10).forEach((frame, index) => {
-        embed.addFields({
-          name: `${index + 1}. ${frame.title}`,
-          value: `**ID:** \`${frame.id}\`\n**By:** @${frame.user.username}\n**Status:** ${frame.approval_status}\n**Likes:** ${frame.total_likes}`,
-          inline: false
-        });
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('🖼️ Frames Listed', `Listed ${status} frames. Check Discord for details.`)]
       });
 
-      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       await interaction.editReply({
         embeds: [this.createErrorEmbed('❌ Frames Failed', error.message)]
@@ -585,9 +725,12 @@ class DiscordBotService {
   async handleApprove(interaction, options) {
     try {
       const { frameId } = options;
-      const _result = await this.makeApiRequest(`/api/admin/framePublicApproval/${frameId}`, 'PUT', {
-        approval_status: 'approved'
-      });
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/frame/${frameId}/approve`, 
+        'POST', 
+        {}, 
+        interaction.user.id
+      );
 
       await interaction.editReply({
         embeds: [this.createSuccessEmbed('✅ Frame Approved', `Frame \`${frameId}\` has been approved successfully!`)]
@@ -604,10 +747,12 @@ class DiscordBotService {
     try {
       const { frameId, reason } = options;
       
-      const _result = await this.makeApiRequest(`/api/admin/framePublicApproval/${frameId}`, 'PUT', {
-        approval_status: 'rejected',
-        rejection_reason: reason
-      });
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/frame/${frameId}/reject`, 
+        'POST', 
+        { reason }, 
+        interaction.user.id
+      );
 
       await interaction.editReply({
         embeds: [this.createSuccessEmbed('❌ Frame Rejected', `Frame \`${frameId}\` has been rejected.\n**Reason:** ${reason}`)]
@@ -620,38 +765,391 @@ class DiscordBotService {
     }
   }
 
-  async handleUsers(interaction, _options) {
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('🚧 Not Implemented', 'User management commands are not yet implemented via Discord bot. Use the admin panel.')]
-    });
+  async handleUsers(interaction, options) {
+    try {
+      const { role, limit } = options;
+      const query = new URLSearchParams();
+      if (role) query.append('role', role);
+      query.append('limit', limit.toString());
+
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/users?${query}`, 
+        'GET', 
+        null, 
+        interaction.user.id
+      );
+      
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('👥 Users Listed', `Listed ${role ? role + ' ' : ''}users. Check Discord for details.`)]
+      });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Users Failed', error.message)]
+      });
+    }
   }
 
-  async handleBan(interaction, _options) {
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('🚧 Not Implemented', 'Ban commands are not yet implemented via Discord bot. Use the admin panel.')]
-    });
+  async handleUser(interaction, options) {
+    try {
+      const { username } = options;
+      const user = await this.makeApiRequest(`/api/admin/users/${username}`);
+      
+      if (!user.success) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ User Not Found', `User "${username}" not found.`)]
+        });
+        return;
+      }
+
+      const userData = user.data.user;
+      const embed = new EmbedBuilder()
+        .setTitle(`👤 User Details: @${userData.username}`)
+        .setColor(userData.ban_status ? 0xff0000 : 0x00ff00)
+        .addFields(
+          { name: 'ID', value: userData.id, inline: true },
+          { name: 'Name', value: userData.name, inline: true },
+          { name: 'Role', value: userData.role, inline: true },
+          { name: 'Status', value: userData.ban_status ? '🔴 Banned' : '🟢 Active', inline: true },
+          { name: 'Email', value: userData.email || 'Not provided', inline: true },
+          { name: 'Google ID', value: userData.google_id || 'Not connected', inline: true },
+          { name: 'Bio', value: userData.bio || 'No bio', inline: false },
+          { name: 'Created', value: new Date(userData.created_at).toLocaleDateString(), inline: true },
+          { name: 'Updated', value: new Date(userData.updated_at).toLocaleDateString(), inline: true }
+        )
+        .setTimestamp();
+
+      if (userData.ban_status && userData.ban_release_datetime) {
+        embed.addFields({ 
+          name: 'Ban Release', 
+          value: new Date(userData.ban_release_datetime).toLocaleString(), 
+          inline: true 
+        });
+      }
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ User Lookup Failed', error.message)]
+      });
+    }
+  }
+
+  async handleBan(interaction, options) {
+    try {
+      const { username, duration, reason } = options;
+      
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/user/${username}/ban`, 
+        'POST', 
+        { duration, reason }, 
+        interaction.user.id
+      );
+
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('🔨 User Banned', `User @${username} has been banned successfully!`)]
+      });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Ban Failed', error.message)]
+      });
+    }
+  }
+
+  async handleUnban(interaction, options) {
+    try {
+      const { username } = options;
+      
+      const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
+        ban_status: false,
+        ban_release_datetime: null
+      });
+
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('✅ User Unbanned', `User @${username} has been unbanned successfully!`)]
+      });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Unban Failed', error.message)]
+      });
+    }
+  }
+
+  async handleRole(interaction, options) {
+    try {
+      const { username, newRole } = options;
+      
+      const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
+        role: newRole
+      });
+
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('🔄 Role Updated', `User @${username} role changed to **${newRole}**`)]
+      });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Role Change Failed', error.message)]
+      });
+    }
   }
 
   async handleBroadcast(interaction, options) {
     try {
       const { message, audience, type } = options;
 
-      const result = await this.makeApiRequest('/api/admin/broadcast', 'POST', {
-        title: '📢 Discord Broadcast',
-        message,
-        type,
-        priority: 'medium',
-        target_audience: audience,
-        send_immediately: true
-      });
+      const _response = await this.makeDiscordApiRequest(
+        '/api/admin/discord/broadcast', 
+        'POST', 
+        { message, target_audience: audience, type }, 
+        interaction.user.id
+      );
 
       await interaction.editReply({
-        embeds: [this.createSuccessEmbed('📢 Broadcast Sent', `Message sent to ${result.data.delivery_stats?.total_recipients || 'all'} users!\n\n**Message:** ${message}`)]
+        embeds: [this.createSuccessEmbed('📢 Broadcast Sent', `Message sent successfully!\n\n**Message:** ${message}`)]
       });
 
     } catch (error) {
       await interaction.editReply({
         embeds: [this.createErrorEmbed('❌ Broadcast Failed', error.message)]
+      });
+    }
+  }
+
+  async handleReports(interaction, options) {
+    try {
+      const { status, limit } = options;
+      const query = new URLSearchParams();
+      if (status) query.append('status', status);
+      query.append('limit', limit.toString());
+
+      const reports = await this.makeApiRequest(`/api/admin/reports?${query}`);
+      
+      if (reports.data.reports.length === 0) {
+        await interaction.editReply({
+          embeds: [this.createInfoEmbed('📋 No Reports', `No ${status || 'pending'} reports found.`)]
+        });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`📋 Reports (${status || 'all'})`)
+        .setDescription(`Found ${reports.data.reports.length} reports`)
+        .setColor(0xff9900);
+
+      reports.data.reports.slice(0, 10).forEach((report, index) => {
+        embed.addFields({
+          name: `${index + 1}. ${report.title}`,
+          value: `**ID:** \`${report.id}\`\n**Status:** ${report.report_status}\n**By:** @${report.reporter.username}`,
+          inline: false
+        });
+      });
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Reports Failed', error.message)]
+      });
+    }
+  }
+
+  async handleReport(interaction, options) {
+    try {
+      const { reportId } = options;
+      const report = await this.makeApiRequest(`/api/admin/reports/${reportId}`);
+      
+      if (!report.success) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Report Not Found', `Report "${reportId}" not found.`)]
+        });
+        return;
+      }
+
+      const reportData = report.data.report;
+      const embed = new EmbedBuilder()
+        .setTitle(`📋 Report Details`)
+        .setColor(reportData.report_status === 'pending' ? 0xff9900 : 0x00ff00)
+        .addFields(
+          { name: 'ID', value: reportData.id, inline: true },
+          { name: 'Title', value: reportData.title, inline: true },
+          { name: 'Status', value: reportData.report_status, inline: true },
+          { name: 'Reporter', value: `@${reportData.reporter.username}`, inline: true },
+          { name: 'Created', value: new Date(reportData.created_at).toLocaleDateString(), inline: true },
+          { name: 'Description', value: reportData.description || 'No description', inline: false }
+        )
+        .setTimestamp();
+
+      if (reportData.admin_response) {
+        embed.addFields({ name: 'Admin Response', value: reportData.admin_response, inline: false });
+      }
+
+      if (reportData.frame) {
+        embed.addFields({ name: 'Reported Frame', value: reportData.frame.title, inline: true });
+      }
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Report Lookup Failed', error.message)]
+      });
+    }
+  }
+
+  async handleResolveReport(interaction, options) {
+    try {
+      const { reportId, action, response } = options;
+      
+      const updateData = {
+        report_status: action === 'delete_frame' ? 'done' : action,
+        ...(action === 'delete_frame' && { action: 'delete_frame' }),
+        ...(response && { admin_response: response })
+      };
+
+      const _result = await this.makeApiRequest(`/api/admin/reports/${reportId}`, 'PUT', updateData);
+
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('✅ Report Resolved', `Report \`${reportId}\` has been ${action === 'delete_frame' ? 'resolved and frame deleted' : action}.`)]
+      });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Report Resolution Failed', error.message)]
+      });
+    }
+  }
+
+  async handleTickets(interaction, options) {
+    try {
+      const { status, priority, limit } = options;
+      const query = new URLSearchParams();
+      if (status) query.append('status', status);
+      if (priority) query.append('priority', priority);
+      query.append('limit', limit.toString());
+
+      const tickets = await this.makeApiRequest(`/api/admin/ticket?${query}`);
+      
+      if (tickets.data.tickets.length === 0) {
+        await interaction.editReply({
+          embeds: [this.createInfoEmbed('🎫 No Tickets', `No ${status || priority || 'pending'} tickets found.`)]
+        });
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🎫 Tickets (${status || priority || 'all'})`)
+        .setDescription(`Found ${tickets.data.tickets.length} tickets`)
+        .setColor(0x3498db);
+
+      tickets.data.tickets.slice(0, 10).forEach((ticket, index) => {
+        const priorityEmoji = {
+          urgent: '🔴',
+          high: '🟠',
+          medium: '🟡',
+          low: '🟢'
+        }[ticket.priority] || '⚪';
+
+        embed.addFields({
+          name: `${index + 1}. ${ticket.title}`,
+          value: `**ID:** \`${ticket.id}\`\n**Status:** ${ticket.status}\n**Priority:** ${priorityEmoji} ${ticket.priority}\n**By:** @${ticket.user.username}`,
+          inline: false
+        });
+      });
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Tickets Failed', error.message)]
+      });
+    }
+  }
+
+  async handleTicket(interaction, options) {
+    try {
+      const { ticketId } = options;
+      const ticket = await this.makeApiRequest(`/api/admin/ticket/${ticketId}`);
+      
+      if (!ticket.success) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Ticket Not Found', `Ticket "${ticketId}" not found.`)]
+        });
+        return;
+      }
+
+      const ticketData = ticket.data.ticket;
+      const priorityEmoji = {
+        urgent: '🔴',
+        high: '🟠',
+        medium: '🟡',
+        low: '🟢'
+      }[ticketData.priority] || '⚪';
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🎫 Ticket Details`)
+        .setColor(ticketData.status === 'resolved' ? 0x00ff00 : 0x3498db)
+        .addFields(
+          { name: 'ID', value: ticketData.id, inline: true },
+          { name: 'Title', value: ticketData.title, inline: true },
+          { name: 'Status', value: ticketData.status, inline: true },
+          { name: 'Priority', value: `${priorityEmoji} ${ticketData.priority}`, inline: true },
+          { name: 'Type', value: ticketData.type || 'General', inline: true },
+          { name: 'User', value: `@${ticketData.user.username}`, inline: true },
+          { name: 'Created', value: new Date(ticketData.created_at).toLocaleDateString(), inline: true },
+          { name: 'Updated', value: new Date(ticketData.updated_at).toLocaleDateString(), inline: true },
+          { name: 'Description', value: ticketData.description || 'No description', inline: false }
+        )
+        .setTimestamp();
+
+      if (ticketData.admin_response) {
+        embed.addFields({ name: 'Admin Response', value: ticketData.admin_response, inline: false });
+      }
+
+      if (ticketData.admin && ticketData.admin.username) {
+        embed.addFields({ name: 'Assigned Admin', value: `@${ticketData.admin.username}`, inline: true });
+      }
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Ticket Lookup Failed', error.message)]
+      });
+    }
+  }
+
+  async handleResolveTicket(interaction, options) {
+    try {
+      const { ticketId, status, response, priority } = options;
+      
+      const updateData = {
+        status,
+        ...(response && { admin_response: response }),
+        ...(priority && { priority })
+      };
+
+      const _result = await this.makeApiRequest(`/api/admin/ticket/${ticketId}`, 'PUT', updateData);
+
+      const embed = new EmbedBuilder()
+        .setTitle('✅ Ticket Updated')
+        .setDescription(`Ticket \`${ticketId}\` has been updated successfully!`)
+        .setColor(0x00ff00)
+        .addFields(
+          { name: 'New Status', value: status, inline: true },
+          ...(priority ? [{ name: 'New Priority', value: priority, inline: true }] : []),
+          ...(response ? [{ name: 'Response Sent', value: 'Yes', inline: true }] : [])
+        )
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Ticket Update Failed', error.message)]
       });
     }
   }
@@ -683,18 +1181,6 @@ class DiscordBotService {
         embeds: [this.createErrorEmbed('❌ Health Check Failed', 'Could not retrieve server health information.')]
       });
     }
-  }
-
-  async handleReports(interaction, _options) {
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('🚧 Not Implemented', 'Report management commands are not yet implemented via Discord bot. Use the admin panel.')]
-    });
-  }
-
-  async handleTickets(interaction, _options) {
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('🚧 Not Implemented', 'Ticket management commands are not yet implemented via Discord bot. Use the admin panel.')]
-    });
   }
 
 
