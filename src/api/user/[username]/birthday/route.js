@@ -28,7 +28,12 @@ router.get('/:username/birthday', [
     }
 
     const isOwnProfile = req.user.userId === targetUser._id.toString();
-    const birthdayBadge = targetUser.birthday_badge;
+    const birthdayBadge = targetUser.birthday_badge || { 
+      is_birthday: false, 
+      age: null, 
+      expires_at: null, 
+      badge_text: null 
+    };
 
     let daysUntilBirthday = null;
     if (targetUser.birthdate && !birthdayBadge.is_birthday) {
