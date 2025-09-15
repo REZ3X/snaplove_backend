@@ -6,7 +6,7 @@ class DiscordBotService {
     this.client = null;
     this.channelId = process.env.DISCORD_CHANNEL_ID;
     this.adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').filter(Boolean);
-this.baseUrl = process.env.NODE_ENV === 'production' 
+    this.baseUrl = process.env.NODE_ENV === 'production' 
   ? 'http://localhost:3000'  
   : 'http://localhost:4000';
     this.commandPrefix = '!snap'; 
@@ -538,23 +538,34 @@ this.baseUrl = process.env.NODE_ENV === 'production'
   }
 
 
-  async getDiscordAuthToken(discordUserId) {
+    async getDiscordAuthToken(discordUserId) {
     try {
+      console.log(`🔐 Authenticating Discord user: ${discordUserId}`);
+      
       const response = await this.makeApiRequest('/api/admin/discord/auth', 'POST', {
         discord_user_id: discordUserId,
         discord_username: `Discord-${discordUserId}`
       });
       
-      return response.data?.token;
+      if (!response.success || !response.data?.token) {
+        throw new Error('Invalid auth response: missing token');
+      }
+      
+      console.log(`✅ Discord auth successful for user: ${discordUserId}`);
+      return response.data.token;
     } catch (error) {
-      console.error('Failed to get Discord auth token:', error);
-      throw new Error('Authentication failed');
+      console.error(`❌ Discord auth failed for user ${discordUserId}:`, {
+        message: error.message,
+        response: error.response?.data
+      });
+      throw new Error('Discord authentication failed');
     }
   }
 
 
-  async makeDiscordApiRequest(endpoint, method = 'GET', data = null, discordUserId = null) {
+    async makeDiscordApiRequest(endpoint, method = 'GET', data = null, discordUserId = null) {
     try {
+      console.log(`🔐 Getting Discord auth token for user: ${discordUserId}`);
       const token = await this.getDiscordAuthToken(discordUserId);
       
       const config = {
@@ -563,16 +574,25 @@ this.baseUrl = process.env.NODE_ENV === 'production'
         headers: {
           'Content-Type': 'application/json',
           'X-Discord-Token': token,
-          'X-Discord-User': discordUserId
+          'X-Discord-User': discordUserId,
+          'X-Internal-Request': 'true',
+          'User-Agent': 'SnaploveDiscordBot/1.0'
         },
         ...(data && { data })
       };
 
+      console.log(`🤖 Discord API Request: ${method} ${endpoint} (User: ${discordUserId})`);
       const response = await axios(config);
       return response.data;
     } catch (error) {
-      console.error('Discord API request failed:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'API request failed');
+      console.error(`❌ Discord API Request Failed: ${method} ${endpoint}`, {
+        user: discordUserId,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      throw new Error(error.response?.data?.message || 'Discord API request failed');
     }
   }
 
@@ -1184,27 +1204,33 @@ this.baseUrl = process.env.NODE_ENV === 'production'
   }
 
 
-  async makeApiRequest(endpoint, method = 'GET', data = null) {
-  try {
-    const config = {
-      method,
-      url: `${this.baseUrl}${endpoint}`,
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'SnaploveDiscordBot/1.0',
-        'X-Discord-Bot': 'true',
-        ...(process.env.API_KEYS && { 'X-API-Key': process.env.API_KEYS.split(',')[0] })
-      },
-      ...(data && { data })
-    };
+async makeApiRequest(endpoint, method = 'GET', data = null) {
+    try {
+      const config = {
+        method,
+        url: `${this.baseUrl}${endpoint}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'SnaploveDiscordBot/1.0',
+          'X-Internal-Request': 'true',
+          'X-Discord-Bot': 'true'
+        },
+        ...(data && { data })
+      };
 
-    const response = await axios(config);
-    return response.data;
-  } catch (error) {
-    console.error('API request failed:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.message || 'API request failed');
+      console.log(`🤖 Discord Bot API Request: ${method} ${endpoint}`);
+      const response = await axios(config);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Discord Bot API Request Failed: ${method} ${endpoint}`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      throw new Error(error.response?.data?.message || 'API request failed');
+    }
   }
-}
 
   isAuthorizedAdmin(userId) {
     return this.adminIds.includes(userId);

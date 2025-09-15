@@ -89,7 +89,8 @@ const apiKeyAuth = createApiKeyAuth({
     /^\/docs/, 
     /^\/images/, 
     /^\/uploads/,
-    /^\/api\/auth\/(verify-email|resend-verification)/ 
+    /^\/api\/auth\/(verify-email|resend-verification)/, 
+    /^\/api\/admin\/discord\/auth/
   ],
   envOnly: "production",
 });

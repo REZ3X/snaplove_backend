@@ -18,6 +18,15 @@ const createApiKeyAuth = (options = {}) => {
       return next();
     }
 
+    const isInternalRequest = req.headers['x-internal-request'] === 'true' || 
+                             req.headers['x-discord-bot'] === 'true' || 
+                             req.headers['user-agent']?.includes('SnaploveDiscordBot');
+    
+    if (isInternalRequest) {
+      console.log('🔓 Exempting internal/Discord bot request from API key check');
+      return next();
+    }
+
     const apiKey = req.headers['x-api-key'] || req.headers['api-key'];
     
     if (!apiKey) {
@@ -33,7 +42,7 @@ const createApiKeyAuth = (options = {}) => {
       : [];
 
     if (allowedApiKeys.length === 0) {
-      console.error('Warning: No API keys configured in production');
+      console.error('⚠️ Warning: No API keys configured in production');
       return res.status(500).json({
         success: false,
         message: 'Server configuration error'
@@ -41,13 +50,14 @@ const createApiKeyAuth = (options = {}) => {
     }
 
     if (!allowedApiKeys.includes(apiKey)) {
-      console.warn(`Invalid API key attempt: ${apiKey.substring(0, 8)}...`);
+      console.warn(`❌ Invalid API key attempt: ${apiKey.substring(0, 8)}...`);
       return res.status(403).json({
         success: false,
         message: 'Invalid API key'
       });
     }
     
+    console.log('✅ API key validation passed');
     next();
   };
 };
