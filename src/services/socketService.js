@@ -378,7 +378,6 @@ class SocketService {
             birthday_user_age: birthdayData.age,
             additional_info: {
               action: 'birthday_celebration',
-              celebration_emoji: '🎂🎉🎈',
               age: birthdayData.age
             }
           }
