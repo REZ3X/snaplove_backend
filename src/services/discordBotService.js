@@ -6,9 +6,8 @@ class DiscordBotService {
     this.client = null;
     this.channelId = process.env.DISCORD_CHANNEL_ID;
     this.adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').filter(Boolean);
-    this.baseUrl = process.env.NODE_ENV === 'production' 
-  ? 'http://localhost:3000'  
-  : 'http://localhost:4000';
+    
+    this.baseUrl = 'http://127.0.0.1:4000';     
     this.commandPrefix = '!snap'; 
     this.isReady = false;
     this.commands = new Map();
@@ -359,7 +358,13 @@ class DiscordBotService {
       this.isReady = true;
       
       await this.registerSlashCommands();
-      this.sendStartupNotification();
+      
+            try {
+        await this.testInternalConnection();
+        this.sendStartupNotification();
+      } catch (error) {
+        console.error('❌ Internal connection test failed:', error.message);
+      }
     });
 
     this.client.on('interactionCreate', async (interaction) => {
@@ -386,7 +391,6 @@ class DiscordBotService {
 
     this.client.on('messageCreate', async (message) => {
       if (message.author.bot) return;
-
       if (!message.content.startsWith(this.commandPrefix)) return;
 
       if (this.isAuthorizedAdmin(message.author.id)) {
@@ -537,36 +541,86 @@ class DiscordBotService {
     }
   }
 
-
-    async getDiscordAuthToken(discordUserId) {
+    async testInternalConnection() {
     try {
-      console.log(`🔐 Authenticating Discord user: ${discordUserId}`);
+      console.log('🔍 Testing internal API connection...');
+      const response = await this.makeApiRequest('/health');
+      console.log('✅ Internal API connection successful');
+      return response;
+    } catch (error) {
+      console.error('❌ Internal API connection failed:', error.message);
+      throw error;
+    }
+  }
+
+    async makeApiRequest(endpoint, method = 'GET', data = null) {
+    const maxRetries = 3;
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const config = {
+          method,
+          url: `${this.baseUrl}${endpoint}`,
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'SnaploveDiscordBot/1.0',
+            'X-Internal-Request': 'true',
+            'X-Discord-Bot': 'true',
+            'Connection': 'close'           },
+          timeout: 15000,           ...(data && { data })
+        };
+
+        console.log(`🤖 Discord Bot Internal API Request (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`);
+        const response = await axios(config);
+        
+        if (attempt > 1) {
+          console.log(`✅ Request succeeded on attempt ${attempt}`);
+        }
+        
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        
+        const isTimeout = error.code === 'ECONNABORTED';
+        const isConnectionError = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET'].includes(error.code);
+        
+        console.error(`❌ Discord Bot Internal API Request Failed (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`, {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message,
+          code: error.code,
+          timeout: isTimeout,
+          connection: isConnectionError
+        });
+        
+                if (attempt === maxRetries || (!isTimeout && !isConnectionError)) {
+          break;
+        }
+        
+                const delay = Math.pow(2, attempt) * 1000;         console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw new Error(lastError?.response?.data?.message || lastError?.message || 'Internal API request failed after retries');
+  }
+
+    async makeDiscordApiRequest(endpoint, method = 'GET', data = null, discordUserId = null) {
+    try {
+      console.log(`🔐 Making Discord authenticated request for user: ${discordUserId}`);
       
-      const response = await this.makeApiRequest('/api/admin/discord/auth', 'POST', {
+            const authResponse = await this.makeApiRequest('/api/admin/discord/auth', 'POST', {
         discord_user_id: discordUserId,
         discord_username: `Discord-${discordUserId}`
       });
       
-      if (!response.success || !response.data?.token) {
-        throw new Error('Invalid auth response: missing token');
+      if (!authResponse.success || !authResponse.data?.token) {
+        throw new Error('Failed to get Discord auth token');
       }
       
-      console.log(`✅ Discord auth successful for user: ${discordUserId}`);
-      return response.data.token;
-    } catch (error) {
-      console.error(`❌ Discord auth failed for user ${discordUserId}:`, {
-        message: error.message,
-        response: error.response?.data
-      });
-      throw new Error('Discord authentication failed');
-    }
-  }
-
-
-    async makeDiscordApiRequest(endpoint, method = 'GET', data = null, discordUserId = null) {
-    try {
-      console.log(`🔐 Getting Discord auth token for user: ${discordUserId}`);
-      const token = await this.getDiscordAuthToken(discordUserId);
+      const token = authResponse.data.token;
       
       const config = {
         method,
@@ -576,23 +630,26 @@ class DiscordBotService {
           'X-Discord-Token': token,
           'X-Discord-User': discordUserId,
           'X-Internal-Request': 'true',
-          'User-Agent': 'SnaploveDiscordBot/1.0'
+          'User-Agent': 'SnaploveDiscordBot/1.0',
+          'Connection': 'close'
         },
+        timeout: 15000,
         ...(data && { data })
       };
 
-      console.log(`🤖 Discord API Request: ${method} ${endpoint} (User: ${discordUserId})`);
+      console.log(`🤖 Discord Authenticated API Request: ${method} ${endpoint} (User: ${discordUserId})`);
       const response = await axios(config);
       return response.data;
     } catch (error) {
-      console.error(`❌ Discord API Request Failed: ${method} ${endpoint}`, {
+      console.error(`❌ Discord Authenticated API Request Failed: ${method} ${endpoint}`, {
         user: discordUserId,
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
-        message: error.message
+        message: error.message,
+        code: error.code
       });
-      throw new Error(error.response?.data?.message || 'Discord API request failed');
+      throw new Error(error.response?.data?.message || error.message || 'Discord API request failed');
     }
   }
 
@@ -611,6 +668,7 @@ class DiscordBotService {
           { name: '👥 Authorized Admins', value: this.adminIds.length.toString(), inline: true },
           { name: '🌐 Environment', value: process.env.NODE_ENV || 'unknown', inline: true },
           { name: '📡 Channel', value: `<#${this.channelId}>`, inline: true },
+          { name: '🔗 API Connection', value: '✅ Connected', inline: true },
           { name: '📝 Quick Start', value: 'Try `/test` to verify your permissions!', inline: false }
         )
         .setTimestamp();
@@ -622,25 +680,33 @@ class DiscordBotService {
     }
   }
 
-
   async handleTest(interaction) {
-    const embed = new EmbedBuilder()
-      .setTitle('🧪 Bot Test')
-      .setDescription('Bot is working correctly with full admin commands!')
-      .setColor(0x00ff00)
-      .addFields(
-        { name: '🤖 Bot User', value: this.client.user.tag, inline: true },
-        { name: '📡 Channel', value: `<#${interaction.channel.id}>`, inline: true },
-        { name: '👤 User', value: `<@${interaction.user.id}>`, inline: true },
-        { name: '🏠 Guild', value: interaction.guild?.name || 'DM', inline: true },
-        { name: '🔐 Admin Access', value: this.isAuthorizedAdmin(interaction.user.id) ? '✅ Yes' : '❌ No', inline: true },
-        { name: '🌐 Environment', value: process.env.NODE_ENV || 'unknown', inline: true },
-        { name: '⚡ Command Type', value: 'Slash Command', inline: true },
-        { name: '📊 Available Commands', value: this.commands.size.toString(), inline: true }
-      )
-      .setTimestamp();
+    try {
+            const health = await this.makeApiRequest('/health');
+      
+      const embed = new EmbedBuilder()
+        .setTitle('🧪 Bot Test')
+        .setDescription('Bot is working correctly with full admin commands!')
+        .setColor(0x00ff00)
+        .addFields(
+          { name: '🤖 Bot User', value: this.client.user.tag, inline: true },
+          { name: '📡 Channel', value: `<#${interaction.channel.id}>`, inline: true },
+          { name: '👤 User', value: `<@${interaction.user.id}>`, inline: true },
+          { name: '🏠 Guild', value: interaction.guild?.name || 'DM', inline: true },
+          { name: '🔐 Admin Access', value: this.isAuthorizedAdmin(interaction.user.id) ? '✅ Yes' : '❌ No', inline: true },
+          { name: '🌐 Environment', value: process.env.NODE_ENV || 'unknown', inline: true },
+          { name: '⚡ Command Type', value: 'Slash Command', inline: true },
+          { name: '📊 Available Commands', value: this.commands.size.toString(), inline: true },
+          { name: '🔗 API Status', value: health.status === 'healthy' ? '✅ Healthy' : '⚠️ Degraded', inline: true }
+        )
+        .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Test Failed', `API connection failed: ${error.message}`)]
+      });
+    }
   }
 
   async handleHelp(interaction) {
@@ -729,7 +795,6 @@ class DiscordBotService {
         null, 
         interaction.user.id
       );
-      
 
       await interaction.editReply({
         embeds: [this.createSuccessEmbed('🖼️ Frames Listed', `Listed ${status} frames. Check Discord for details.`)]
@@ -1200,35 +1265,6 @@ class DiscordBotService {
       await interaction.editReply({
         embeds: [this.createErrorEmbed('❌ Health Check Failed', 'Could not retrieve server health information.')]
       });
-    }
-  }
-
-
-async makeApiRequest(endpoint, method = 'GET', data = null) {
-    try {
-      const config = {
-        method,
-        url: `${this.baseUrl}${endpoint}`,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'SnaploveDiscordBot/1.0',
-          'X-Internal-Request': 'true',
-          'X-Discord-Bot': 'true'
-        },
-        ...(data && { data })
-      };
-
-      console.log(`🤖 Discord Bot API Request: ${method} ${endpoint}`);
-      const response = await axios(config);
-      return response.data;
-    } catch (error) {
-      console.error(`❌ Discord Bot API Request Failed: ${method} ${endpoint}`, {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message
-      });
-      throw new Error(error.response?.data?.message || 'API request failed');
     }
   }
 

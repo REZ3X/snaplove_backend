@@ -1633,7 +1633,7 @@
           <h4>⚡ WebSocket Connection</h4>
           <div class="example-code">
             // Frontend Connection Example import io from 'socket.io-client';
-            const socket = io('ws://localhost:3000', { auth: { token:
+            const socket = io('ws://localhost:4000', { auth: { token:
             localStorage.getItem('authToken') } }); // Listen for new
             notifications socket.on('new_notification', (notification) => {
             console.log('New notification:', notification); // Update UI with

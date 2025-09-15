@@ -20,7 +20,10 @@ const createApiKeyAuth = (options = {}) => {
 
         const isInternalRequest = req.headers['x-internal-request'] === 'true' || 
                              req.headers['x-discord-bot'] === 'true' || 
-                             req.headers['user-agent']?.includes('SnaploveDiscordBot');
+                             req.headers['user-agent']?.includes('SnaploveDiscordBot') ||
+                             req.ip === '127.0.0.1' ||
+                             req.ip === '::1' ||
+                             req.connection.remoteAddress === '127.0.0.1';
     
     if (isInternalRequest) {
       console.log('🔓 Exempting internal/Discord bot request from API key check');
