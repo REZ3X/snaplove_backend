@@ -369,7 +369,7 @@ class SocketService {
           recipient_id: follow.follower_id._id,
           sender_id: birthdayUserId,
           type: 'birthday',
-          title: '🎂 Birthday Alert!',
+          title: ' Birthday Alert!',
           message: `It's ${birthdayData.user_name}'s birthday today! They're turning ${birthdayData.age} years old.`,
           data: {
             birthday_user_id: birthdayUserId,
