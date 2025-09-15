@@ -35,32 +35,22 @@ router.post('/', [
       });
     }
 
-    // DISABLED EMAIL VERIFICATION CHECK FOR TESTING
-    // if (!user.email_verified) {
-    //   if (user.email_verification_expires && new Date() > user.email_verification_expires) {
-    //     return res.status(403).json({
-    //       success: false,
-    //       message: 'Email verification expired. Please register again.',
-    //       requires_new_registration: true
-    //     });
-    //   }
-
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Please verify your email address before logging in. Check your inbox for verification instructions.',
-    //     requires_verification: true,
-    //     email: user.email
-    //   });
-    // }
-
-    // TESTING: Auto-verify existing unverified users
     if (!user.email_verified) {
-      user.email_verified = true;
-      user.email_verified_at = new Date();
-      user.email_verification_token = null;
-      user.email_verification_expires = null;
-      await user.save();
-      console.log(`✅ TESTING MODE: Auto-verified existing user @${user.username} (${user.email})`);
+
+      if (user.email_verification_expires && new Date() > user.email_verification_expires) {
+        return res.status(403).json({
+          success: false,
+          message: 'Email verification expired. Please register again.',
+          requires_new_registration: true
+        });
+      }
+
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email address before logging in. Check your inbox for verification instructions.',
+        requires_verification: true,
+        email: user.email
+      });
     }
 
     if (user.ban_status) {
@@ -111,8 +101,7 @@ router.post('/', [
           role: user.role,
           bio: user.bio,
           ban_status: user.ban_status,
-          email_verified: user.email_verified,
-          email_verified_at: user.email_verified_at
+          email_verified: user.email_verified
         },
         token
       }

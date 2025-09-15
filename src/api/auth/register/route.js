@@ -1,9 +1,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
 const User = require('../../../models/User');
 const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
-// const mailService = require('../../../services/mailService'); // DISABLED FOR TESTING
+const mailService = require('../../../services/mailService');
 
 const router = express.Router();
 
@@ -45,11 +44,9 @@ router.post('/', [
       counter++;
     }
 
-    // DISABLED EMAIL VERIFICATION FOR TESTING
-    // const verificationToken = mailService.generateVerificationToken();
-    // const verificationExpires = new Date();
-    // verificationExpires.setHours(verificationExpires.getHours() + 24);
-    
+    const verificationToken = mailService.generateVerificationToken();
+    const verificationExpires = new Date();
+    verificationExpires.setHours(verificationExpires.getHours() + 24); 
     const newUser = new User({
       google_id,
       email,
@@ -58,39 +55,25 @@ router.post('/', [
       image_profile: image_profile || null,
       role: 'basic',
       ban_status: false,
-      // TESTING: Auto-verify new users
-      email_verified: true,
-      email_verified_at: new Date(),
-      email_verification_token: null,
-      email_verification_expires: null
+
+      email_verified: false,
+      email_verification_token: verificationToken,
+      email_verification_expires: verificationExpires
     });
 
     await newUser.save();
 
-    // DISABLED EMAIL SENDING FOR TESTING
-    // try {
-    //   await mailService.sendVerificationEmail(email, name, verificationToken, finalUsername);
-    //   console.log(`📧 Verification email sent to ${email} for user @${finalUsername}`);
-    // } catch (emailError) {
-    //   console.error('Failed to send verification email:', emailError);
-    // }
+    try {
+      await mailService.sendVerificationEmail(email, name, verificationToken, finalUsername);
+      console.log(`📧 Verification email sent to ${email} for user @${finalUsername}`);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
 
-    console.log(`✅ TESTING MODE: Auto-verified user @${finalUsername} (${email})`);
-
-    // Generate JWT token immediately for testing
-    const token = jwt.sign(
-      {
-        userId: newUser._id,
-        email: newUser.email,
-        role: newUser.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    }
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully and auto-verified for testing.',
+      message: 'User registered successfully. Please check your email to verify your account.',
       data: {
         user: {
           id: newUser._id,
@@ -106,16 +89,11 @@ router.post('/', [
           use_google_profile: newUser.use_google_profile !== false,
           has_custom_image: !!newUser.custom_profile_image,
           email_verified: newUser.email_verified,
-          email_verified_at: newUser.email_verified_at,
           created_at: newUser.created_at,
           updated_at: newUser.updated_at
         },
-        token, // Include token for immediate login
-        // DISABLED FOR TESTING
-        // requires_verification: true,
-        // verification_expires: verificationExpires.toISOString()
-        requires_verification: false, // Testing: no verification needed
-        auto_verified: true // Testing flag
+        requires_verification: true,
+        verification_expires: verificationExpires.toISOString()
       }
     });
 
