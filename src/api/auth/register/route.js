@@ -1,8 +1,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
 const User = require('../../../models/User');
 const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
+const mailService = require('../../../services/mailService');
 
 const router = express.Router();
 
@@ -44,6 +44,9 @@ router.post('/', [
       counter++;
     }
 
+    const verificationToken = mailService.generateVerificationToken();
+    const verificationExpires = new Date();
+    verificationExpires.setHours(verificationExpires.getHours() + 24); 
     const newUser = new User({
       google_id,
       email,
@@ -51,44 +54,48 @@ router.post('/', [
       username: finalUsername,
       image_profile: image_profile || null,
       role: 'basic',
-      ban_status: false
+      ban_status: false,
+
+      email_verified: false,
+      email_verification_token: verificationToken,
+      email_verification_expires: verificationExpires
     });
 
     await newUser.save();
 
-    const token = jwt.sign(
-      {
-        userId: newUser._id,
-        email: newUser.email,
-        role: newUser.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    try {
+      await mailService.sendVerificationEmail(email, name, verificationToken, finalUsername);
+      console.log(`📧 Verification email sent to ${email} for user @${finalUsername}`);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
 
-res.status(201).json({
-  success: true,
-  message: 'User registered successfully',
-  data: {
-    user: {
-      id: newUser._id,
-      name: newUser.name,
-      username: newUser.username,
-      email: newUser.email,
-      image_profile: getDisplayProfileImage(newUser, req),
-      role: newUser.role,
-      bio: newUser.bio,
-      birthdate: newUser.birthdate,
-      ban_status: newUser.ban_status,
-      ban_release_datetime: newUser.ban_release_datetime,
-      use_google_profile: newUser.use_google_profile !== false,
-      has_custom_image: !!newUser.custom_profile_image,
-      created_at: newUser.created_at,
-      updated_at: newUser.updated_at
-    },
-    token
-  }
-});
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully. Please check your email to verify your account.',
+      data: {
+        user: {
+          id: newUser._id,
+          name: newUser.name,
+          username: newUser.username,
+          email: newUser.email,
+          image_profile: getDisplayProfileImage(newUser, req),
+          role: newUser.role,
+          bio: newUser.bio,
+          birthdate: newUser.birthdate,
+          ban_status: newUser.ban_status,
+          ban_release_datetime: newUser.ban_release_datetime,
+          use_google_profile: newUser.use_google_profile !== false,
+          has_custom_image: !!newUser.custom_profile_image,
+          email_verified: newUser.email_verified,
+          created_at: newUser.created_at,
+          updated_at: newUser.updated_at
+        },
+        requires_verification: true,
+        verification_expires: verificationExpires.toISOString()
+      }
+    });
 
   } catch (error) {
     console.error('Register error:', error);

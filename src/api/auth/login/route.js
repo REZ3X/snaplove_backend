@@ -22,7 +22,6 @@ router.post('/', [
 
     const { google_id, email } = req.body;
 
-
     let user = await User.findOne({ google_id });
 
     if (!user) {
@@ -33,6 +32,24 @@ router.post('/', [
       return res.status(401).json({
         success: false,
         message: 'User not found. Please register first.'
+      });
+    }
+
+    if (!user.email_verified) {
+
+      if (user.email_verification_expires && new Date() > user.email_verification_expires) {
+        return res.status(403).json({
+          success: false,
+          message: 'Email verification expired. Please register again.',
+          requires_new_registration: true
+        });
+      }
+
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email address before logging in. Check your inbox for verification instructions.',
+        requires_verification: true,
+        email: user.email
       });
     }
 
@@ -55,7 +72,6 @@ router.post('/', [
         });
       }
     }
-
 
     if (!user.google_id || user.google_id !== google_id) {
       user.google_id = google_id;
@@ -84,7 +100,8 @@ router.post('/', [
           image_profile: getDisplayProfileImage(user, req),
           role: user.role,
           bio: user.bio,
-          ban_status: user.ban_status
+          ban_status: user.ban_status,
+          email_verified: user.email_verified
         },
         token
       }

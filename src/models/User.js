@@ -68,6 +68,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     unique: true,
     sparse: true
+  },
+
+  email_verified: {
+    type: Boolean,
+    default: false
+  },
+  email_verification_token: {
+    type: String,
+    default: null
+  },
+  email_verification_expires: {
+    type: Date,
+    default: null
+  },
+  email_verified_at: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

@@ -24,6 +24,8 @@ const loginRoute = require("./api/auth/login/route");
 const registerRoute = require("./api/auth/register/route");
 const logoutRoute = require("./api/auth/logout/route");
 const meRoute = require("./api/auth/me/route");
+const verifyEmailRoute = require("./api/auth/verify-email/route");
+const resendVerificationRoute = require("./api/auth/resend-verification/route");
 
 const framePublicRoute = require("./api/frame/public/route");
 const frameByIdRoute = require("./api/frame/public/[id]/route");
@@ -83,7 +85,12 @@ const searchRoute = require("./api/search/route");
 
 const apiKeyAuth = createApiKeyAuth({
   skipPaths: ["/", "/health", "/lore", "/dev"],
-  skipPatterns: [/^\/docs/, /^\/images/, /^\/uploads/],
+  skipPatterns: [
+    /^\/docs/, 
+    /^\/images/, 
+    /^\/uploads/,
+    /^\/api\/auth\/(verify-email|resend-verification)/ 
+  ],
   envOnly: "production",
 });
 
@@ -175,6 +182,18 @@ app.get("/health", async (req, res) => {
 
     const overallHealth = Object.values(healthChecks).every((check) => check);
 
+        let emailStatus = 'disabled';
+    try {
+      if (process.env.BREVO_SMTP_HOST) {
+        const mailService = require('./services/mailService');
+        await mailService.testConnection();
+        emailStatus = 'connected';
+      }
+    } catch (emailError) {
+      console.error('Email service health check failed:', emailError);
+      emailStatus = 'error';
+    }
+
     res.json({
       success: true,
       status: overallHealth ? "healthy" : "degraded",
@@ -198,6 +217,12 @@ app.get("/health", async (req, res) => {
           new_frames_24h: recentFrames,
           new_users_24h: recentUsers,
         },
+      },
+      services: {
+        database: databaseStatus.status,
+        email: emailStatus,
+        discord_bot: process.env.DISCORD_BOT_TOKEN ? 'enabled' : 'disabled',
+        socket_io: 'enabled'
       },
       performance: {
         response_time_ms: responseTime,
@@ -592,6 +617,8 @@ app.use("/api/auth/login", authLimiter, loginRoute);
 app.use("/api/auth/register", authLimiter, registerRoute);
 app.use("/api/auth/logout", logoutRoute);
 app.use("/api/auth/me", meRoute);
+app.use("/api/auth/verify-email", verifyEmailRoute);
+app.use("/api/auth/resend-verification", authLimiter, resendVerificationRoute);
 
 app.use("/api/frame/public", framePublicRoute);
 app.use("/api/frame/public", frameByIdRoute);
