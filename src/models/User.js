@@ -93,7 +93,7 @@ userSchema.virtual('birthday_badge').get(function() {
       is_birthday: true,
       age,
       expires_at: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1), 
-      badge_text: `🎂 ${age} Today!`
+      badge_text: `${age} Today!`
     };
   }
   
