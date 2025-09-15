@@ -749,6 +749,15 @@
                 images or use Google profile with seamless switching
               </li>
               <li>
+                <strong>🔐 Email Verification:</strong> Secure registration with
+                Brevo SMTP, professional email templates, and 24-hour
+                verification tokens
+              </li>
+              <li>
+                <strong>📧 Email Service:</strong> Automated verification and
+                welcome emails with delivery tracking and responsive design
+              </li>
+              <li>
                 <strong>👥 Social Features:</strong> Follow/unfollow system with
                 real-time notifications and mutual connections
               </li>
@@ -850,11 +859,50 @@
               <span class="endpoint-path">/api/auth/register</span>
             </div>
             <div class="endpoint-description">
-              Register a new user with Google OAuth
+              Register a new user with Google OAuth and email verification
             </div>
             <div class="example-code">
               { "google_id": "string", "email": "user@gmail.com", "name": "User
-              Name", "image_profile": "https://profile-url.jpg" }
+              Name", "image_profile": "https://profile-url.jpg" } // Response
+              includes verification requirement { "success": true, "message":
+              "User registered successfully. Please check your email to verify
+              your account.", "data": { "user": { ... },
+              "requires_verification": true, "verification_expires":
+              "2024-01-16T10:30:00.000Z" } }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/auth/verify-email</span>
+            </div>
+            <div class="endpoint-description">
+              Verify user email address with token from email
+            </div>
+            <div class="example-code">
+              Query Parameters: ?token=verification_token&username=user_username
+              // Successful verification response includes login token {
+              "success": true, "message": "Email verified successfully! Welcome
+              to Snaplove!", "data": { "user": { ... }, "token":
+              "jwt_token_here", "verified_at": "2024-01-15T10:30:00.000Z" } }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/auth/resend-verification</span>
+            </div>
+            <div class="endpoint-description">
+              Resend email verification if expired or lost
+            </div>
+            <div class="example-code">
+              { "email": "user@gmail.com" } // Response (same for
+              existing/non-existing emails for security) { "success": true,
+              "message": "If an account with that email exists and is
+              unverified, a verification email has been sent.",
+              "verification_expires": "2024-01-16T10:30:00.000Z" }
             </div>
           </div>
 
@@ -864,10 +912,17 @@
               <span class="endpoint-path">/api/auth/login</span>
             </div>
             <div class="endpoint-description">
-              Login with Google OAuth credentials
+              Login with Google OAuth credentials (requires verified email)
             </div>
             <div class="example-code">
-              { "google_id": "string", "email": "user@gmail.com" }
+              { "google_id": "string", "email": "user@gmail.com" } // Error
+              response for unverified email { "success": false, "message":
+              "Please verify your email address before logging in. Check your
+              inbox for verification instructions.", "requires_verification":
+              true, "email": "user@gmail.com" } // Error response for expired
+              verification { "success": false, "message": "Email verification
+              expired. Please register again.", "requires_new_registration":
+              true }
             </div>
           </div>
 
@@ -881,13 +936,14 @@
               </span>
             </div>
             <div class="endpoint-description">
-              Get current user information including profile image settings
+              Get current user information including email verification status
             </div>
             <div class="example-code">
               Response includes: - image_profile: Current active profile image
               URL - use_google_profile: Whether using Google or custom image -
-              has_custom_image: Whether user has uploaded custom image - Profile
-              management permissions
+              has_custom_image: Whether user has uploaded custom image -
+              email_verified: Email verification status - email_verified_at:
+              When email was verified - Profile management permissions
             </div>
           </div>
 
@@ -898,6 +954,43 @@
               <span class="auth-required">🔒 AUTH</span>
             </div>
             <div class="endpoint-description">Logout current user</div>
+          </div>
+
+          <h4>📧 Email Verification System</h4>
+          <div class="example-code">
+            Registration Flow: 1. User registers → Account created (unverified)
+            2. Verification email sent via Brevo SMTP 3. User clicks email link
+            → Email verified 4. User can now login normally Email Features: ✅
+            Professional email templates with Brevo SMTP ✅ 24-hour verification
+            token expiration ✅ Automatic welcome email after verification ✅
+            Resend verification functionality ✅ Existing users automatically
+            marked as verified ✅ Security: No email existence disclosure during
+            resend Verification Email Content: - Welcome message with platform
+            overview - Verification button and manual link - Alternative API
+            endpoint for developers - 24-hour expiration warning - Feature
+            highlights and next steps
+          </div>
+
+          <h4>🔐 Authentication States</h4>
+          <div class="example-code">
+            User States: - Unregistered: Not in system - Registered
+            (Unverified): Account exists, email not verified - Verified: Email
+            verified, can login normally - Banned: Account restricted (verified
+            users only) Login Requirements: ✅ Valid Google OAuth credentials ✅
+            Email address verification ✅ Account not banned ✅ JWT token for
+            subsequent requests
+          </div>
+
+          <h4>📨 Email Service Configuration</h4>
+          <div class="example-code">
+            SMTP Provider: Brevo (formerly Sendinblue) From Address:
+            noreply@snaplove.pics Email Types: - Verification emails
+            (registration) - Welcome emails (post-verification) - Responsive
+            HTML templates - Plain text fallbacks Environment Variables
+            Required: - BREVO_SMTP_HOST=smtp-relay.brevo.com -
+            BREVO_SMTP_PORT=587 - BREVO_SMTP_USER=your_brevo_user -
+            BREVO_SMTP_PASS=your_brevo_password -
+            BREVO_FROM_EMAIL=noreply@snaplove.pics - BREVO_FROM_NAME=Snaplove
           </div>
         </div>
       </div>
@@ -2324,6 +2417,40 @@
             'Content-Type': 'application/json', 'x-api-key': 'your-api-key-here'
             // Required in production }, body: JSON.stringify({ google_id:
             'user_google_id', email: 'user@gmail.com' }) });
+          </div>
+
+          <h4>🔐 Authentication with Email Verification</h4>
+          <div class="example-code">
+            // Registration Request fetch('/api/auth/register', { method:
+            'POST', headers: { 'Content-Type': 'application/json' }, body:
+            JSON.stringify({ google_id: 'user_google_id', email:
+            'user@gmail.com', name: 'User Name' }) }) .then(response =>
+            response.json()) .then(data => { if (data.success &&
+            data.data.requires_verification) { // Show verification message to
+            user console.log('Check your email for verification link');
+            console.log('Verification expires:',
+            data.data.verification_expires); } }); // Email Verification (called
+            when user clicks email link)
+            fetch(`/api/auth/verify-email?token=${token}&username=${username}`)
+            .then(response => response.json()) .then(data => { if (data.success)
+            { // Email verified, user gets JWT token immediately
+            localStorage.setItem('token', data.data.token); console.log('Email
+            verified! User logged in:', data.data.user); } }); // Resend
+            Verification Email fetch('/api/auth/resend-verification', { method:
+            'POST', headers: { 'Content-Type': 'application/json' }, body:
+            JSON.stringify({ email: 'user@gmail.com' }) }) .then(response =>
+            response.json()) .then(data => { console.log('Verification email
+            resent (if account exists)'); }); // Login Request (requires
+            verified email) fetch('/api/auth/login', { method: 'POST', headers:
+            { 'Content-Type': 'application/json' }, body: JSON.stringify({
+            google_id: 'user_google_id', email: 'user@gmail.com' }) })
+            .then(response => response.json()) .then(data => { if (data.success)
+            { localStorage.setItem('token', data.data.token); console.log('Login
+            successful:', data.data.user); } else if
+            (data.requires_verification) { console.log('Please verify your email
+            first'); // Show resend verification option } else if
+            (data.requires_new_registration) { console.log('Verification
+            expired, please register again'); } });
           </div>
 
           <h4>🖼️ Profile Image Management</h4>
