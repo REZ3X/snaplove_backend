@@ -1185,24 +1185,26 @@ class DiscordBotService {
 
 
   async makeApiRequest(endpoint, method = 'GET', data = null) {
-    try {
-      const config = {
-        method,
-        url: `${this.baseUrl}${endpoint}`,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(process.env.API_KEYS && { 'X-API-Key': process.env.API_KEYS.split(',')[0] })
-        },
-        ...(data && { data })
-      };
+  try {
+    const config = {
+      method,
+      url: `${this.baseUrl}${endpoint}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'SnaploveDiscordBot/1.0',
+        'X-Discord-Bot': 'true',
+        ...(process.env.API_KEYS && { 'X-API-Key': process.env.API_KEYS.split(',')[0] })
+      },
+      ...(data && { data })
+    };
 
-      const response = await axios(config);
-      return response.data;
-    } catch (error) {
-      console.error('API request failed:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'API request failed');
-    }
+    const response = await axios(config);
+    return response.data;
+  } catch (error) {
+    console.error('API request failed:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'API request failed');
   }
+}
 
   isAuthorizedAdmin(userId) {
     return this.adminIds.includes(userId);
