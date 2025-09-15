@@ -6,9 +6,9 @@ class DiscordBotService {
     this.client = null;
     this.channelId = process.env.DISCORD_CHANNEL_ID;
     this.adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').filter(Boolean);
-    this.baseUrl = process.env.NODE_ENV === 'production' 
-      ? process.env.PRODUCTION_BACKEND_URL
-      : 'http://localhost:4000';
+this.baseUrl = process.env.NODE_ENV === 'production' 
+  ? 'http://localhost:3000'  
+  : 'http://localhost:4000';
     this.commandPrefix = '!snap'; 
     this.isReady = false;
     this.commands = new Map();
