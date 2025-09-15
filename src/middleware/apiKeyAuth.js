@@ -1,24 +1,24 @@
 const createApiKeyAuth = (options = {}) => {
   const {
-    skipPaths = ['/', '/health', '/docs'],
-    skipPatterns = [/^\/docs/],
+    skipPaths = ['/', '/health', '/lore', '/dev'],
+    skipPatterns = [/^\/docs/, /^\/images/, /^\/uploads/],
     envOnly = 'production'
   } = options;
 
   return (req, res, next) => {
-        if (skipPaths.includes(req.path)) {
+    if (skipPaths.includes(req.path)) {
       return next();
     }
 
-        if (skipPatterns.some(pattern => pattern.test(req.path))) {
+    if (skipPatterns.some(pattern => pattern.test(req.path))) {
       return next();
     }
 
-        if (envOnly && process.env.NODE_ENV !== envOnly) {
+    if (envOnly && process.env.NODE_ENV !== envOnly) {
       return next();
     }
 
-        const isInternalRequest = req.headers['x-internal-request'] === 'true' || 
+    const isInternalRequest = req.headers['x-internal-request'] === 'true' || 
                              req.headers['x-discord-bot'] === 'true' || 
                              req.headers['user-agent']?.includes('SnaploveDiscordBot') ||
                              req.ip === '127.0.0.1' ||
