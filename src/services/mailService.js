@@ -324,20 +324,20 @@ class MailService {
     return crypto.randomBytes(32).toString('hex');
   }
 
-  async testConnection() {
-    if (!this.transporter) {
-      throw new Error('Email service not initialized');
-    }
+  // async testConnection() {
+  //   if (!this.transporter) {
+  //     throw new Error('Email service not initialized');
+  //   }
 
-    try {
-      await this.transporter.verify();
-      console.log('✅ Email service connection test passed');
-      return true;
-    } catch (error) {
-      console.error('❌ Email service connection test failed:', error);
-      throw error;
-    }
-  }
+  //   try {
+  //     await this.transporter.verify();
+  //     console.log('✅ Email service connection test passed');
+  //     return true;
+  //   } catch (error) {
+  //     console.error('❌ Email service connection test failed:', error);
+  //     throw error;
+  //   }
+  // }
 }
 
 module.exports = new MailService();
