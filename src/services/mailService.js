@@ -13,7 +13,7 @@ class MailService {
       return;
     }
 
-    this.transporter = nodemailer.createTransporter({
+    this.transporter = nodemailer.createTransport({
       host: process.env.BREVO_SMTP_HOST,
       port: parseInt(process.env.BREVO_SMTP_PORT),
       secure: false,
