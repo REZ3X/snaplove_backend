@@ -6,9 +6,10 @@ class DiscordBotService {
     this.client = null;
     this.channelId = process.env.DISCORD_CHANNEL_ID;
     this.adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').filter(Boolean);
-    
-    this.baseUrl = 'http://127.0.0.1:4000';     
-    this.commandPrefix = '!snap'; 
+
+    this.baseUrl = 'http://127.0.0.1:4000';
+
+    this.commandPrefix = '!snap';
     this.isReady = false;
     this.commands = new Map();
     this.rest = null;
@@ -34,7 +35,7 @@ class DiscordBotService {
       this.setupSlashCommands();
       this.setupEventHandlers();
       await this.client.login(process.env.DISCORD_BOT_TOKEN);
-      
+
     } catch (error) {
       console.error('❌ Discord bot failed to start:', error.message);
     }
@@ -333,7 +334,7 @@ class DiscordBotService {
       console.log('🔄 Started refreshing application (/) commands.');
 
       const commands = this.setupSlashCommands();
-      
+
       if (process.env.DISCORD_GUILD_ID) {
         await this.rest.put(
           Routes.applicationGuildCommands(this.client.user.id, process.env.DISCORD_GUILD_ID),
@@ -356,10 +357,10 @@ class DiscordBotService {
     this.client.on('clientReady', async () => {
       console.log(`🤖 Discord bot logged in as ${this.client.user.tag}`);
       this.isReady = true;
-      
+
       await this.registerSlashCommands();
-      
-            try {
+
+      try {
         await this.testInternalConnection();
         this.sendStartupNotification();
       } catch (error) {
@@ -373,7 +374,7 @@ class DiscordBotService {
       if (!this.isAuthorizedAdmin(interaction.user.id)) {
         await interaction.reply({
           embeds: [this.createErrorEmbed('❌ Unauthorized', 'You are not authorized to use admin commands.')],
-          ephemeral: true 
+          ephemeral: true
         });
         return;
       }
@@ -396,7 +397,7 @@ class DiscordBotService {
       if (this.isAuthorizedAdmin(message.author.id)) {
         await message.reply({
           embeds: [this.createInfoEmbed(
-            '⚡ Slash Commands Available!', 
+            '⚡ Slash Commands Available!',
             `This bot now uses Discord slash commands! Type \`/\` to see all available commands.\n\nOld-style \`${this.commandPrefix}\` commands are deprecated.`
           )]
         });
@@ -530,9 +531,9 @@ class DiscordBotService {
       }
     } catch (error) {
       console.error('Slash command processing error:', error);
-      
+
       const errorEmbed = this.createErrorEmbed('❌ Command Failed', `Error: ${error.message}`);
-      
+
       if (interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
       } else {
@@ -541,7 +542,7 @@ class DiscordBotService {
     }
   }
 
-    async testInternalConnection() {
+  async testInternalConnection() {
     try {
       console.log('🔍 Testing internal API connection...');
       const response = await this.makeApiRequest('/health');
@@ -553,7 +554,7 @@ class DiscordBotService {
     }
   }
 
-    async makeApiRequest(endpoint, method = 'GET', data = null) {
+  async makeApiRequest(endpoint, method = 'GET', data = null) {
     const maxRetries = 3;
     let lastError;
 
@@ -567,24 +568,25 @@ class DiscordBotService {
             'User-Agent': 'SnaploveDiscordBot/1.0',
             'X-Internal-Request': 'true',
             'X-Discord-Bot': 'true',
-            'Connection': 'close'           },
-          timeout: 15000,           ...(data && { data })
+            'Connection': 'close'
+          },
+          timeout: 15000, ...(data && { data })
         };
 
         console.log(`🤖 Discord Bot Internal API Request (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`);
         const response = await axios(config);
-        
+
         if (attempt > 1) {
           console.log(`✅ Request succeeded on attempt ${attempt}`);
         }
-        
+
         return response.data;
       } catch (error) {
         lastError = error;
-        
+
         const isTimeout = error.code === 'ECONNABORTED';
         const isConnectionError = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET'].includes(error.code);
-        
+
         console.error(`❌ Discord Bot Internal API Request Failed (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`, {
           status: error.response?.status,
           statusText: error.response?.statusText,
@@ -594,34 +596,34 @@ class DiscordBotService {
           timeout: isTimeout,
           connection: isConnectionError
         });
-        
-                if (attempt === maxRetries || (!isTimeout && !isConnectionError)) {
+
+        if (attempt === maxRetries || (!isTimeout && !isConnectionError)) {
           break;
         }
-        
-                const delay = Math.pow(2, attempt) * 1000;         console.log(`⏳ Retrying in ${delay}ms...`);
+
+        const delay = Math.pow(2, attempt) * 1000; console.log(`⏳ Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-    
+
     throw new Error(lastError?.response?.data?.message || lastError?.message || 'Internal API request failed after retries');
   }
 
-    async makeDiscordApiRequest(endpoint, method = 'GET', data = null, discordUserId = null) {
+  async makeDiscordApiRequest(endpoint, method = 'GET', data = null, discordUserId = null) {
     try {
       console.log(`🔐 Making Discord authenticated request for user: ${discordUserId}`);
-      
-            const authResponse = await this.makeApiRequest('/api/admin/discord/auth', 'POST', {
+
+      const authResponse = await this.makeApiRequest('/api/admin/discord/auth', 'POST', {
         discord_user_id: discordUserId,
         discord_username: `Discord-${discordUserId}`
       });
-      
+
       if (!authResponse.success || !authResponse.data?.token) {
         throw new Error('Failed to get Discord auth token');
       }
-      
+
       const token = authResponse.data.token;
-      
+
       const config = {
         method,
         url: `${this.baseUrl}${endpoint}`,
@@ -682,8 +684,8 @@ class DiscordBotService {
 
   async handleTest(interaction) {
     try {
-            const health = await this.makeApiRequest('/health');
-      
+      const health = await this.makeApiRequest('/health');
+
       const embed = new EmbedBuilder()
         .setTitle('🧪 Bot Test')
         .setDescription('Bot is working correctly with full admin commands!')
@@ -715,35 +717,35 @@ class DiscordBotService {
       .setDescription('Complete admin panel via Discord slash commands')
       .setColor(0x7289da)
       .addFields(
-        { 
-          name: '📊 System', 
+        {
+          name: '📊 System',
           value: '`/stats` `/health` `/test` `/help`',
-          inline: false 
+          inline: false
         },
-        { 
-          name: '🖼️ Frame Management', 
+        {
+          name: '🖼️ Frame Management',
           value: '`/frames` `/approve` `/reject`',
-          inline: false 
+          inline: false
         },
-        { 
-          name: '👥 User Management', 
+        {
+          name: '👥 User Management',
           value: '`/users` `/user` `/ban` `/unban` `/role`',
-          inline: false 
+          inline: false
         },
-        { 
-          name: '📋 Reports', 
+        {
+          name: '📋 Reports',
           value: '`/reports` `/report` `/resolve-report`',
-          inline: false 
+          inline: false
         },
-        { 
-          name: '🎫 Tickets', 
+        {
+          name: '🎫 Tickets',
           value: '`/tickets` `/ticket` `/resolve-ticket`',
-          inline: false 
+          inline: false
         },
-        { 
-          name: '📢 Broadcasting', 
+        {
+          name: '📢 Broadcasting',
           value: '`/broadcast`',
-          inline: false 
+          inline: false
         },
         {
           name: '✨ Features',
@@ -760,7 +762,7 @@ class DiscordBotService {
   async handleStats(interaction) {
     try {
       const health = await this.makeApiRequest('/health');
-      
+
       const embed = new EmbedBuilder()
         .setTitle('📊 System Statistics')
         .setColor(0x00ff00)
@@ -790,9 +792,9 @@ class DiscordBotService {
     try {
       const { status, limit } = options;
       const _response = await this.makeDiscordApiRequest(
-        `/api/admin/discord/frames?status=${status}&limit=${limit}`, 
-        'GET', 
-        null, 
+        `/api/admin/discord/frames?status=${status}&limit=${limit}`,
+        'GET',
+        null,
         interaction.user.id
       );
 
@@ -811,9 +813,9 @@ class DiscordBotService {
     try {
       const { frameId } = options;
       const _response = await this.makeDiscordApiRequest(
-        `/api/admin/discord/frame/${frameId}/approve`, 
-        'POST', 
-        {}, 
+        `/api/admin/discord/frame/${frameId}/approve`,
+        'POST',
+        {},
         interaction.user.id
       );
 
@@ -831,11 +833,11 @@ class DiscordBotService {
   async handleReject(interaction, options) {
     try {
       const { frameId, reason } = options;
-      
+
       const _response = await this.makeDiscordApiRequest(
-        `/api/admin/discord/frame/${frameId}/reject`, 
-        'POST', 
-        { reason }, 
+        `/api/admin/discord/frame/${frameId}/reject`,
+        'POST',
+        { reason },
         interaction.user.id
       );
 
@@ -858,12 +860,12 @@ class DiscordBotService {
       query.append('limit', limit.toString());
 
       const _response = await this.makeDiscordApiRequest(
-        `/api/admin/discord/users?${query}`, 
-        'GET', 
-        null, 
+        `/api/admin/discord/users?${query}`,
+        'GET',
+        null,
         interaction.user.id
       );
-      
+
       await interaction.editReply({
         embeds: [this.createSuccessEmbed('👥 Users Listed', `Listed ${role ? role + ' ' : ''}users. Check Discord for details.`)]
       });
@@ -876,150 +878,157 @@ class DiscordBotService {
   }
 
   async handleUser(interaction, options) {
-  try {
-    let { username } = options;
+    try {
+      let { username } = options;
 
-    username = username.replace(/^@/, '');
+      username = username.replace(/^@/, '');
 
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username can only contain letters, numbers, and underscores.')]
+        });
+        return;
+      }
+
+      const user = await this.makeApiRequest(`/api/admin/users/${username}`);
+
+      if (!user.success) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ User Not Found', `User "${username}" not found.`)]
+        });
+        return;
+      }
+
+      const userData = user.data.user;
+      const embed = new EmbedBuilder()
+        .setTitle(`👤 User Details: @${userData.username}`)
+        .setColor(userData.ban_status ? 0xff0000 : 0x00ff00)
+        .addFields(
+          { name: 'ID', value: userData.id, inline: true },
+          { name: 'Name', value: userData.name, inline: true },
+          { name: 'Role', value: userData.role, inline: true },
+          { name: 'Status', value: userData.ban_status ? '🔴 Banned' : '🟢 Active', inline: true },
+          { name: 'Email', value: userData.email || 'Not provided', inline: true },
+          { name: 'Google ID', value: userData.google_id || 'Not connected', inline: true },
+          { name: 'Bio', value: userData.bio || 'No bio', inline: false },
+          { name: 'Created', value: new Date(userData.created_at).toLocaleDateString(), inline: true },
+          { name: 'Updated', value: new Date(userData.updated_at).toLocaleDateString(), inline: true }
+        )
+        .setTimestamp();
+
+      if (userData.ban_status && userData.ban_release_datetime) {
+        embed.addFields({
+          name: 'Ban Release',
+          value: new Date(userData.ban_release_datetime).toLocaleString(),
+          inline: true
+        });
+      }
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      console.error('Discord user lookup error:', error);
       await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username can only contain letters, numbers, and underscores.')]
-      });
-      return;
-    }
-
-    const user = await this.makeApiRequest(`/api/admin/users/${username}`);
-    
-    if (!user.success) {
-      await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ User Not Found', `User "${username}" not found.`)]
-      });
-      return;
-    }
-
-    const userData = user.data.user;
-    const embed = new EmbedBuilder()
-      .setTitle(`👤 User Details: @${userData.username}`)
-      .setColor(userData.ban_status ? 0xff0000 : 0x00ff00)
-      .addFields(
-        { name: 'ID', value: userData.id, inline: true },
-        { name: 'Name', value: userData.name, inline: true },
-        { name: 'Role', value: userData.role, inline: true },
-        { name: 'Status', value: userData.ban_status ? '🔴 Banned' : '🟢 Active', inline: true },
-        { name: 'Email', value: userData.email || 'Not provided', inline: true },
-        { name: 'Google ID', value: userData.google_id || 'Not connected', inline: true },
-        { name: 'Bio', value: userData.bio || 'No bio', inline: false },
-        { name: 'Created', value: new Date(userData.created_at).toLocaleDateString(), inline: true },
-        { name: 'Updated', value: new Date(userData.updated_at).toLocaleDateString(), inline: true }
-      )
-      .setTimestamp();
-
-    if (userData.ban_status && userData.ban_release_datetime) {
-      embed.addFields({ 
-        name: 'Ban Release', 
-        value: new Date(userData.ban_release_datetime).toLocaleString(), 
-        inline: true 
+        embeds: [this.createErrorEmbed('❌ User Lookup Failed', error.message)]
       });
     }
-
-    await interaction.editReply({ embeds: [embed] });
-
-  } catch (error) {
-    console.error('Discord user lookup error:', error);
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('❌ User Lookup Failed', error.message)]
-    });
   }
-}
 
   async handleBan(interaction, options) {
-  try {
-    let username  = options;
-    const { duration, reason } = options;
+    try {
+      const { username: rawUsername, duration, reason } = options;
 
-    username = username.replace(/^@/, '');
+      if (!rawUsername) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Missing Username', 'Username parameter is required for ban command.')]
+        });
+        return;
+      }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username can only contain letters, numbers, and underscores.')]
-      });
-      return;
-    }
+      const username = String(rawUsername).replace(/^@/, '');
 
-    const _response = await this.makeDiscordApiRequest(
-      `/api/admin/discord/user/${username}/ban`, 
-      'POST', 
-      { 
-        duration: duration || null, 
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username can only contain letters, numbers, and underscores.')]
+        });
+        return;
+      }
+
+      const requestData = {
+        duration: duration || null,
         reason: reason || 'Banned via Discord command'
-      }, 
-      interaction.user.id
-    );
+      };
 
-    await interaction.editReply({
-      embeds: [this.createSuccessEmbed('🔨 User Banned', `User @${username} has been banned successfully!`)]
-    });
+      console.log(`🔨 Discord ban request for user: ${username}`, requestData);
 
-  } catch (error) {
-    console.error('Discord ban error:', error);
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('❌ Ban Failed', error.message)]
-    });
+      await this.makeDiscordApiRequest(
+        `/api/admin/discord/user/${username}/ban`,
+        'POST',
+        requestData,
+        interaction.user.id
+      );
+
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('🔨 User Banned', `User @${username} has been banned successfully!`)]
+      });
+
+    } catch (error) {
+      console.error('Discord ban error:', error);
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Ban Failed', error.message)]
+      });
+    }
+  } async handleUnban(interaction, options) {
+    try {
+      const { username: rawUsername } = options;
+
+      const username = rawUsername.replace(/^@/, '');
+
+      await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
+        ban_status: false,
+        ban_release_datetime: null
+      });
+
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('✅ User Unbanned', `User @${username} has been unbanned successfully!`)]
+      });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Unban Failed', error.message)]
+      });
+    }
   }
-}
 
-  async handleUnban(interaction, options) {
-  try {
-    let { username } = options;
+  async handleRole(interaction, options) {
+    try {
+      const { username: rawUsername, newRole } = options;
 
-    username = username.replace(/^@/, '');
-    
-    const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
-      ban_status: false,
-      ban_release_datetime: null
-    });
+      const username = rawUsername.replace(/^@/, '');
 
-    await interaction.editReply({
-      embeds: [this.createSuccessEmbed('✅ User Unbanned', `User @${username} has been unbanned successfully!`)]
-    });
+      await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
+        role: newRole
+      });
 
-  } catch (error) {
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('❌ Unban Failed', error.message)]
-    });
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('🔄 Role Updated', `User @${username} role changed to **${newRole}**`)]
+      });
+
+    } catch (error) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ Role Change Failed', error.message)]
+      });
+    }
   }
-}
-
-async handleRole(interaction, options) {
-  try {
-    let username = options;
-    const newRole = options;
-
-    username = username.replace(/^@/, '');
-    
-    const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
-      role: newRole
-    });
-
-    await interaction.editReply({
-      embeds: [this.createSuccessEmbed('🔄 Role Updated', `User @${username} role changed to **${newRole}**`)]
-    });
-
-  } catch (error) {
-    await interaction.editReply({
-      embeds: [this.createErrorEmbed('❌ Role Change Failed', error.message)]
-    });
-  }
-}
 
   async handleBroadcast(interaction, options) {
     try {
       const { message, audience, type } = options;
 
       const _response = await this.makeDiscordApiRequest(
-        '/api/admin/discord/broadcast', 
-        'POST', 
-        { message, target_audience: audience, type }, 
+        '/api/admin/discord/broadcast',
+        'POST',
+        { message, target_audience: audience, type },
         interaction.user.id
       );
 
@@ -1042,7 +1051,7 @@ async handleRole(interaction, options) {
       query.append('limit', limit.toString());
 
       const reports = await this.makeApiRequest(`/api/admin/reports?${query}`);
-      
+
       if (reports.data.reports.length === 0) {
         await interaction.editReply({
           embeds: [this.createInfoEmbed('📋 No Reports', `No ${status || 'pending'} reports found.`)]
@@ -1076,7 +1085,7 @@ async handleRole(interaction, options) {
     try {
       const { reportId } = options;
       const report = await this.makeApiRequest(`/api/admin/reports/${reportId}`);
-      
+
       if (!report.success) {
         await interaction.editReply({
           embeds: [this.createErrorEmbed('❌ Report Not Found', `Report "${reportId}" not found.`)]
@@ -1118,7 +1127,7 @@ async handleRole(interaction, options) {
   async handleResolveReport(interaction, options) {
     try {
       const { reportId, action, response } = options;
-      
+
       const updateData = {
         report_status: action === 'delete_frame' ? 'done' : action,
         ...(action === 'delete_frame' && { action: 'delete_frame' }),
@@ -1147,7 +1156,7 @@ async handleRole(interaction, options) {
       query.append('limit', limit.toString());
 
       const tickets = await this.makeApiRequest(`/api/admin/ticket?${query}`);
-      
+
       if (tickets.data.tickets.length === 0) {
         await interaction.editReply({
           embeds: [this.createInfoEmbed('🎫 No Tickets', `No ${status || priority || 'pending'} tickets found.`)]
@@ -1188,7 +1197,7 @@ async handleRole(interaction, options) {
     try {
       const { ticketId } = options;
       const ticket = await this.makeApiRequest(`/api/admin/ticket/${ticketId}`);
-      
+
       if (!ticket.success) {
         await interaction.editReply({
           embeds: [this.createErrorEmbed('❌ Ticket Not Found', `Ticket "${ticketId}" not found.`)]
@@ -1240,7 +1249,7 @@ async handleRole(interaction, options) {
   async handleResolveTicket(interaction, options) {
     try {
       const { ticketId, status, response, priority } = options;
-      
+
       const updateData = {
         status,
         ...(response && { admin_response: response }),
@@ -1272,10 +1281,10 @@ async handleRole(interaction, options) {
   async handleHealth(interaction) {
     try {
       const health = await this.makeApiRequest('/health');
-      
+
       const statusColor = health.status === 'healthy' ? 0x00ff00 : 0xff9900;
       const statusEmoji = health.status === 'healthy' ? '🟢' : '🟡';
-      
+
       const embed = new EmbedBuilder()
         .setTitle(`${statusEmoji} Server Health Check`)
         .setDescription(`Status: **${health.status.toUpperCase()}**`)
