@@ -341,7 +341,9 @@ router.post('/user/:username/ban', [
       });
     }
 
-    const user = await User.findOne({ username: req.params.username });
+    const username = req.params.username.replace(/^@/, '');
+    
+    const user = await User.findOne({ username });
     if (!user) {
       await discordHandler.sendError('User not found');
       return res.status(404).json({
@@ -355,6 +357,14 @@ router.post('/user/:username/ban', [
       return res.status(403).json({
         success: false,
         message: 'Cannot ban admin users'
+      });
+    }
+
+    if (user.ban_status) {
+      await discordHandler.sendError('User is already banned');
+      return res.status(400).json({
+        success: false,
+        message: 'User is already banned'
       });
     }
 

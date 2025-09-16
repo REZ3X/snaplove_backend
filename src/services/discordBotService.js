@@ -876,111 +876,141 @@ class DiscordBotService {
   }
 
   async handleUser(interaction, options) {
-    try {
-      const { username } = options;
-      const user = await this.makeApiRequest(`/api/admin/users/${username}`);
-      
-      if (!user.success) {
-        await interaction.editReply({
-          embeds: [this.createErrorEmbed('❌ User Not Found', `User "${username}" not found.`)]
-        });
-        return;
-      }
+  try {
+    let { username } = options;
 
-      const userData = user.data.user;
-      const embed = new EmbedBuilder()
-        .setTitle(`👤 User Details: @${userData.username}`)
-        .setColor(userData.ban_status ? 0xff0000 : 0x00ff00)
-        .addFields(
-          { name: 'ID', value: userData.id, inline: true },
-          { name: 'Name', value: userData.name, inline: true },
-          { name: 'Role', value: userData.role, inline: true },
-          { name: 'Status', value: userData.ban_status ? '🔴 Banned' : '🟢 Active', inline: true },
-          { name: 'Email', value: userData.email || 'Not provided', inline: true },
-          { name: 'Google ID', value: userData.google_id || 'Not connected', inline: true },
-          { name: 'Bio', value: userData.bio || 'No bio', inline: false },
-          { name: 'Created', value: new Date(userData.created_at).toLocaleDateString(), inline: true },
-          { name: 'Updated', value: new Date(userData.updated_at).toLocaleDateString(), inline: true }
-        )
-        .setTimestamp();
+    username = username.replace(/^@/, '');
 
-      if (userData.ban_status && userData.ban_release_datetime) {
-        embed.addFields({ 
-          name: 'Ban Release', 
-          value: new Date(userData.ban_release_datetime).toLocaleString(), 
-          inline: true 
-        });
-      }
-
-      await interaction.editReply({ embeds: [embed] });
-
-    } catch (error) {
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ User Lookup Failed', error.message)]
+        embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username can only contain letters, numbers, and underscores.')]
+      });
+      return;
+    }
+
+    const user = await this.makeApiRequest(`/api/admin/users/${username}`);
+    
+    if (!user.success) {
+      await interaction.editReply({
+        embeds: [this.createErrorEmbed('❌ User Not Found', `User "${username}" not found.`)]
+      });
+      return;
+    }
+
+    const userData = user.data.user;
+    const embed = new EmbedBuilder()
+      .setTitle(`👤 User Details: @${userData.username}`)
+      .setColor(userData.ban_status ? 0xff0000 : 0x00ff00)
+      .addFields(
+        { name: 'ID', value: userData.id, inline: true },
+        { name: 'Name', value: userData.name, inline: true },
+        { name: 'Role', value: userData.role, inline: true },
+        { name: 'Status', value: userData.ban_status ? '🔴 Banned' : '🟢 Active', inline: true },
+        { name: 'Email', value: userData.email || 'Not provided', inline: true },
+        { name: 'Google ID', value: userData.google_id || 'Not connected', inline: true },
+        { name: 'Bio', value: userData.bio || 'No bio', inline: false },
+        { name: 'Created', value: new Date(userData.created_at).toLocaleDateString(), inline: true },
+        { name: 'Updated', value: new Date(userData.updated_at).toLocaleDateString(), inline: true }
+      )
+      .setTimestamp();
+
+    if (userData.ban_status && userData.ban_release_datetime) {
+      embed.addFields({ 
+        name: 'Ban Release', 
+        value: new Date(userData.ban_release_datetime).toLocaleString(), 
+        inline: true 
       });
     }
+
+    await interaction.editReply({ embeds: [embed] });
+
+  } catch (error) {
+    console.error('Discord user lookup error:', error);
+    await interaction.editReply({
+      embeds: [this.createErrorEmbed('❌ User Lookup Failed', error.message)]
+    });
   }
+}
 
   async handleBan(interaction, options) {
-    try {
-      const { username, duration, reason } = options;
-      
-      const _response = await this.makeDiscordApiRequest(
-        `/api/admin/discord/user/${username}/ban`, 
-        'POST', 
-        { duration, reason }, 
-        interaction.user.id
-      );
+  try {
+    let username  = options;
+    const { duration, reason } = options;
 
-      await interaction.editReply({
-        embeds: [this.createSuccessEmbed('🔨 User Banned', `User @${username} has been banned successfully!`)]
-      });
+    username = username.replace(/^@/, '');
 
-    } catch (error) {
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Ban Failed', error.message)]
+        embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username can only contain letters, numbers, and underscores.')]
       });
+      return;
     }
+
+    const _response = await this.makeDiscordApiRequest(
+      `/api/admin/discord/user/${username}/ban`, 
+      'POST', 
+      { 
+        duration: duration || null, 
+        reason: reason || 'Banned via Discord command'
+      }, 
+      interaction.user.id
+    );
+
+    await interaction.editReply({
+      embeds: [this.createSuccessEmbed('🔨 User Banned', `User @${username} has been banned successfully!`)]
+    });
+
+  } catch (error) {
+    console.error('Discord ban error:', error);
+    await interaction.editReply({
+      embeds: [this.createErrorEmbed('❌ Ban Failed', error.message)]
+    });
   }
+}
 
   async handleUnban(interaction, options) {
-    try {
-      const { username } = options;
-      
-      const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
-        ban_status: false,
-        ban_release_datetime: null
-      });
+  try {
+    let { username } = options;
 
-      await interaction.editReply({
-        embeds: [this.createSuccessEmbed('✅ User Unbanned', `User @${username} has been unbanned successfully!`)]
-      });
+    username = username.replace(/^@/, '');
+    
+    const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
+      ban_status: false,
+      ban_release_datetime: null
+    });
 
-    } catch (error) {
-      await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Unban Failed', error.message)]
-      });
-    }
+    await interaction.editReply({
+      embeds: [this.createSuccessEmbed('✅ User Unbanned', `User @${username} has been unbanned successfully!`)]
+    });
+
+  } catch (error) {
+    await interaction.editReply({
+      embeds: [this.createErrorEmbed('❌ Unban Failed', error.message)]
+    });
   }
+}
 
-  async handleRole(interaction, options) {
-    try {
-      const { username, newRole } = options;
-      
-      const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
-        role: newRole
-      });
+async handleRole(interaction, options) {
+  try {
+    let username = options;
+    const newRole = options;
 
-      await interaction.editReply({
-        embeds: [this.createSuccessEmbed('🔄 Role Updated', `User @${username} role changed to **${newRole}**`)]
-      });
+    username = username.replace(/^@/, '');
+    
+    const _response = await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
+      role: newRole
+    });
 
-    } catch (error) {
-      await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Role Change Failed', error.message)]
-      });
-    }
+    await interaction.editReply({
+      embeds: [this.createSuccessEmbed('🔄 Role Updated', `User @${username} role changed to **${newRole}**`)]
+    });
+
+  } catch (error) {
+    await interaction.editReply({
+      embeds: [this.createErrorEmbed('❌ Role Change Failed', error.message)]
+    });
   }
+}
 
   async handleBroadcast(interaction, options) {
     try {
