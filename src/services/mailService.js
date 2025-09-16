@@ -13,10 +13,11 @@ class MailService {
       return;
     }
 
-    this.transporter = nodemailer.createTransport({
+    this.transporter = nodemailer.createTransporter({
       host: process.env.BREVO_SMTP_HOST,
       port: parseInt(process.env.BREVO_SMTP_PORT),
-      secure: false,       auth: {
+      secure: false,
+      auth: {
         user: process.env.BREVO_SMTP_USER,
         pass: process.env.BREVO_SMTP_PASS
       }
@@ -33,15 +34,12 @@ class MailService {
 
   getFrontendUrl() {
     if (process.env.NODE_ENV === 'production') {
-
       const productionUrls = process.env.PRODUCTION_FRONTEND_URLS;
       if (productionUrls) {
         return productionUrls.split(',')[0].trim();
       }
-
       return process.env.PRODUCTION_FRONTEND_URL;
     }
-
     return process.env.FRONTEND_URL || 'http://localhost:3000';
   }
 
@@ -77,77 +75,133 @@ class MailService {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Verify Your Email - Snaplove</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-            .button:hover { background: #5a67d8; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
-            .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
-            .code-section { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
-            h1 { margin: 0; font-size: 28px; }
-            h2 { color: #667eea; }
-            .logo { font-size: 32px; font-weight: bold; }
+            body { 
+              font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif; 
+              color: #333; 
+            }
+            h1, h2, h3, h4, h5, h6 {
+              font-family: 'Quicksand', 'Nunito', sans-serif;
+              font-weight: 700;
+            }
+            .btn-primary {
+              background: #FF9898;
+              transition: all 0.3s ease;
+            }
+            .btn-primary:hover {
+              background: #FFAAAA;
+              transform: translateY(-2px);
+              box-shadow: 0 8px 25px rgba(255, 152, 152, 0.3);
+            }
+            .gradient-bg {
+              background: linear-gradient(135deg, #FF9898 0%, #FFE99A 100%);
+            }
+            .card-shadow {
+              box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            }
           </style>
         </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="logo">📸 Snaplove</div>
-              <h1>Welcome to Snaplove!</h1>
-              <p>Frame-based photo sharing platform</p>
+        <body class="bg-gray-50 p-4">
+          <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="gradient-bg text-white p-8 rounded-t-2xl text-center">
+              <div class="text-4xl font-bold mb-4">📸 Snaplove</div>
+              <h1 class="text-3xl font-bold mb-2">Welcome to Snaplove!</h1>
+              <p class="text-lg opacity-90">Frame-based photo sharing platform</p>
             </div>
             
-            <div class="content">
-              <h2>Hello ${userName}! 👋</h2>
+            <!-- Content -->
+            <div class="bg-white p-8 rounded-b-2xl card-shadow">
+              <h2 class="text-2xl font-bold text-[#FF9898] mb-4">Hello ${userName}! 👋</h2>
               
-              <p>Thank you for joining <strong>Snaplove</strong>! We're excited to have you as part of our community where creativity meets photography.</p>
+              <p class="text-gray-700 mb-6 leading-relaxed">
+                Thank you for joining <span class="font-semibold text-[#FF9898]">Snaplove</span>! We're excited to have you as part of our community where creativity meets photography.
+              </p>
               
-              <p>To get started and unlock all features, please verify your email address by clicking the button below:</p>
+              <p class="text-gray-700 mb-6 leading-relaxed">
+                To get started and unlock all features, please verify your email address by clicking the button below:
+              </p>
               
-              <div style="text-align: center;">
-                <a href="${verificationUrl}" class="button">✅ Verify My Email</a>
+              <!-- CTA Button -->
+              <div class="text-center mb-8">
+                <a href="${verificationUrl}" class="btn-primary inline-block text-white font-semibold py-4 px-8 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300">
+                  ✅ Verify My Email
+                </a>
               </div>
               
-              <div class="warning">
-                <strong>⚠️ Important:</strong> You need to verify your email within <strong>24 hours</strong> to activate your account. Unverified accounts will be automatically removed.
+              <!-- Warning Box -->
+              <div class="bg-[#FFE99A] border-2 border-[#FFD586] p-6 rounded-2xl mb-8">
+                <div class="flex items-start space-x-3">
+                  <span class="text-2xl">⚠️</span>
+                  <div>
+                    <p class="font-semibold text-gray-800 mb-2">Important:</p>
+                    <p class="text-gray-700">You need to verify your email within <strong>24 hours</strong> to activate your account. Unverified accounts will be automatically removed.</p>
+                  </div>
+                </div>
               </div>
               
-              <h3>What's Next?</h3>
-              <ul>
-                <li>🖼️ Create custom photo frames</li>
-                <li>📸 Capture photos using frames</li>
-                <li>👥 Follow other creators</li>
-                <li>🏆 Join leaderboards and trending</li>
-                <li>🎂 Set your birthday for special celebrations</li>
-              </ul>
+              <!-- Features Section -->
+              <h3 class="text-xl font-bold text-[#C9A7FF] mb-4">What's Next?</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div class="bg-gradient-to-r from-[#FF9898] to-[#FFAAAA] p-4 rounded-2xl text-white">
+                  <div class="text-2xl mb-2">🖼️</div>
+                  <p class="font-semibold">Create custom photo frames</p>
+                </div>
+                <div class="bg-gradient-to-r from-[#C9A7FF] to-[#E2CFFF] p-4 rounded-2xl text-white">
+                  <div class="text-2xl mb-2">📸</div>
+                  <p class="font-semibold">Capture photos using frames</p>
+                </div>
+                <div class="bg-gradient-to-r from-[#A8EECC] to-[#C7F9E3] p-4 rounded-2xl text-gray-800">
+                  <div class="text-2xl mb-2">👥</div>
+                  <p class="font-semibold">Follow other creators</p>
+                </div>
+                <div class="bg-gradient-to-r from-[#FFD586] to-[#FFE99A] p-4 rounded-2xl text-gray-800">
+                  <div class="text-2xl mb-2">🏆</div>
+                  <p class="font-semibold">Join leaderboards and trending</p>
+                </div>
+              </div>
               
-              <div class="code-section">
-                <h4>Alternative Verification Methods:</h4>
-                <p><strong>Manual Link:</strong> If the button doesn't work, copy and paste this link into your browser:</p>
-                <p style="word-break: break-all; font-family: monospace; font-size: 12px;">
-                  ${verificationUrl}
-                </p>
+              <!-- Alternative Methods -->
+              <div class="bg-gray-50 p-6 rounded-2xl mb-6">
+                <h4 class="text-lg font-bold text-[#FF9898] mb-4">Alternative Verification Methods:</h4>
                 
-                <p><strong>Direct API Call:</strong> For developers or if you're experiencing issues:</p>
-                <p style="word-break: break-all; font-family: monospace; font-size: 12px;">
-                  GET ${apiVerificationUrl}
-                </p>
+                <div class="mb-4">
+                  <p class="font-semibold text-gray-800 mb-2">Manual Link:</p>
+                  <p class="text-sm text-gray-600 mb-2">If the button doesn't work, copy and paste this link into your browser:</p>
+                  <div class="bg-white p-3 rounded-lg border-2 border-[#FFD586] overflow-x-auto">
+                    <code class="text-xs text-[#FF9898] break-all">${verificationUrl}</code>
+                  </div>
+                </div>
                 
-                <p><strong>Verification Details:</strong></p>
-                <ul style="font-family: monospace; font-size: 12px;">
-                  <li>Token: ${verificationToken}</li>
-                  <li>Username: ${username}</li>
-                  <li>Expires: 24 hours from registration</li>
-                </ul>
+                <div class="mb-4">
+                  <p class="font-semibold text-gray-800 mb-2">Direct API Call:</p>
+                  <p class="text-sm text-gray-600 mb-2">For developers or if you're experiencing issues:</p>
+                  <div class="bg-white p-3 rounded-lg border-2 border-[#C9A7FF] overflow-x-auto">
+                    <code class="text-xs text-[#C9A7FF] break-all">GET ${apiVerificationUrl}</code>
+                  </div>
+                </div>
+                
+                <div>
+                  <p class="font-semibold text-gray-800 mb-2">Verification Details:</p>
+                  <div class="bg-white p-3 rounded-lg border-2 border-[#A8EECC]">
+                    <ul class="text-xs space-y-1">
+                      <li><span class="font-semibold">Token:</span> <code class="text-[#A8EECC]">${verificationToken}</code></li>
+                      <li><span class="font-semibold">Username:</span> <code class="text-[#A8EECC]">${username}</code></li>
+                      <li><span class="font-semibold">Expires:</span> 24 hours from registration</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
               
-              <div class="footer">
+              <!-- Footer -->
+              <div class="text-center text-gray-600 text-sm space-y-2">
                 <p>Need help? Contact our support team or visit our help center.</p>
-                <p>This email was sent to ${userEmail} because you registered for a Snaplove account.</p>
-                <p style="color: #999; font-size: 12px;">
+                <p>This email was sent to <span class="font-semibold">${userEmail}</span> because you registered for a Snaplove account.</p>
+                <p class="text-gray-400 text-xs">
                   If you didn't create this account, please ignore this email.
                 </p>
               </div>
@@ -225,78 +279,126 @@ class MailService {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Welcome to Snaplove</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            .button { display: inline-block; background: #48bb78; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-            .button:hover { background: #38a169; }
-            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
-            .success-box { background: #f0fff4; border: 1px solid #9ae6b4; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
-            h1 { margin: 0; font-size: 28px; }
-            h2 { color: #48bb78; }
-            .logo { font-size: 32px; font-weight: bold; }
-            .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-            .feature { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
-            @media (max-width: 480px) { .feature-grid { grid-template-columns: 1fr; } }
+            body { 
+              font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif; 
+              color: #333; 
+            }
+            h1, h2, h3, h4, h5, h6 {
+              font-family: 'Quicksand', 'Nunito', sans-serif;
+              font-weight: 700;
+            }
+            .btn-success {
+              background: #A8EECC;
+              transition: all 0.3s ease;
+            }
+            .btn-success:hover {
+              background: #C7F9E3;
+              transform: translateY(-2px);
+              box-shadow: 0 8px 25px rgba(168, 238, 204, 0.3);
+            }
+            .success-gradient {
+              background: linear-gradient(135deg, #A8EECC 0%, #C7F9E3 100%);
+            }
+            .card-shadow {
+              box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            }
           </style>
         </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="logo">📸 Snaplove</div>
-              <h1>Account Verified Successfully! 🎉</h1>
+        <body class="bg-gray-50 p-4">
+          <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="success-gradient text-gray-800 p-8 rounded-t-2xl text-center">
+              <div class="text-4xl font-bold mb-4">📸 Snaplove</div>
+              <h1 class="text-3xl font-bold mb-2">Account Verified Successfully! 🎉</h1>
             </div>
             
-            <div class="content">
-              <div class="success-box">
-                <h2>🎊 Congratulations, ${userName}!</h2>
-                <p><strong>Your Snaplove account (@${username}) is now fully activated!</strong></p>
+            <!-- Content -->
+            <div class="bg-white p-8 rounded-b-2xl card-shadow">
+              <!-- Success Box -->
+              <div class="bg-gradient-to-r from-[#A8EECC] to-[#C7F9E3] p-6 rounded-2xl text-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">🎊 Congratulations, ${userName}!</h2>
+                <p class="text-lg font-semibold text-gray-700">Your Snaplove account (@${username}) is now fully activated!</p>
               </div>
               
-              <p>Welcome to the Snaplove community! Your email has been verified and you now have full access to all our features.</p>
+              <p class="text-gray-700 mb-6 leading-relaxed">
+                Welcome to the Snaplove community! Your email has been verified and you now have full access to all our features.
+              </p>
               
-              <div style="text-align: center;">
-                <a href="${loginUrl}" class="button">🚀 Start Creating</a>
+              <!-- CTA Button -->
+              <div class="text-center mb-8">
+                <a href="${loginUrl}" class="btn-success inline-block text-gray-800 font-semibold py-4 px-8 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300">
+                  🚀 Start Creating
+                </a>
               </div>
               
-              <h3>🌟 What You Can Do Now:</h3>
+              <!-- Features Grid -->
+              <h3 class="text-xl font-bold text-[#FF9898] mb-6">🌟 What You Can Do Now:</h3>
               
-              <div class="feature-grid">
-                <div class="feature">
-                  <h4>🖼️ Create Frames</h4>
-                  <p>Design custom photo frames for your community</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div class="bg-gradient-to-br from-[#FF9898] to-[#FFAAAA] p-6 rounded-2xl text-white text-center">
+                  <div class="text-3xl mb-3">🖼️</div>
+                  <h4 class="font-bold mb-2">Create Frames</h4>
+                  <p class="text-sm opacity-90">Design custom photo frames for your community</p>
                 </div>
-                <div class="feature">
-                  <h4>📸 Capture Photos</h4>
-                  <p>Take amazing photos using created frames</p>
+                <div class="bg-gradient-to-br from-[#C9A7FF] to-[#E2CFFF] p-6 rounded-2xl text-white text-center">
+                  <div class="text-3xl mb-3">📸</div>
+                  <h4 class="font-bold mb-2">Capture Photos</h4>
+                  <p class="text-sm opacity-90">Take amazing photos using created frames</p>
                 </div>
-                <div class="feature">
-                  <h4>👥 Social Features</h4>
-                  <p>Follow creators and build your network</p>
+                <div class="bg-gradient-to-br from-[#A8EECC] to-[#C7F9E3] p-6 rounded-2xl text-gray-800 text-center">
+                  <div class="text-3xl mb-3">👥</div>
+                  <h4 class="font-bold mb-2">Social Features</h4>
+                  <p class="text-sm">Follow creators and build your network</p>
                 </div>
-                <div class="feature">
-                  <h4>🏆 Compete</h4>
-                  <p>Join leaderboards and trending sections</p>
+                <div class="bg-gradient-to-br from-[#FFD586] to-[#FFE99A] p-6 rounded-2xl text-gray-800 text-center">
+                  <div class="text-3xl mb-3">🏆</div>
+                  <h4 class="font-bold mb-2">Compete</h4>
+                  <p class="text-sm">Join leaderboards and trending sections</p>
                 </div>
               </div>
               
-              <h3>📋 Getting Started Checklist:</h3>
-              <ul style="list-style-type: none; padding: 0;">
-                <li>✅ Email verified</li>
-                <li>🔲 Complete your profile</li>
-                <li>🔲 Create your first frame</li>
-                <li>🔲 Set your birthday for celebrations</li>
-                <li>🔲 Follow some creators</li>
-              </ul>
+              <!-- Checklist -->
+              <h3 class="text-xl font-bold text-[#C9A7FF] mb-4">📋 Getting Started Checklist:</h3>
+              <div class="bg-gray-50 p-6 rounded-2xl mb-6">
+                <ul class="space-y-3">
+                  <li class="flex items-center space-x-3">
+                    <span class="text-[#A8EECC] text-xl">✅</span>
+                    <span class="text-gray-700">Email verified</span>
+                  </li>
+                  <li class="flex items-center space-x-3">
+                    <span class="text-[#FFD586] text-xl">🔲</span>
+                    <span class="text-gray-700">Complete your profile</span>
+                  </li>
+                  <li class="flex items-center space-x-3">
+                    <span class="text-[#FFD586] text-xl">🔲</span>
+                    <span class="text-gray-700">Create your first frame</span>
+                  </li>
+                  <li class="flex items-center space-x-3">
+                    <span class="text-[#FFD586] text-xl">🔲</span>
+                    <span class="text-gray-700">Set your birthday for celebrations</span>
+                  </li>
+                  <li class="flex items-center space-x-3">
+                    <span class="text-[#FFD586] text-xl">🔲</span>
+                    <span class="text-gray-700">Follow some creators</span>
+                  </li>
+                </ul>
+              </div>
               
-              <p><strong>Pro Tip:</strong> Set your birthday in your profile settings to receive special birthday badges and celebrations! 🎂</p>
+              <!-- Pro Tip -->
+              <div class="bg-gradient-to-r from-[#FFD586] to-[#FFE99A] p-6 rounded-2xl mb-6">
+                <p class="text-gray-800"><span class="font-bold">Pro Tip:</span> Set your birthday in your profile settings to receive special birthday badges and celebrations! 🎂</p>
+              </div>
               
-              <div class="footer">
+              <!-- Footer -->
+              <div class="text-center text-gray-600 text-sm space-y-2">
                 <p>Questions? Our community is here to help!</p>
                 <p>Follow us for updates and tips on getting the most out of Snaplove.</p>
-                <p style="color: #999; font-size: 12px;">
+                <p class="text-gray-400 text-xs">
                   You're receiving this because you successfully verified your Snaplove account.
                 </p>
               </div>
@@ -331,7 +433,6 @@ class MailService {
 
     try {
       await this.transporter.verify();
-      // console.log('✅ Email service connection test passed');
       return true;
     } catch (error) {
       console.error('❌ Email service connection test failed:', error);
