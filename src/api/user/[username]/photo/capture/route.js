@@ -14,7 +14,7 @@ router.post('/:username/photo/capture', [
   body('title').notEmpty().isLength({ min: 1, max: 100 }).withMessage('Title is required and must be 1-100 characters'),
   body('desc').optional().isLength({ max: 500 }).withMessage('Description must be max 500 characters')
 ], authenticateToken, checkBanStatus, async (req, res) => {
-  const imageHandler = require('../../../../../../utils/LocalImageHandler');
+  const imageHandler = require('../../../../../utils/LocalImageHandler');
   const upload = imageHandler.getPhotoUpload();
 
   upload.array('images', 5)(req, res, async (err) => {
