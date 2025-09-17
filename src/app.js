@@ -87,10 +87,10 @@ const searchRoute = require("./api/search/route");
 const apiKeyAuth = createApiKeyAuth({
   skipPaths: ["/", "/health", "/lore", "/dev"],
   skipPatterns: [
-    /^\/docs/, 
-    /^\/images/, 
+    /^\/docs/,
+    /^\/images/,
     /^\/uploads/,
-    /^\/api\/auth\/(verify-email|resend-verification)/, 
+    /^\/api\/auth\/(verify-email|resend-verification)/,
     /^\/api\/admin\/discord\/auth/
   ],
   envOnly: "production",
@@ -184,7 +184,7 @@ app.get("/health", async (req, res) => {
 
     const overallHealth = Object.values(healthChecks).every((check) => check);
 
-        let emailStatus = 'disabled';
+    let emailStatus = 'disabled';
     try {
       if (process.env.BREVO_SMTP_HOST) {
         const mailService = require('./services/mailService');
@@ -268,13 +268,24 @@ app.get("/lore", (req, res) => {
     project: "The Hope Replacement",
     version: "0.0.2r",
     status: 222,
-    messages: [
-      "A hope replacement, that what I called this piece of shitty project.. with shitty routes and paths. Cuz honestly I create this backend app like creating Next.js API route which why it looks.. like shit. Started at August 13, the day I remember after days of planning for this projects. Taking the role as Project Manager and Backend Developer I sail the journey of bravery.. and of.. loss and.. suffer.",
-      "That is the day after a YOLO question I asked to her.. then shattered me. Now I fully in the glimps of void.. fighting with my own mind for the rest of August 2025. Become distant, mad, and emosional.. and like drugs.. this backend project filled the hole of hope once I lost. Make me wonder and realize I just back to my stock spec.",
-      "Until then.. early September.. I take all the courage to confess.. already knew the answer at August yet my mind and my heart couldn't bear the feeling. Rejection.. it's a big slap.. once again in my life. But hell this one just stay for normal relation.. that's why I continue this shit, pour all of my effort and time.. to distract myself.. and I always say to my friend that.. failing in love will always give you coding buff.",
-      "- REZ3X"
+    logs: [
+      {
+        messages: [
+          "A hope replacement, that what I called this piece of shitty project.. with shitty routes and paths. Cuz honestly I create this backend app like creating Next.js API route which why it looks.. like shit. Started at August 13, the day I remember after days of planning for this projects. Taking the role as Project Manager and Backend Developer I sail the journey of bravery.. and of.. loss and.. suffer.",
+          "That is the day after a YOLO question I asked to her.. then shattered me. Now I fully in the glimps of void.. fighting with my own mind for the rest of August 2025. Become distant, mad, and emosional.. and like drugs.. this backend project filled the hole of hope once I lost. Make me wonder and realize I just back to my stock spec.",
+          "Until then.. early September.. I take all the courage to confess.. already knew the answer at August yet my mind and my heart couldn't bear the feeling. Rejection.. it's a big slap.. once again in my life. But hell this one just stay for normal relation.. that's why I continue this shit, pour all of my effort and time.. to distract myself.. and I always say to my friend that.. failing in love will always give you coding buff.",
+          "- REZ3X"
+        ],
+        timestamp: "2025-09-13T18:00:00.000Z"
+      },
+      {
+        messages: [
+          "Still this junk, actually I don't really care but hell no one even acknowledged me. This thing is a drug but the people relate to this shit is another pain.. I think it's the addiction effect.. the one that you kinda get when you overdose and addicted to it.",
+          "- REZ3X"
+        ],
+        timestamp: "2025-09-17T17:30:00.000Z"
+      }
     ],
-    timestamp: "2025-09-13T18:00:00.000Z",
   });
 });
 
