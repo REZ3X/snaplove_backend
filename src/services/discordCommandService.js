@@ -3,84 +3,137 @@ const axios = require('axios');
 
 class DiscordCommandService {
   constructor() {
-    this.baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://api.snaplove.pics' 
+    this.baseUrl = process.env.NODE_ENV === 'production'
+      ? 'https://api.snaplove.pics'
       : 'http://localhost:4000';
     this.isProcessing = false;
   }
 
-  async processCommand(content, discordUserId, discordUsername) {
-    if (this.isProcessing) {
-      await discordHandler.sendError('Another command is being processed. Please wait...');
-      return;
-    }
+  async processSlashCommand(interaction) {
+    const { commandName, options } = interaction;
 
-    this.isProcessing = true;
+    await interaction.deferReply();
 
     try {
-      const parsed = discordHandler.parseCommand(content);
-      if (!parsed) return;
-
-      const { command, args } = parsed;
-
-      if (!discordHandler.isAuthorizedAdmin(discordUserId)) {
-        await discordHandler.sendError(
-          `❌ Unauthorized: @${discordUsername || discordUserId} is not authorized for admin commands`
-        );
-        return;
-      }
-
-      const authResponse = await this.makeRequest('POST', '/api/admin/discord/auth', {
-        discord_user_id: discordUserId,
-        discord_username: discordUsername
-      });
-
-      if (!authResponse.success) {
-        await discordHandler.sendError('Failed to authenticate with Discord API');
-        return;
-      }
-
-      const token = authResponse.data.token;
-
-      switch (command) {
+      switch (commandName) {
         case 'help':
-          await this.handleHelp();
+          await this.handleHelp(interaction);
           break;
-        case 'frames':
-          await this.handleFrames(args, token, discordUserId);
-          break;
-        case 'approve':
-          await this.handleApprove(args, token, discordUserId);
-          break;
-        case 'reject':
-          await this.handleReject(args, token, discordUserId);
-          break;
-        case 'users':
-          await this.handleUsers(args, token, discordUserId);
-          break;
-        case 'ban':
-          await this.handleBan(args, token, discordUserId);
-          break;
-        case 'unban':
-          await this.handleUnban(args, token, discordUserId);
-          break;
-        case 'broadcast':
-          await this.handleBroadcast(args, token, discordUserId);
+        case 'test':
+          await this.handleTest(interaction);
           break;
         case 'stats':
-          await this.handleStats(token, discordUserId);
+          await this.handleStats(interaction);
+          break;
+        case 'health':
+          await this.handleHealth(interaction);
+          break;
+        case 'frames':
+          await this.handleFrames(interaction, {
+            status: options.getString('status') || 'pending',
+            limit: options.getInteger('limit') || 10
+          });
+          break;
+        case 'approve':
+          await this.handleApprove(interaction, {
+            frameId: options.getString('frame_id')
+          });
+          break;
+        case 'reject':
+          await this.handleReject(interaction, {
+            frameId: options.getString('frame_id'),
+            reason: options.getString('reason')
+          });
+          break;
+        case 'users':
+          await this.handleUsers(interaction, {
+            role: options.getString('role'),
+            limit: options.getInteger('limit') || 10
+          });
+          break;
+        case 'user':
+          await this.handleUser(interaction, {
+            username: options.getString('username')
+          });
+          break;
+        case 'ban':
+          await this.handleBan(interaction, {
+            username: options.getString('username'),
+            duration: options.getString('duration'),
+            reason: options.getString('reason')
+          });
+          break;
+        case 'unban':
+          await this.handleUnban(interaction, {
+            username: options.getString('username')
+          });
+          break;
+        case 'role':
+          await this.handleRole(interaction, {
+            username: options.getString('username'),
+            newRole: options.getString('new_role')
+          });
+          break;
+        case 'broadcast':
+          await this.handleBroadcast(interaction, {
+            message: options.getString('message'),
+            audience: options.getString('audience') || 'all',
+            type: options.getString('type') || 'announcement'
+          });
+          break;
+        case 'reports':
+          await this.handleReports(interaction, {
+            status: options.getString('status'),
+            limit: options.getInteger('limit') || 10
+          });
+          break;
+        case 'report':
+          await this.handleReport(interaction, {
+            reportId: options.getString('report_id')
+          });
+          break;
+        case 'resolve-report':
+          await this.handleResolveReport(interaction, {
+            reportId: options.getString('report_id'),
+            action: options.getString('action'),
+            response: options.getString('response')
+          });
+          break;
+        case 'tickets':
+          await this.handleTickets(interaction, {
+            status: options.getString('status'),
+            priority: options.getString('priority'),
+            limit: options.getInteger('limit') || 10
+          });
+          break;
+        case 'ticket':
+          await this.handleTicket(interaction, {
+            ticketId: options.getString('ticket_id')
+          });
+          break;
+        case 'resolve-ticket':
+          await this.handleResolveTicket(interaction, {
+            ticketId: options.getString('ticket_id'),
+            status: options.getString('status'),
+            response: options.getString('response'),
+            priority: options.getString('priority')
+          });
           break;
         default:
-          await discordHandler.sendError(
-            `Unknown command: \`${command}\`\nUse \`!snap help\` for available commands`
-          );
+          await interaction.editReply({
+            embeds: [this.createErrorEmbed('❌ Unknown Command', `Unknown command: \`${commandName}\``)]
+          });
       }
-
     } catch (error) {
-      console.error('Discord command processing error:', error);
-      await discordHandler.sendError('Command processing failed', error.message);
-    } finally {
-      this.isProcessing = false;
+      console.error('Slash command processing error:', error);
+
+      const errorEmbed = this.createErrorEmbed('❌ Command Failed', `Error: ${error.message}`);
+
+      if (interaction.deferred) {
+        await interaction.editReply({ embeds: [errorEmbed] });
+      } else {
+        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      }
     }
   }
 
@@ -169,15 +222,10 @@ class DiscordCommandService {
       return;
     }
 
-    const _username = args[0];
+    const username = args[0];
 
-    const _adminAuthResponse = await this.makeRequest('POST', '/api/admin/discord/auth', {
-      discord_user_id: discordUserId
-    });
-
-    await discordHandler.sendError('Unban command not yet implemented. Use admin panel for now.');
+    await this.makeRequest('POST', `/api/admin/discord/user/${username}/unban`, {}, token, discordUserId);
   }
-
   async handleBroadcast(args, token, discordUserId) {
     if (!args[0]) {
       await discordHandler.sendError('Usage: `!snap broadcast <message>`');

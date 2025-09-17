@@ -856,8 +856,7 @@ class DiscordBotService {
     try {
       const { role, limit } = options;
       const query = new URLSearchParams();
-      if (role) query.append('role', role);
-      query.append('limit', limit.toString());
+      if (role) query.append('role', role); query.append('limit', limit.toString());
 
       const _response = await this.makeDiscordApiRequest(
         `/api/admin/discord/users?${query}`,
@@ -1026,20 +1025,45 @@ class DiscordBotService {
     try {
       const { username: rawUsername } = options;
 
-      const username = rawUsername.replace(/^@/, '');
+      if (!rawUsername) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Missing Username', 'Username parameter is required.')]
+        });
+        return;
+      }
 
-      await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
-        ban_status: false,
-        ban_release_datetime: null
-      });
+      const username = String(rawUsername).trim().replace(/^@/, '');
+
+      if (!/^[a-zA-Z0-9_.-]+$/.test(username) || username.length < 1 || username.length > 50) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username must be 1-50 characters and contain only letters, numbers, underscores, dots, or hyphens.')]
+        });
+        return;
+      }
+
+      await this.makeDiscordApiRequest(
+        `/api/admin/discord/user/${encodeURIComponent(username)}/unban`,
+        'POST',
+        {},
+        interaction.user.id
+      );
 
       await interaction.editReply({
         embeds: [this.createSuccessEmbed('✅ User Unbanned', `User @${username} has been unbanned successfully!`)]
       });
 
     } catch (error) {
+      console.error('Discord unban error:', error);
+
+      let errorMessage = error.message;
+      if (error.message.includes('User not found')) {
+        errorMessage = 'User not found. Please check the username and try again.';
+      } else if (error.message.includes('not banned')) {
+        errorMessage = 'User is not currently banned.';
+      }
+
       await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Unban Failed', error.message)]
+        embeds: [this.createErrorEmbed('❌ Unban Failed', errorMessage)]
       });
     }
   }
@@ -1048,19 +1072,45 @@ class DiscordBotService {
     try {
       const { username: rawUsername, newRole } = options;
 
-      const username = rawUsername.replace(/^@/, '');
+      if (!rawUsername) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Missing Username', 'Username parameter is required.')]
+        });
+        return;
+      }
 
-      await this.makeApiRequest(`/api/admin/users/${username}/update`, 'PUT', {
-        role: newRole
-      });
+      const username = String(rawUsername).trim().replace(/^@/, '');
+
+      if (!/^[a-zA-Z0-9_.-]+$/.test(username) || username.length < 1 || username.length > 50) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username must be 1-50 characters and contain only letters, numbers, underscores, dots, or hyphens.')]
+        });
+        return;
+      }
+
+      await this.makeDiscordApiRequest(
+        `/api/admin/discord/user/${encodeURIComponent(username)}/role`,
+        'POST',
+        { role: newRole },
+        interaction.user.id
+      );
 
       await interaction.editReply({
         embeds: [this.createSuccessEmbed('🔄 Role Updated', `User @${username} role changed to **${newRole}**`)]
       });
 
     } catch (error) {
+      console.error('Discord role change error:', error);
+
+      let errorMessage = error.message;
+      if (error.message.includes('User not found')) {
+        errorMessage = 'User not found. Please check the username and try again.';
+      } else if (error.message.includes('already has this role')) {
+        errorMessage = 'User already has this role.';
+      }
+
       await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Role Change Failed', error.message)]
+        embeds: [this.createErrorEmbed('❌ Role Change Failed', errorMessage)]
       });
     }
   }
@@ -1091,8 +1141,7 @@ class DiscordBotService {
     try {
       const { status, limit } = options;
       const query = new URLSearchParams();
-      if (status) query.append('status', status);
-      query.append('limit', limit.toString());
+      if (status) query.append('status', status); query.append('limit', limit.toString());
 
       const reports = await this.makeApiRequest(`/api/admin/reports?${query}`);
 
@@ -1195,9 +1244,7 @@ class DiscordBotService {
     try {
       const { status, priority, limit } = options;
       const query = new URLSearchParams();
-      if (status) query.append('status', status);
-      if (priority) query.append('priority', priority);
-      query.append('limit', limit.toString());
+      if (status) query.append('status', status); if (priority) query.append('priority', priority); query.append('limit', limit.toString());
 
       const tickets = await this.makeApiRequest(`/api/admin/ticket?${query}`);
 
