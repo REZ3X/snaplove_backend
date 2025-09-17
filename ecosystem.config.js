@@ -13,7 +13,8 @@ module.exports = {
 
             env_production: {
                 NODE_ENV: 'production',
-                PORT: 4000
+                PORT: 4000,
+                APP_VERSION: '0.9.5'
             },
 
             log_file: './logs/app.log',
