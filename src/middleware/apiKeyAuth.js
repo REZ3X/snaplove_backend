@@ -1,37 +1,39 @@
 const createApiKeyAuth = (options = {}) => {
   const {
-    skipPaths = ['/', '/health', '/docs'],
-    skipPatterns = [/^\/docs/],
+    skipPaths = ['/', '/health', '/lore', '/dev'],
+    skipPatterns = [/^\/docs/, /^\/images/, /^\/uploads/],
     envOnly = 'production'
   } = options;
 
   return (req, res, next) => {
-        if (skipPaths.includes(req.path)) {
+    if (skipPaths.includes(req.path)) {
       return next();
     }
 
-        if (skipPatterns.some(pattern => pattern.test(req.path))) {
+    if (skipPatterns.some(pattern => pattern.test(req.path))) {
       return next();
     }
 
-        if (envOnly && process.env.NODE_ENV !== envOnly) {
+    if (envOnly && process.env.NODE_ENV !== envOnly) {
       return next();
     }
 
-        const isInternalRequest = req.headers['x-internal-request'] === 'true' || 
-                             req.headers['x-discord-bot'] === 'true' || 
-                             req.headers['user-agent']?.includes('SnaploveDiscordBot') ||
-                             req.ip === '127.0.0.1' ||
-                             req.ip === '::1' ||
-                             req.connection.remoteAddress === '127.0.0.1';
-    
+    const isInternalRequest = req.headers['x-internal-request'] === 'true' ||
+      req.headers['x-discord-bot'] === 'true' ||
+      req.headers['user-agent']?.includes('SnaploveDiscordBot') ||
+      req.ip === '127.0.0.1' ||
+      req.ip === '::1' ||
+      req.connection.remoteAddress === '127.0.0.1' ||
+      req.headers.host === 'localhost:4000' ||
+      req.headers.host === '127.0.0.1:4000';
+
     if (isInternalRequest) {
       console.log('🔓 Exempting internal/Discord bot request from API key check');
       return next();
     }
 
     const apiKey = req.headers['x-api-key'] || req.headers['api-key'];
-    
+
     if (!apiKey) {
       return res.status(401).json({
         success: false,
@@ -40,7 +42,7 @@ const createApiKeyAuth = (options = {}) => {
       });
     }
 
-    const allowedApiKeys = process.env.API_KEYS 
+    const allowedApiKeys = process.env.API_KEYS
       ? process.env.API_KEYS.split(',').map(key => key.trim())
       : [];
 
@@ -59,7 +61,7 @@ const createApiKeyAuth = (options = {}) => {
         message: 'Invalid API key'
       });
     }
-    
+
     console.log('✅ API key validation passed');
     next();
   };
