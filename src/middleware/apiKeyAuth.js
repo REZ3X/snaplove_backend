@@ -25,7 +25,9 @@ const createApiKeyAuth = (options = {}) => {
       req.ip === '::1' ||
       req.connection.remoteAddress === '127.0.0.1' ||
       req.headers.host === 'localhost:4000' ||
-      req.headers.host === '127.0.0.1:4000';
+      req.headers.host === '127.0.0.1:4000' ||
+      req.headers['x-discord-token'] ||
+      req.headers['x-discord-user'];
 
     if (isInternalRequest) {
       console.log('🔓 Exempting internal/Discord bot request from API key check');

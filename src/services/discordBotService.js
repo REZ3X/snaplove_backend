@@ -945,37 +945,81 @@ class DiscordBotService {
         return;
       }
 
-      const username = String(rawUsername).replace(/^@/, '');
+      const username = String(rawUsername).trim().replace(/^@/, '');
 
-      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      if (!/^[a-zA-Z0-9_.-]+$/.test(username) || username.length < 1 || username.length > 50) {
         await interaction.editReply({
-          embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username can only contain letters, numbers, and underscores.')]
+          embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username must be 1-50 characters and contain only letters, numbers, underscores, dots, or hyphens.')]
+        });
+        return;
+      }
+
+      if (!/^[a-zA-Z0-9_.-]+$/.test(username) || username.length < 1 || username.length > 50) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Invalid Username', 'Username must be 1-50 characters and contain only letters, numbers, underscores, dots, or hyphens.')]
+        });
+        return;
+      }
+
+      if (duration) {
+        const durationRegex = /^(\d+)([dhm])$/;
+        if (!durationRegex.test(duration)) {
+          await interaction.editReply({
+            embeds: [this.createErrorEmbed('❌ Invalid Duration', 'Duration must be in format: 7d, 24h, or 30m (days, hours, minutes).')]
+          });
+          return;
+        }
+      }
+
+      if (reason && reason.length > 500) {
+        await interaction.editReply({
+          embeds: [this.createErrorEmbed('❌ Reason Too Long', 'Ban reason must be 500 characters or less.')]
         });
         return;
       }
 
       const requestData = {
-        duration: duration || null,
-        reason: reason || 'Banned via Discord command'
+        ...(duration && { duration }),
+        ...(reason && { reason })
       };
 
       console.log(`🔨 Discord ban request for user: ${username}`, requestData);
 
       await this.makeDiscordApiRequest(
-        `/api/admin/discord/user/${username}/ban`,
+        `/api/admin/discord/user/${encodeURIComponent(username)}/ban`,
         'POST',
         requestData,
         interaction.user.id
       );
 
+      let responseMessage = `User @${username} has been banned successfully!`;
+      if (duration) {
+        responseMessage += `\n**Duration:** ${duration}`;
+      }
+      if (reason) {
+        responseMessage += `\n**Reason:** ${reason}`;
+      }
+
       await interaction.editReply({
-        embeds: [this.createSuccessEmbed('🔨 User Banned', `User @${username} has been banned successfully!`)]
+        embeds: [this.createSuccessEmbed('🔨 User Banned', responseMessage)]
       });
 
     } catch (error) {
       console.error('Discord ban error:', error);
+
+      let errorMessage = error.message;
+      if (error.message.includes('Validation failed')) {
+        errorMessage = 'Invalid ban parameters. Please check username format and try again.';
+      } else if (error.message.includes('User not found')) {
+        errorMessage = 'User not found. Please check the username and try again.';
+      } else if (error.message.includes('already banned')) {
+        errorMessage = 'User is already banned.';
+      } else if (error.message.includes('Cannot ban admin')) {
+        errorMessage = 'Cannot ban admin users.';
+      }
+
       await interaction.editReply({
-        embeds: [this.createErrorEmbed('❌ Ban Failed', error.message)]
+        embeds: [this.createErrorEmbed('❌ Ban Failed', errorMessage)]
       });
     }
   } async handleUnban(interaction, options) {

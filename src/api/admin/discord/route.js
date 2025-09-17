@@ -61,7 +61,7 @@ router.post('/auth', [
         `Unauthorized access attempt by ${discord_username || discord_user_id}`,
         'User not in admin whitelist'
       );
-      
+
       return res.status(403).json({
         success: false,
         message: 'Discord user not authorized'
@@ -74,7 +74,7 @@ router.post('/auth', [
       success: true,
       data: {
         token,
-        expires_in: 300,         discord_user_id
+        expires_in: 300, discord_user_id
       }
     });
 
@@ -92,7 +92,7 @@ router.get('/frames', discordAuth, async (req, res) => {
     const status = req.query.status || 'pending';
     const limit = Math.min(parseInt(req.query.limit) || 10, 25);
 
-    const filter = { 
+    const filter = {
       visibility: 'public',
       ...(status !== 'all' && { approval_status: status })
     };
@@ -111,7 +111,7 @@ router.get('/frames', discordAuth, async (req, res) => {
     await discordHandler.sendEmbed(
       `🖼️ Frames (${status})`,
       `Found ${frames.length} frames`,
-      fields.slice(0, 10),       0x3498db
+      fields.slice(0, 10), 0x3498db
     );
 
     res.json({
@@ -163,7 +163,7 @@ router.post('/frame/:id/approve', [
 
     const adminUser = await User.findOne({
       role: { $in: ['official', 'developer'] }
-    }).sort({ created_at: 1 }); 
+    }).sort({ created_at: 1 });
     frame.approval_status = 'approved';
     frame.approved_by = adminUser._id;
     frame.approved_at = new Date();
@@ -326,13 +326,16 @@ router.get('/users', discordAuth, async (req, res) => {
 });
 
 router.post('/user/:username/ban', [
-  param('username').notEmpty().withMessage('Username required'),
-  body('duration').optional().isString(),
-  body('reason').optional().isLength({ max: 500 }).withMessage('Reason too long')
+  param('username').notEmpty().withMessage('Username required')
+    .isLength({ min: 1, max: 50 }).withMessage('Username must be 1-50 characters')
+    .matches(/^[a-zA-Z0-9_.-]+$/).withMessage('Username contains invalid characters'),
+  body('duration').optional().matches(/^(\d+)([dhm])$/).withMessage('Duration must be in format: 7d, 24h, or 30m'),
+  body('reason').optional().isLength({ max: 500 }).withMessage('Reason too long (max 500 characters)')
 ], discordAuth, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Ban validation errors:', errors.array());
       await discordHandler.sendError('Validation failed: ' + errors.array().map(e => e.msg).join(', '));
       return res.status(400).json({
         success: false,
@@ -342,7 +345,7 @@ router.post('/user/:username/ban', [
     }
 
     const username = req.params.username.replace(/^@/, '');
-    
+
     const user = await User.findOne({ username });
     if (!user) {
       await discordHandler.sendError('User not found');
@@ -459,7 +462,7 @@ router.post('/broadcast', [
     await broadcast.save();
 
     const deliveryStats = await socketService.sendBroadcastNotification(broadcast);
-    
+
     broadcast.total_recipients = deliveryStats.total_recipients;
     broadcast.notifications_created = deliveryStats.notifications_created;
     broadcast.delivery_stats = deliveryStats.delivery_stats;
