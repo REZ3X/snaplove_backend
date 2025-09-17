@@ -40,6 +40,14 @@ router.get('/:username/photo/private', [
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
+    console.log('📥 Getting user photos:', {
+      username: req.params.username,
+      userId: targetUser._id,
+      page,
+      limit,
+      skip
+    });
+
     const photos = await Photo.find({
       user_id: targetUser._id
     })
@@ -53,24 +61,49 @@ router.get('/:username/photo/private', [
     });
     const totalPages = Math.ceil(total / limit);
 
+    console.log('📊 Photos query result:', {
+      totalPhotos: total,
+      currentPagePhotos: photos.length,
+      totalPages,
+      currentPage: page
+    });
+
+    const formattedPhotos = photos.map(photo => {
+      const formattedPhoto = {
+        id: photo._id,
+        images: photo.images.map(img => {
+          if (img.startsWith('http')) {
+            return img;
+          }
+          return req.protocol + '://' + req.get('host') + '/' + img;
+        }),
+        title: photo.title,
+        desc: photo.desc,
+        expires_at: photo.expires_at,
+        created_at: photo.created_at,
+        updated_at: photo.updated_at
+      };
+
+      if (photo.frame_id) {
+        formattedPhoto.frame = {
+          id: photo.frame_id._id,
+          title: photo.frame_id.title,
+          layout_type: photo.frame_id.layout_type,
+          thumbnail: photo.frame_id.thumbnail ? 
+            (photo.frame_id.thumbnail.startsWith('http') ? 
+              photo.frame_id.thumbnail : 
+              req.protocol + '://' + req.get('host') + '/' + photo.frame_id.thumbnail
+            ) : null
+        };
+      }
+
+      return formattedPhoto;
+    });
+
     res.json({
       success: true,
       data: {
-        photos: photos.map(photo => ({
-          id: photo._id,
-          images: photo.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
-          title: photo.title,
-          desc: photo.desc,
-          frame: {
-            id: photo.frame_id._id,
-            title: photo.frame_id.title,
-            layout_type: photo.frame_id.layout_type,
-            thumbnail: photo.frame_id.thumbnail ? req.protocol + '://' + req.get('host') + '/' + photo.frame_id.thumbnail : null
-          },
-          expires_at: photo.expires_at,
-          created_at: photo.created_at,
-          updated_at: photo.updated_at
-        })),
+        photos: formattedPhotos,
         pagination: {
           current_page: page,
           total_pages: totalPages,
@@ -86,7 +119,8 @@ router.get('/:username/photo/private', [
     console.error('Get private photos error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

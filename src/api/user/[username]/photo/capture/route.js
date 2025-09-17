@@ -8,34 +8,68 @@ const { calculatePhotoExpiry } = require('../../../../../utils/RolePolicy');
 
 const router = express.Router();
 
-router.post('/:username/photo/capture', [
-  param('username').notEmpty().withMessage('Username is required'),
-  body('frame_id').isMongoId().withMessage('Valid frame ID is required'),
-  body('title').notEmpty().isLength({ min: 1, max: 100 }).withMessage('Title is required and must be 1-100 characters'),
-  body('desc').optional().isLength({ max: 500 }).withMessage('Description must be max 500 characters')
-], authenticateToken, checkBanStatus, async (req, res) => {
+router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async (req, res) => {
   const imageHandler = require('../../../../../utils/LocalImageHandler');
   const upload = imageHandler.getPhotoUpload();
 
   upload.array('images', 5)(req, res, async (err) => {
     if (err) {
+      console.error('Multer upload error:', err);
       return res.status(400).json({
         success: false,
-        message: err.message
+        message: `Upload error: ${err.message}`
       });
     }
 
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
+      const { frame_id, title, desc } = req.body;
+      const { username } = req.params;
+
+      console.log('📸 Received capture request:', {
+        username,
+        body: req.body,
+        files: req.files?.length || 0,
+        frame_id,
+        title,
+        desc
+      });
+
+      const errors = [];
+
+      if (!username) {
+        errors.push({ msg: 'Username is required', path: 'username', location: 'params' });
+      }
+
+      if (!frame_id) {
+        errors.push({ msg: 'Frame ID is required', path: 'frame_id', location: 'body' });
+      } else if (!/^[0-9a-fA-F]{24}$/.test(frame_id)) {
+        errors.push({ msg: 'Frame ID must be a valid ObjectId', path: 'frame_id', location: 'body' });
+      }
+
+      if (!title) {
+        errors.push({ msg: 'Title is required', path: 'title', location: 'body' });
+      } else if (title.length < 1 || title.length > 100) {
+        errors.push({ msg: 'Title must be 1-100 characters', path: 'title', location: 'body' });
+      }
+
+      if (desc && desc.length > 500) {
+        errors.push({ msg: 'Description must be max 500 characters', path: 'desc', location: 'body' });
+      }
+
+      if (!req.files || req.files.length === 0) {
+        errors.push({ msg: 'At least one photo is required', path: 'images', location: 'files' });
+      }
+
+      if (errors.length > 0) {
+        console.error('Validation errors:', errors);
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors.array()
+          errors: errors
         });
       }
 
-      const targetUser = await User.findOne({ username: req.params.username });
+      const targetUser = await User.findOne({ username });
       if (!targetUser) {
         return res.status(404).json({
           success: false,
@@ -50,15 +84,10 @@ router.post('/:username/photo/capture', [
         });
       }
 
-      const { frame_id, title, desc } = req.body;
-
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'At least one photo is required'
-        });
-      }
-
+      console.log('🔍 Searching for frame:', {
+        frame_id,
+        targetUserId: targetUser._id
+      });
 
       const frame = await Frame.findOne({
         _id: frame_id,
@@ -75,6 +104,12 @@ router.post('/:username/photo/capture', [
         });
       }
 
+      console.log('🖼️ Frame found:', {
+        frameId: frame._id,
+        title: frame.title,
+        visibility: frame.visibility,
+        ownerId: frame.user_id._id
+      });
 
       if (frame.user_id._id.toString() !== targetUser._id.toString()) {
         frame.use_count.push({ user_id: targetUser._id });
@@ -83,6 +118,16 @@ router.post('/:username/photo/capture', [
 
       const images = req.files.map(file => imageHandler.getRelativeImagePath(file.path));
       const expiryDate = calculatePhotoExpiry(targetUser.role);
+
+      console.log('💾 Creating photo with data:', {
+        imagesCount: images.length,
+        title: title.trim(),
+        desc: desc ? desc.trim() : '',
+        frameId: frame_id,
+        userId: targetUser._id,
+        expiryDate,
+        userRole: targetUser.role
+      });
 
       const newPhoto = new Photo({
         images,
@@ -98,6 +143,11 @@ router.post('/:username/photo/capture', [
         { path: 'frame_id', select: 'title layout_type thumbnail' },
         { path: 'user_id', select: 'name username role' }
       ]);
+
+      console.log('✅ Photo saved successfully:', {
+        photoId: newPhoto._id,
+        expiresAt: newPhoto.expires_at
+      });
 
       res.status(201).json({
         success: true,
@@ -123,9 +173,11 @@ router.post('/:username/photo/capture', [
 
     } catch (error) {
       console.error('Capture photo error:', error);
+      
       res.status(500).json({
         success: false,
-        message: 'Internal server error'
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   });
