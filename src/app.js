@@ -3,6 +3,7 @@ const http = require("http");
 const socketService = require("./services/socketService");
 const birthdayService = require("./services/birthdayService");
 const discordBotService = require('./services/discordBotService');
+const cleanupScheduler = require('./jobs/cleanupScheduler');
 const discordHandler = require('./utils/DiscordHookHandler');
 const express = require("express");
 
@@ -726,6 +727,9 @@ if (process.env.NODE_ENV !== "test") {
   socketService.initialize(server);
   birthdayService.start();
 
+  // Start photo cleanup scheduler (runs every 30 minutes)
+  cleanupScheduler.start('*/30 * * * *');
+
   discordBotService.start()
     .then(() => console.log('🤖 Discord bot integration started'))
     .catch(err => console.log('⚠️ Discord bot not available:', err.message));
@@ -741,6 +745,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`📁 Images served from: ${path.join(process.cwd(), "images")}`);
     console.log(`🔒 Trust proxy: ${app.get("trust proxy")}`);
     console.log(`📡 Socket.IO enabled for real-time notifications`);
+    console.log(`🧹 Photo cleanup scheduler active (every 30 minutes)`);
   });
 }
 
