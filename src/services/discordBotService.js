@@ -1143,29 +1143,16 @@ class DiscordBotService {
       const query = new URLSearchParams();
       if (status) query.append('status', status); query.append('limit', limit.toString());
 
-      const reports = await this.makeApiRequest(`/api/admin/reports?${query}`);
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/reports?${query}`,
+        'GET',
+        null,
+        interaction.user.id
+      );
 
-      if (reports.data.reports.length === 0) {
-        await interaction.editReply({
-          embeds: [this.createInfoEmbed('📋 No Reports', `No ${status || 'pending'} reports found.`)]
-        });
-        return;
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle(`📋 Reports (${status || 'all'})`)
-        .setDescription(`Found ${reports.data.reports.length} reports`)
-        .setColor(0xff9900);
-
-      reports.data.reports.slice(0, 10).forEach((report, index) => {
-        embed.addFields({
-          name: `${index + 1}. ${report.title}`,
-          value: `**ID:** \`${report.id}\`\n**Status:** ${report.report_status}\n**By:** @${report.reporter.username}`,
-          inline: false
-        });
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('📋 Reports Listed', `Listed ${status || 'all'} reports. Check Discord for details.`)]
       });
-
-      await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
       await interaction.editReply({
@@ -1177,38 +1164,17 @@ class DiscordBotService {
   async handleReport(interaction, options) {
     try {
       const { reportId } = options;
-      const report = await this.makeApiRequest(`/api/admin/reports/${reportId}`);
 
-      if (!report.success) {
-        await interaction.editReply({
-          embeds: [this.createErrorEmbed('❌ Report Not Found', `Report "${reportId}" not found.`)]
-        });
-        return;
-      }
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/report/${reportId}`,
+        'GET',
+        null,
+        interaction.user.id
+      );
 
-      const reportData = report.data.report;
-      const embed = new EmbedBuilder()
-        .setTitle(`📋 Report Details`)
-        .setColor(reportData.report_status === 'pending' ? 0xff9900 : 0x00ff00)
-        .addFields(
-          { name: 'ID', value: reportData.id, inline: true },
-          { name: 'Title', value: reportData.title, inline: true },
-          { name: 'Status', value: reportData.report_status, inline: true },
-          { name: 'Reporter', value: `@${reportData.reporter.username}`, inline: true },
-          { name: 'Created', value: new Date(reportData.created_at).toLocaleDateString(), inline: true },
-          { name: 'Description', value: reportData.description || 'No description', inline: false }
-        )
-        .setTimestamp();
-
-      if (reportData.admin_response) {
-        embed.addFields({ name: 'Admin Response', value: reportData.admin_response, inline: false });
-      }
-
-      if (reportData.frame) {
-        embed.addFields({ name: 'Reported Frame', value: reportData.frame.title, inline: true });
-      }
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('📋 Report Details', `Report details sent. Check Discord for full information.`)]
+      });
 
     } catch (error) {
       await interaction.editReply({
@@ -1221,13 +1187,17 @@ class DiscordBotService {
     try {
       const { reportId, action, response } = options;
 
-      const updateData = {
-        report_status: action === 'delete_frame' ? 'done' : action,
-        ...(action === 'delete_frame' && { action: 'delete_frame' }),
+      const requestData = {
+        action,
         ...(response && { admin_response: response })
       };
 
-      const _result = await this.makeApiRequest(`/api/admin/reports/${reportId}`, 'PUT', updateData);
+      const _result = await this.makeDiscordApiRequest(
+        `/api/admin/discord/report/${reportId}/resolve`,
+        'POST',
+        requestData,
+        interaction.user.id
+      );
 
       await interaction.editReply({
         embeds: [this.createSuccessEmbed('✅ Report Resolved', `Report \`${reportId}\` has been ${action === 'delete_frame' ? 'resolved and frame deleted' : action}.`)]
@@ -1246,36 +1216,16 @@ class DiscordBotService {
       const query = new URLSearchParams();
       if (status) query.append('status', status); if (priority) query.append('priority', priority); query.append('limit', limit.toString());
 
-      const tickets = await this.makeApiRequest(`/api/admin/ticket?${query}`);
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/tickets?${query}`,
+        'GET',
+        null,
+        interaction.user.id
+      );
 
-      if (tickets.data.tickets.length === 0) {
-        await interaction.editReply({
-          embeds: [this.createInfoEmbed('🎫 No Tickets', `No ${status || priority || 'pending'} tickets found.`)]
-        });
-        return;
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🎫 Tickets (${status || priority || 'all'})`)
-        .setDescription(`Found ${tickets.data.tickets.length} tickets`)
-        .setColor(0x3498db);
-
-      tickets.data.tickets.slice(0, 10).forEach((ticket, index) => {
-        const priorityEmoji = {
-          urgent: '🔴',
-          high: '🟠',
-          medium: '🟡',
-          low: '🟢'
-        }[ticket.priority] || '⚪';
-
-        embed.addFields({
-          name: `${index + 1}. ${ticket.title}`,
-          value: `**ID:** \`${ticket.id}\`\n**Status:** ${ticket.status}\n**Priority:** ${priorityEmoji} ${ticket.priority}\n**By:** @${ticket.user.username}`,
-          inline: false
-        });
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('🎫 Tickets Listed', `Listed ${status || priority || 'all'} tickets. Check Discord for details.`)]
       });
-
-      await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
       await interaction.editReply({
@@ -1287,48 +1237,17 @@ class DiscordBotService {
   async handleTicket(interaction, options) {
     try {
       const { ticketId } = options;
-      const ticket = await this.makeApiRequest(`/api/admin/ticket/${ticketId}`);
 
-      if (!ticket.success) {
-        await interaction.editReply({
-          embeds: [this.createErrorEmbed('❌ Ticket Not Found', `Ticket "${ticketId}" not found.`)]
-        });
-        return;
-      }
+      const _response = await this.makeDiscordApiRequest(
+        `/api/admin/discord/ticket/${ticketId}`,
+        'GET',
+        null,
+        interaction.user.id
+      );
 
-      const ticketData = ticket.data.ticket;
-      const priorityEmoji = {
-        urgent: '🔴',
-        high: '🟠',
-        medium: '🟡',
-        low: '🟢'
-      }[ticketData.priority] || '⚪';
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🎫 Ticket Details`)
-        .setColor(ticketData.status === 'resolved' ? 0x00ff00 : 0x3498db)
-        .addFields(
-          { name: 'ID', value: ticketData.id, inline: true },
-          { name: 'Title', value: ticketData.title, inline: true },
-          { name: 'Status', value: ticketData.status, inline: true },
-          { name: 'Priority', value: `${priorityEmoji} ${ticketData.priority}`, inline: true },
-          { name: 'Type', value: ticketData.type || 'General', inline: true },
-          { name: 'User', value: `@${ticketData.user.username}`, inline: true },
-          { name: 'Created', value: new Date(ticketData.created_at).toLocaleDateString(), inline: true },
-          { name: 'Updated', value: new Date(ticketData.updated_at).toLocaleDateString(), inline: true },
-          { name: 'Description', value: ticketData.description || 'No description', inline: false }
-        )
-        .setTimestamp();
-
-      if (ticketData.admin_response) {
-        embed.addFields({ name: 'Admin Response', value: ticketData.admin_response, inline: false });
-      }
-
-      if (ticketData.admin && ticketData.admin.username) {
-        embed.addFields({ name: 'Assigned Admin', value: `@${ticketData.admin.username}`, inline: true });
-      }
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({
+        embeds: [this.createSuccessEmbed('🎫 Ticket Details', `Ticket details sent. Check Discord for full information.`)]
+      });
 
     } catch (error) {
       await interaction.editReply({
@@ -1347,7 +1266,12 @@ class DiscordBotService {
         ...(priority && { priority })
       };
 
-      const _result = await this.makeApiRequest(`/api/admin/ticket/${ticketId}`, 'PUT', updateData);
+      const _result = await this.makeDiscordApiRequest(
+        `/api/admin/discord/ticket/${ticketId}/resolve`,
+        'POST',
+        updateData,
+        interaction.user.id
+      );
 
       const embed = new EmbedBuilder()
         .setTitle('✅ Ticket Updated')

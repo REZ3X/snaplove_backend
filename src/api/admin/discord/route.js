@@ -697,4 +697,356 @@ router.post('/user/:username/role', [
   }
 });
 
+router.get('/reports', discordAuth, async (req, res) => {
+  try {
+    const status = req.query.status;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 25);
+
+    const filter = {
+      ...(status && { report_status: status })
+    };
+
+    const reports = await Report.find(filter)
+      .populate('user_id', 'name username')
+      .populate('frame_id', 'title')
+      .sort({ created_at: -1 })
+      .limit(limit);
+
+    const fields = reports.map(report => ({
+      name: `${report.title} (${report.report_status})`,
+      value: `ID: \`${report._id}\`\nBy: @${report.user_id.username}\nFrame: ${report.frame_id?.title || 'Deleted'}`,
+      inline: true
+    }));
+
+    await discordHandler.sendEmbed(
+      `📋 Reports ${status ? `(${status})` : ''}`,
+      `Found ${reports.length} reports`,
+      fields.slice(0, 10),
+      0xff9900
+    );
+
+    res.json({
+      success: true,
+      data: { reports: reports.length }
+    });
+
+  } catch (error) {
+    console.error('Discord reports command error:', error);
+    await discordHandler.sendError('Failed to fetch reports', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+router.get('/report/:id', [
+  param('id').isMongoId().withMessage('Invalid report ID')
+], discordAuth, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id)
+      .populate('user_id', 'name username')
+      .populate('frame_id', 'title')
+      .populate('admin_id', 'name username');
+
+    if (!report) {
+      await discordHandler.sendError('Report not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Report not found'
+      });
+    }
+
+    const fields = [
+      { name: 'ID', value: report._id.toString(), inline: true },
+      { name: 'Title', value: report.title, inline: true },
+      { name: 'Status', value: report.report_status, inline: true },
+      { name: 'Reporter', value: `@${report.user_id.username}`, inline: true },
+      { name: 'Frame', value: report.frame_id?.title || 'Deleted', inline: true },
+      { name: 'Created', value: new Date(report.created_at).toLocaleDateString(), inline: true }
+    ];
+
+    if (report.admin_response) {
+      fields.push({ name: 'Admin Response', value: report.admin_response, inline: false });
+    }
+
+    await discordHandler.sendEmbed(
+      `📋 Report Details`,
+      report.description || 'No description',
+      fields,
+      report.report_status === 'pending' ? 0xff9900 : 0x00ff00
+    );
+
+    res.json({
+      success: true,
+      data: { report_found: true }
+    });
+
+  } catch (error) {
+    console.error('Discord report detail error:', error);
+    await discordHandler.sendError('Failed to fetch report details', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+router.post('/report/:id/resolve', [
+  param('id').isMongoId().withMessage('Invalid report ID'),
+  body('action').isIn(['done', 'rejected', 'delete_frame']).withMessage('Invalid action'),
+  body('admin_response').optional().isLength({ max: 1000 }).withMessage('Response too long')
+], discordAuth, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      await discordHandler.sendError('Validation failed: ' + errors.array().map(e => e.msg).join(', '));
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const report = await Report.findById(req.params.id)
+      .populate('user_id', 'name username')
+      .populate('frame_id', 'title');
+
+    if (!report) {
+      await discordHandler.sendError('Report not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Report not found'
+      });
+    }
+
+    const { action, admin_response } = req.body;
+
+    if (action === 'delete_frame' && report.frame_id) {
+      try {
+        const Frame = require('../../../models/Frame');
+        await Frame.findByIdAndDelete(report.frame_id._id);
+        console.log(`🗑️ Frame ${report.frame_id._id} deleted via Discord report resolution`);
+      } catch (deleteError) {
+        console.error('Failed to delete frame:', deleteError);
+      }
+    }
+
+    const adminUser = await User.findOne({
+      role: { $in: ['official', 'developer'] }
+    }).sort({ created_at: 1 });
+
+    report.report_status = action === 'delete_frame' ? 'done' : action;
+    report.admin_id = adminUser._id;
+    report.admin_response = admin_response || `Report ${action} via Discord`;
+    await report.save();
+
+    await discordHandler.sendSuccess(
+      `Report resolved successfully! ✅`,
+      [
+        { name: 'Report', value: report.title, inline: true },
+        { name: 'Action', value: action === 'delete_frame' ? 'Frame Deleted' : action, inline: true },
+        { name: 'Reporter', value: `@${report.user_id.username}`, inline: true },
+        ...(admin_response ? [{ name: 'Response', value: admin_response, inline: false }] : [])
+      ]
+    );
+
+    console.log(`📢 DISCORD REPORT: Report ${report._id} resolved as ${action} via Discord by ${req.discordUser.id}`);
+
+    res.json({
+      success: true,
+      message: 'Report resolved successfully',
+      data: {
+        report_id: report._id,
+        action,
+        admin_response
+      }
+    });
+
+  } catch (error) {
+    console.error('Discord report resolution error:', error);
+    await discordHandler.sendError('Failed to resolve report', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+router.get('/tickets', discordAuth, async (req, res) => {
+  try {
+    const status = req.query.status;
+    const priority = req.query.priority;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 25);
+
+    const filter = {
+      ...(status && { status }),
+      ...(priority && { priority })
+    };
+
+    const tickets = await Ticket.find(filter)
+      .populate('user_id', 'name username')
+      .sort({ created_at: -1 })
+      .limit(limit);
+
+    const fields = tickets.map(ticket => {
+      const priorityEmoji = {
+        urgent: '🔴',
+        high: '🟠',
+        medium: '🟡',
+        low: '🟢'
+      }[ticket.priority] || '⚪';
+
+      return {
+        name: `${ticket.title} (${ticket.status})`,
+        value: `ID: \`${ticket._id}\`\nBy: @${ticket.user_id.username}\nPriority: ${priorityEmoji} ${ticket.priority}`,
+        inline: true
+      };
+    });
+
+    await discordHandler.sendEmbed(
+      `🎫 Tickets ${status || priority ? `(${status || priority})` : ''}`,
+      `Found ${tickets.length} tickets`,
+      fields.slice(0, 10),
+      0x3498db
+    );
+
+    res.json({
+      success: true,
+      data: { tickets: tickets.length }
+    });
+
+  } catch (error) {
+    console.error('Discord tickets command error:', error);
+    await discordHandler.sendError('Failed to fetch tickets', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+router.get('/ticket/:id', [
+  param('id').isMongoId().withMessage('Invalid ticket ID')
+], discordAuth, async (req, res) => {
+  try {
+    const ticket = await Ticket.findById(req.params.id)
+      .populate('user_id', 'name username email')
+      .populate('admin_id', 'name username');
+
+    if (!ticket) {
+      await discordHandler.sendError('Ticket not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Ticket not found'
+      });
+    }
+
+    const priorityEmoji = {
+      urgent: '🔴',
+      high: '🟠',
+      medium: '🟡',
+      low: '🟢'
+    }[ticket.priority] || '⚪';
+
+    const fields = [
+      { name: 'ID', value: ticket._id.toString(), inline: true },
+      { name: 'Title', value: ticket.title, inline: true },
+      { name: 'Status', value: ticket.status, inline: true },
+      { name: 'Priority', value: `${priorityEmoji} ${ticket.priority}`, inline: true },
+      { name: 'Type', value: ticket.type || 'General', inline: true },
+      { name: 'User', value: `@${ticket.user_id.username} (${ticket.user_id.email})`, inline: true },
+      { name: 'Created', value: new Date(ticket.created_at).toLocaleDateString(), inline: true },
+      { name: 'Updated', value: new Date(ticket.updated_at).toLocaleDateString(), inline: true }
+    ];
+
+    if (ticket.admin_response) {
+      fields.push({ name: 'Admin Response', value: ticket.admin_response, inline: false });
+    }
+
+    if (ticket.admin_id) {
+      fields.push({ name: 'Assigned Admin', value: `@${ticket.admin_id.username}`, inline: true });
+    }
+
+    await discordHandler.sendEmbed(
+      `🎫 Ticket Details`,
+      ticket.description || 'No description',
+      fields,
+      ticket.status === 'resolved' ? 0x00ff00 : 0x3498db
+    );
+
+    res.json({
+      success: true,
+      data: { ticket_found: true }
+    });
+
+  } catch (error) {
+    console.error('Discord ticket detail error:', error);
+    await discordHandler.sendError('Failed to fetch ticket details', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+router.post('/ticket/:id/resolve', [
+  param('id').isMongoId().withMessage('Invalid ticket ID'),
+  body('status').isIn(['pending', 'in_progress', 'resolved', 'closed']).withMessage('Invalid status'),
+  body('admin_response').optional().isLength({ max: 1000 }).withMessage('Response too long'),
+  body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']).withMessage('Invalid priority')
+], discordAuth, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      await discordHandler.sendError('Validation failed: ' + errors.array().map(e => e.msg).join(', '));
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const ticket = await Ticket.findById(req.params.id)
+      .populate('user_id', 'name username email');
+
+    if (!ticket) {
+      await discordHandler.sendError('Ticket not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Ticket not found'
+      });
+    }
+
+    const { status, admin_response, priority } = req.body;
+
+    const adminUser = await User.findOne({
+      role: { $in: ['official', 'developer'] }
+    }).sort({ created_at: 1 });
+
+    const oldStatus = ticket.status;
+    ticket.status = status;
+    ticket.admin_id = adminUser._id;
+    if (admin_response) ticket.admin_response = admin_response;
+    if (priority) ticket.priority = priority;
+    await ticket.save();
+
+    await discordHandler.sendSuccess(
+      `Ticket updated successfully! 🎫`,
+      [
+        { name: 'Ticket', value: ticket.title, inline: true },
+        { name: 'Old Status', value: oldStatus, inline: true },
+        { name: 'New Status', value: status, inline: true },
+        { name: 'User', value: `@${ticket.user_id.username}`, inline: true },
+        ...(priority ? [{ name: 'Priority', value: priority, inline: true }] : []),
+        ...(admin_response ? [{ name: 'Response', value: admin_response, inline: false }] : [])
+      ]
+    );
+
+    console.log(`📢 DISCORD TICKET: Ticket ${ticket._id} updated from ${oldStatus} to ${status} via Discord by ${req.discordUser.id}`);
+
+    res.json({
+      success: true,
+      message: 'Ticket updated successfully',
+      data: {
+        ticket_id: ticket._id,
+        old_status: oldStatus,
+        new_status: status,
+        admin_response,
+        priority
+      }
+    });
+
+  } catch (error) {
+    console.error('Discord ticket resolution error:', error);
+    await discordHandler.sendError('Failed to update ticket', error.message);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 module.exports = router;
