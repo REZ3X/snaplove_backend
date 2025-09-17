@@ -3,13 +3,14 @@ const { param, validationResult } = require('express-validator');
 const Photo = require('../../../../../../../models/Photo');
 const User = require('../../../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../../../middleware/middleware');
-const imageHandler = require('../../../../../../../utils/LocalImageHandler');
+const fs = require('fs').promises;
+const path = require('path');
 
 const router = express.Router();
 
 router.delete('/:username/photo/private/:id/delete', [
   param('username').notEmpty().withMessage('Username is required'),
-  param('id').isMongoId().withMessage('Invalid photo ID')
+  param('id').isMongoId().withMessage('Valid photo ID is required')
 ], authenticateToken, checkBanStatus, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -48,32 +49,76 @@ router.delete('/:username/photo/private/:id/delete', [
       });
     }
 
-    const photoData = {
-      id: photo._id,
-      title: photo.title,
-      images: photo.images
-    };
-
-    const imageDeletePromises = photo.images.map(async (imagePath) => {
-      try {
-        await imageHandler.deleteImage(imagePath);
-      } catch (error) {
-        console.error(`Failed to delete image ${imagePath}:`, error);
-      }
+    console.log('🗑️ Deleting photo:', {
+      photoId: photo._id,
+      userId: targetUser._id,
+      imagesCount: photo.images.length,
+      imagePaths: photo.images
     });
 
-    await Promise.allSettled(imageDeletePromises);
+    const imageHandler = require('../../../../../../../utils/LocalImageHandler');
+    const deletedFiles = [];
+    const failedFiles = [];
+    
+    for (const imagePath of photo.images) {
+      try {
+        console.log('🗑️ Attempting to delete image:', imagePath);
+        
+        const possiblePaths = [
+          imageHandler.getFullImagePath ? imageHandler.getFullImagePath(imagePath) : null,
+          path.join(process.cwd(), imagePath),
+          path.join(process.cwd(), 'uploads', imagePath),
+          path.join(process.cwd(), 'public', imagePath),
+          path.isAbsolute(imagePath) ? imagePath : null
+        ].filter(Boolean);
+
+        let deleted = false;
+        for (const fullPath of possiblePaths) {
+          try {
+            console.log('🔍 Checking path:', fullPath);
+            await fs.access(fullPath);
+            await fs.unlink(fullPath);
+            console.log('✅ Successfully deleted:', fullPath);
+            deletedFiles.push(fullPath);
+            deleted = true;
+            break;
+          } catch (pathError) {
+            console.log('❌ Path not found or error:', fullPath, pathError.message);
+            continue;
+          }
+        }
+
+        if (!deleted) {
+          console.warn('⚠️ Could not find file to delete:', imagePath);
+          failedFiles.push(imagePath);
+        }
+
+      } catch (error) {
+        console.error('❌ Error processing image deletion:', imagePath, error);
+        failedFiles.push(imagePath);
+      }
+    }
 
     await Photo.findByIdAndDelete(photo._id);
+
+    console.log('✅ Photo deleted from database:', photo._id);
+    console.log('📊 File deletion summary:', {
+      totalFiles: photo.images.length,
+      deletedFiles: deletedFiles.length,
+      failedFiles: failedFiles.length,
+      failedPaths: failedFiles
+    });
 
     res.json({
       success: true,
       message: 'Photo deleted successfully',
       data: {
-        deleted_photo: {
-          id: photoData.id,
-          title: photoData.title,
-          deleted_images_count: photoData.images.length
+        deleted_photo_id: photo._id,
+        file_deletion_summary: {
+          total_files: photo.images.length,
+          deleted_files: deletedFiles.length,
+          failed_files: failedFiles.length,
+          failed_paths: failedFiles
         }
       }
     });
@@ -82,7 +127,8 @@ router.delete('/:username/photo/private/:id/delete', [
     console.error('Delete photo error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
