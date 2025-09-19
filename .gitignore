@@ -31,6 +31,7 @@ coverage/
 *.ntvs*
 *.njsproj
 *.sln
+.vs
 
 # Misc
 *.local
