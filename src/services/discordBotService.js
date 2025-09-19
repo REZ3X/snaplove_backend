@@ -555,7 +555,7 @@ class DiscordBotService {
   }
 
   async makeApiRequest(endpoint, method = 'GET', data = null) {
-    const maxRetries = 3;
+    const maxRetries = 2;
     let lastError;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -570,7 +570,7 @@ class DiscordBotService {
             'X-Discord-Bot': 'true',
             'Connection': 'close'
           },
-          timeout: 15000, ...(data && { data })
+          timeout: 8000, ...(data && { data })
         };
 
         console.log(`🤖 Discord Bot Internal API Request (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`);
@@ -597,11 +597,16 @@ class DiscordBotService {
           connection: isConnectionError
         });
 
+        if (error.response?.status === 401 || error.response?.status === 403 || error.response?.status === 400) {
+         break;
+        }
+
         if (attempt === maxRetries || (!isTimeout && !isConnectionError)) {
           break;
         }
 
-        const delay = Math.pow(2, attempt) * 1000; console.log(`⏳ Retrying in ${delay}ms...`);
+        const delay = Math.min(1000 * attempt, 2000);
+        console.log(`⏳ Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -635,7 +640,7 @@ class DiscordBotService {
           'User-Agent': 'SnaploveDiscordBot/1.0',
           'Connection': 'close'
         },
-        timeout: 15000,
+        timeout: 8000,
         ...(data && { data })
       };
 
