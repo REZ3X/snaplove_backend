@@ -29,6 +29,8 @@ const verifyEmailRoute = require("./api/auth/verify-email/route");
 const resendVerificationRoute = require("./api/auth/resend-verification/route");
 
 const framePublicRoute = require("./api/frame/public/route");
+const frameTrendingRoute = require("./api/frame/public/trending/route");
+const frameDiscoverRoute = require("./api/frame/public/discover/route");
 const frameByIdRoute = require("./api/frame/public/[id]/route");
 const frameLikeRoute = require("./api/frame/public/[id]/like/route");
 const userFrameAllRoute = require("./api/user/[username]/frame/route");
@@ -39,8 +41,6 @@ const framePrivateDetailRoute = require("./api/user/[username]/frame/private/[id
 const frameDeleteRoute = require("./api/user/[username]/frame/private/[id]/delete/route");
 const frameAdminDeleteRoute = require("./api/frame/public/[id]/admin/delete/route");
 const frameLeaderboardRoute = require("./api/frame/public/[id]/leaderboard/route");
-const frameTrendingRoute = require("./api/frame/public/trending/route");
-const frameDiscoverRoute = require("./api/frame/public/discover/route");
 
 const photoCaptureRoute = require("./api/user/[username]/photo/capture/route");
 const photoPrivateRoute = require("./api/user/[username]/photo/private/route");
@@ -634,12 +634,12 @@ app.use("/api/auth/verify-email", verifyEmailRoute);
 app.use("/api/auth/resend-verification", authLimiter, resendVerificationRoute);
 
 app.use("/api/frame/public", framePublicRoute);
+app.use("/api/frame/public", frameTrendingRoute);
+app.use("/api/frame/public", frameDiscoverRoute);
 app.use("/api/frame/public", frameByIdRoute);
 app.use("/api/frame/public", frameLikeRoute);
 app.use("/api/frame/public", frameAdminDeleteRoute);
 app.use("/api/frame/public", frameLeaderboardRoute);
-app.use("/api/frame/public", frameTrendingRoute);
-app.use("/api/frame/public", frameDiscoverRoute);
 
 app.use("/api/user", userProfileRoute);
 app.use("/api/user", userFollowingRoute);
