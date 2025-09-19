@@ -19,7 +19,8 @@ const ticketSchema = new mongoose.Schema({
     required: true
   },
   images: [{
-    type: String
+    type: String,
+    default: []
   }],
   type: {
     type: String,
@@ -33,7 +34,8 @@ const ticketSchema = new mongoose.Schema({
   },
   admin_response: {
     type: String,
-    default: null
+    default: null,
+    maxlength: 2000
   },
   admin_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -47,6 +49,22 @@ const ticketSchema = new mongoose.Schema({
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
+
+ticketSchema.pre('save', function(next) {
+  const validStatuses = ['pending', 'in_progress', 'resolved', 'closed'];
+  if (!validStatuses.includes(this.status)) {
+    const error = new Error(`Invalid status: ${this.status}. Must be one of: ${validStatuses.join(', ')}`);
+    return next(error);
+  }
+
+  const validPriorities = ['low', 'medium', 'high', 'urgent'];
+  if (!validPriorities.includes(this.priority)) {
+    const error = new Error(`Invalid priority: ${this.priority}. Must be one of: ${validPriorities.join(', ')}`);
+    return next(error);
+  }
+
+  next();
 });
 
 module.exports = mongoose.model('Ticket', ticketSchema);
