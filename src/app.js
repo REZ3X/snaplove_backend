@@ -295,9 +295,7 @@ app.get("/lore", (req, res) => {
         ],
         timestamp: "2025-09-20T23:00:00.000Z"
       }
-    ],
-  }
-]);
+    ]);
 });
 
 app.get("/dev", (req, res) => {
