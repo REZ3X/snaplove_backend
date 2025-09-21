@@ -60,6 +60,7 @@ router.get('/:username/frame/public', [
         frames: frames.map(frame => ({
           id: frame._id,
           images: frame.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
+          thumbnail: frame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + frame.thumbnail : null,
           title: frame.title,
           desc: frame.desc,
           total_likes: frame.total_likes,
