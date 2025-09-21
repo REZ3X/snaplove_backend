@@ -29,6 +29,8 @@ const verifyEmailRoute = require("./api/auth/verify-email/route");
 const resendVerificationRoute = require("./api/auth/resend-verification/route");
 
 const framePublicRoute = require("./api/frame/public/route");
+const frameTrendingRoute = require("./api/frame/public/trending/route");
+const frameDiscoverRoute = require("./api/frame/public/discover/route");
 const frameByIdRoute = require("./api/frame/public/[id]/route");
 const frameLikeRoute = require("./api/frame/public/[id]/like/route");
 const userFrameAllRoute = require("./api/user/[username]/frame/route");
@@ -39,8 +41,6 @@ const framePrivateDetailRoute = require("./api/user/[username]/frame/private/[id
 const frameDeleteRoute = require("./api/user/[username]/frame/private/[id]/delete/route");
 const frameAdminDeleteRoute = require("./api/frame/public/[id]/admin/delete/route");
 const frameLeaderboardRoute = require("./api/frame/public/[id]/leaderboard/route");
-const frameTrendingRoute = require("./api/frame/public/trending/route");
-const frameDiscoverRoute = require("./api/frame/public/discover/route");
 
 const photoCaptureRoute = require("./api/user/[username]/photo/capture/route");
 const photoPrivateRoute = require("./api/user/[username]/photo/private/route");
@@ -284,9 +284,18 @@ app.get("/lore", (req, res) => {
           "- REZ3X"
         ],
         timestamp: "2025-09-17T17:30:00.000Z"
+      },
+      {
+        messages: [
+          "After effect.. that's how I say it. I can't get her out of my head.",
+          "She will be leaving soon, not really in a term of far place but less time meeting her.. less time communicate with her.. and she already start talking about her last day at school.. sweet jesus. I don't want to hoping no more but.. why I feel like this?",
+          "It can't be together.. one isn't ready but the relationship remain solid.. chatting.. talking.. like nothing about the confession is a thing.. no one between want to bring that scene.. it's gone.. forever.. sunk to the deepest sea of.. failure.",
+          "Something happened.. I don't know.. it's on her side.. why I bother to ask.. she isn't anything for me.. and I'm no one to her.. but.. I hope she's okay.. gosh.. I hate myself for being a failure.",
+          "- REZ3X"
+        ],
+        timestamp: "2025-09-20T23:00:00.000Z"
       }
-    ],
-  });
+    ]});
 });
 
 app.get("/dev", (req, res) => {
@@ -634,12 +643,12 @@ app.use("/api/auth/verify-email", verifyEmailRoute);
 app.use("/api/auth/resend-verification", authLimiter, resendVerificationRoute);
 
 app.use("/api/frame/public", framePublicRoute);
+app.use("/api/frame/public", frameTrendingRoute);
+app.use("/api/frame/public", frameDiscoverRoute);
 app.use("/api/frame/public", frameByIdRoute);
 app.use("/api/frame/public", frameLikeRoute);
 app.use("/api/frame/public", frameAdminDeleteRoute);
 app.use("/api/frame/public", frameLeaderboardRoute);
-app.use("/api/frame/public", frameTrendingRoute);
-app.use("/api/frame/public", frameDiscoverRoute);
 
 app.use("/api/user", userProfileRoute);
 app.use("/api/user", userFollowingRoute);
