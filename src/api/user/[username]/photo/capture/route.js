@@ -1,5 +1,5 @@
 const express = require('express');
-const { param, body, validationResult } = require('express-validator');
+// const { _param, _body, _validationResult } = require('express-validator');
 const Photo = require('../../../../../models/Photo');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
@@ -65,7 +65,7 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: errors
+          errors,
         });
       }
 
