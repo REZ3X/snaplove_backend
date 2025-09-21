@@ -85,7 +85,7 @@ const userBirthdayRoute = require("./api/user/[username]/birthday/route");
 const searchRoute = require("./api/search/route");
 
 const apiKeyAuth = createApiKeyAuth({
-  skipPaths: ["/", "/health", "/lore", "/dev"],
+  skipPaths: ["/", "/health", "/lore", "/planning", "/dev"],
   skipPatterns: [
     /^\/docs/,
     /^\/images/,
@@ -306,6 +306,39 @@ app.get("/lore", (req, res) => {
         timestamp: "2025-09-21T19:30:00.000Z"
       }
     ]});
+});
+
+app.get("/planning", (req, res) => {
+  res.status(200).json({
+      status: 200,
+      title: "Slaviors Planning Options",
+      options: [
+          {
+              option: "a",
+              plan: "Move forward, strict and more serious planning. Create a small kanban board, smaller scope, more realistic, and more achievable goals. No more big dreams, just small steps."
+          },
+          {
+              option: "b",
+              plan: "Change scope, cut features, make the project more simple. Could be bad and worse result."
+          },
+          {
+              option: "c",
+              plan: "Abandon the ghost worker, recruit new that more competent, have same skill level, same learning pace, and more serious."
+          },
+          {
+              option: "c",
+              plan: "Do everyhting myself under my own blessing and name. Leave them."
+          },
+          {
+              option: "e",
+              plan: "Abandon the team, look into more fast pace improving team, more serious, more competent, and have same vision."
+          },
+          {
+              option: "f",
+              plan: "Continue with current state with these slow fools, that doesn't even care with the team."
+          }
+      ]
+  });
 });
 
 app.get("/dev", (req, res) => {
