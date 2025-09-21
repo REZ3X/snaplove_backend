@@ -84,6 +84,7 @@ router.get('/:username/frame', [
           layout_type: frame.layout_type,
           official_status: frame.official_status,
           visibility: frame.visibility,
+          approval_status: frame.approval_status,
           tag_label: frame.tag_label,
           created_at: frame.created_at,
           updated_at: frame.updated_at
