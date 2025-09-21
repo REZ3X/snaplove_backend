@@ -300,7 +300,7 @@ app.get("/lore", (req, res) => {
           "It getting worse, all of them are liar and traitor of their own words.",
           "I try to keep us together but everyone just go on their own. Startup they said, future they said, fast improvement they said..",
           "But when I push them to the edge and do everything faster.. they just can't keep up.. it's like only me that excited about this team.",
-          "Am I pushy? I want everything to be worked out but they just don't care.. these fools."
+          "Am I pushy? I want everything to be worked out but they just don't care.. these fools.",
           "- REZ3X"
         ],
         timestamp: "2025-09-21T19:30:00.000Z"
