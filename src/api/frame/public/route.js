@@ -233,15 +233,20 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
 
       try {
         if (frameVisibility === 'public') {
+          const frameOwnerForNotification = await User.findById(req.user.userId)
+            .select('name username image_profile custom_profile_image use_google_profile');
+
           await socketService.sendFrameUploadNotification(
             req.user.userId,
             {
               id: newFrame._id,
               title: newFrame.title,
-              thumbnail: newFrame.thumbnail,
+              thumbnail: newFrame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + newFrame.thumbnail : null,
               layout_type: newFrame.layout_type,
               owner_name: user.name,
-              owner_username: user.username
+              owner_username: user.username,
+              owner_image: user.image_profile,
+              owner_user: frameOwnerForNotification 
             }
           );
         }

@@ -9,6 +9,16 @@ class SocketService {
     this.users = new Map();
   }
 
+    getNotificationImageUrl(user, baseUrl) {
+    if (user.use_google_profile !== false && user.image_profile) {
+      return user.image_profile; 
+    } else if (user.custom_profile_image) {
+      return baseUrl + '/' + user.custom_profile_image; 
+    } else {
+      return user.image_profile || null; 
+    }
+  }
+
   initialize(server) {
     this.io = socketIo(server, {
       cors: {
@@ -165,44 +175,60 @@ class SocketService {
   }
 
   async getUserNotifications(userId, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit;
+  const baseUrl = process.env.BASE_URL || 'http://localhost:4000';
 
-    const notifications = await Notification.find({ recipient_id: userId })
-      .populate('sender_id', 'name username image_profile role')
-      .populate('data.frame_id', 'title thumbnail')
-      .sort({ created_at: -1 })
-      .skip(skip)
-      .limit(limit);
+  const notifications = await Notification.find({ recipient_id: userId })
+    .populate('sender_id', 'name username image_profile custom_profile_image use_google_profile role')
+    .populate('data.frame_id', 'title thumbnail')
+    .sort({ created_at: -1 })
+    .skip(skip)
+    .limit(limit);
 
-    const total = await Notification.countDocuments({ recipient_id: userId });
-    const unreadCount = await Notification.countDocuments({
-      recipient_id: userId,
-      is_read: false
-    });
+  const total = await Notification.countDocuments({ recipient_id: userId });
+  const unreadCount = await Notification.countDocuments({
+    recipient_id: userId,
+    is_read: false
+  });
 
-    return {
-      notifications: notifications.map(notif => ({
+  return {
+    notifications: notifications.map(notif => {
+      const formatted = {
         id: notif._id,
         type: notif.type,
         title: notif.title,
         message: notif.message,
-        data: notif.data,
-        sender: notif.sender_id,
+        data: { ...notif.data },
+        sender: notif.sender_id ? {
+          ...notif.sender_id.toObject(),
+          image_profile: this.getNotificationImageUrl(notif.sender_id, baseUrl)
+        } : null,
         is_read: notif.is_read,
         read_at: notif.read_at,
         created_at: notif.created_at
-      })),
-      pagination: {
-        current_page: page,
-        total_pages: Math.ceil(total / limit),
-        total_items: total,
-        items_per_page: limit,
-        has_next_page: page < Math.ceil(total / limit),
-        has_prev_page: page > 1
-      },
-      unread_count: unreadCount
-    };
-  }
+      };
+
+      if (notif.data.follower_image && !notif.data.follower_image.startsWith('http')) {
+        formatted.data.follower_image = baseUrl + '/' + notif.data.follower_image;
+      }
+
+      if (notif.data.owner_image && !notif.data.owner_image.startsWith('http')) {
+        formatted.data.owner_image = baseUrl + '/' + notif.data.owner_image;
+      }
+
+      return formatted;
+    }),
+    pagination: {
+      current_page: page,
+      total_pages: Math.ceil(total / limit),
+      total_items: total,
+      items_per_page: limit,
+      has_next_page: page < Math.ceil(total / limit),
+      has_prev_page: page > 1
+    },
+    unread_count: unreadCount
+  };
+}
 
   async sendUnreadCount(userId) {
     try {
@@ -237,7 +263,9 @@ class SocketService {
     return await this.sendNotificationToUser(frameOwnerId, notification);
   }
 
-  async sendFollowNotification(followedUserId, followerId, followerData) {
+    async sendFollowNotification(followedUserId, followerId, followerData) {
+    const baseUrl = process.env.BASE_URL || 'http://localhost:4000';
+    
     const notification = {
       recipient_id: followedUserId,
       sender_id: followerId,
@@ -248,7 +276,9 @@ class SocketService {
         follower_id: followerId,
         follower_name: followerData.follower_name,
         follower_username: followerData.follower_username,
-        follower_image: followerData.follower_image,
+        follower_image: followerData.follower_user ? 
+          this.getNotificationImageUrl(followerData.follower_user, baseUrl) : 
+          followerData.follower_image, 
         additional_info: {
           action: 'follow'
         }
@@ -258,9 +288,10 @@ class SocketService {
     return await this.sendNotificationToUser(followedUserId, notification);
   }
 
-  async sendFrameUploadNotification(frameOwnerId, frameData) {
+    async sendFrameUploadNotification(frameOwnerId, frameData) {
     try {
       const Follow = require('../models/Follow');
+      const baseUrl = process.env.BASE_URL || 'http://localhost:4000';
 
       const followers = await Follow.find({
         following_id: frameOwnerId,
@@ -285,6 +316,9 @@ class SocketService {
             owner_id: frameOwnerId,
             owner_name: frameData.owner_name,
             owner_username: frameData.owner_username,
+            owner_image: frameData.owner_user ? 
+              this.getNotificationImageUrl(frameData.owner_user, baseUrl) : 
+              frameData.owner_image, 
             additional_info: {
               action: 'frame_upload',
               layout_type: frameData.layout_type

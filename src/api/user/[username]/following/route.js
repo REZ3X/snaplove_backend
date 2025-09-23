@@ -265,13 +265,17 @@ router.post('/:username/following', [
     }
 
     try {
+      const followerUserForNotification = await User.findById(targetUser._id)
+        .select('name username image_profile custom_profile_image use_google_profile');
+
       await socketService.sendFollowNotification(
         userToFollow._id,
         targetUser._id,
         {
           follower_name: targetUser.name,
           follower_username: targetUser.username,
-          follower_image: targetUser.image_profile
+          follower_image: targetUser.image_profile,
+          follower_user: followerUserForNotification
         }
       );
     } catch (notifError) {

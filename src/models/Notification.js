@@ -46,6 +46,7 @@ const notificationSchema = new mongoose.Schema({
     },
     owner_name: String,
     owner_username: String,
+    owner_image: String,
     birthday_user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
