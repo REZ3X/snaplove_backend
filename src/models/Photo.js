@@ -34,6 +34,7 @@ const photoSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-photoSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
+photoSchema.index({ expires_at: 1 });
+photoSchema.index({ user_id: 1, created_at: -1 });
 
 module.exports = mongoose.model('Photo', photoSchema);
