@@ -99,9 +99,18 @@ router.get('/:username/liked/private', [
         like.user_id.toString() === targetUser._id.toString()
       );
 
+      let thumbnailUrl;
+      if (frame.thumbnail && !frame.thumbnail.endsWith('.svg')) {
+        thumbnailUrl = req.protocol + '://' + req.get('host') + '/' + frame.thumbnail;
+      } else if (frame.images && frame.images.length > 0) {
+        thumbnailUrl = req.protocol + '://' + req.get('host') + '/' + frame.images[0];
+      } else {
+        thumbnailUrl = null;
+      }
+
       return {
         id: frame._id,
-        thumbnail: frame.thumbnail ? req.protocol + '://' + req.get('host') + '/' + frame.thumbnail : null,
+        thumbnail: thumbnailUrl,
         title: frame.title,
         desc: frame.desc.length > 150 ? frame.desc.substring(0, 150) + '...' : frame.desc,
         total_likes: frame.total_likes,
