@@ -304,6 +304,16 @@ app.get("/lore", (req, res) => {
           "- REZ3X"
         ],
         timestamp: "2025-09-21T19:30:00.000Z"
+      },
+            {
+        messages: [
+          "Not really interesting day, but it unique and special I don't know why. I always said I gave up but it always drift toward her. We talked about the team and she share her thought, not much but it very helpful for me.",
+          "I tell her everything happened.. what the problem and I got insight of it. It's a normal conversation I believe.. nothing really happened.",
+          "But god.. if there is really a slight of chance I want to take it.. I want it.. I can't even sleep.. It drift toward her.. always.",
+          "If it's something I can't really achieve.. then why it happened in my life?",
+          "- REZ3X"
+        ],
+        timestamp: "2025-09-25T03:00:00.000Z"
       }
     ]});
 });
