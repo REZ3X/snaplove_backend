@@ -305,7 +305,7 @@ app.get("/lore", (req, res) => {
         ],
         timestamp: "2025-09-21T19:30:00.000Z"
       },
-            {
+      {
         messages: [
           "Not really interesting day, but it unique and special I don't know why. I always said I gave up but it always drift toward her. We talked about the team and she share her thought, not much but it very helpful for me.",
           "I tell her everything happened.. what the problem and I got insight of it. It's a normal conversation I believe.. nothing really happened.",
@@ -315,39 +315,40 @@ app.get("/lore", (req, res) => {
         ],
         timestamp: "2025-09-25T03:00:00.000Z"
       }
-    ]});
+    ]
+  });
 });
 
 app.get("/planning", (req, res) => {
   res.status(200).json({
-      status: 200,
-      title: "Slaviors Planning Options",
-      options: [
-          {
-              option: "a",
-              plan: "Move forward, strict and more serious planning. Create a small kanban board, smaller scope, more realistic, and more achievable goals. No more big dreams, just small steps."
-          },
-          {
-              option: "b",
-              plan: "Change scope, cut features, make the project more simple. Could be bad and worse result."
-          },
-          {
-              option: "c",
-              plan: "Abandon the ghost worker, recruit new that more competent, have same skill level, same learning pace, and more serious."
-          },
-          {
-              option: "c",
-              plan: "Do everyhting myself under my own blessing and name. Leave them."
-          },
-          {
-              option: "e",
-              plan: "Abandon the team, look into more fast pace improving team, more serious, more competent, and have same vision."
-          },
-          {
-              option: "f",
-              plan: "Continue with current state with these slow fools, that doesn't even care with the team."
-          }
-      ]
+    status: 200,
+    title: "Slaviors Planning Options",
+    options: [
+      {
+        option: "a",
+        plan: "Move forward, strict and more serious planning. Create a small kanban board, smaller scope, more realistic, and more achievable goals. No more big dreams, just small steps."
+      },
+      {
+        option: "b",
+        plan: "Change scope, cut features, make the project more simple. Could be bad and worse result."
+      },
+      {
+        option: "c",
+        plan: "Abandon the ghost worker, recruit new that more competent, have same skill level, same learning pace, and more serious."
+      },
+      {
+        option: "c",
+        plan: "Do everyhting myself under my own blessing and name. Leave them."
+      },
+      {
+        option: "e",
+        plan: "Abandon the team, look into more fast pace improving team, more serious, more competent, and have same vision."
+      },
+      {
+        option: "f",
+        plan: "Continue with current state with these slow fools, that doesn't even care with the team."
+      }
+    ]
   });
 });
 
