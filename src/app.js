@@ -314,6 +314,26 @@ app.get("/lore", (req, res) => {
           "- REZ3X"
         ],
         timestamp: "2025-09-25T03:00:00.000Z"
+      },
+      {
+        messages: [
+          "EMOTIONAL LIMBO.",
+          "The war isn't finished. It's still there, taking all the souls and blood through the red and blue. It seem like an illusion, how could even we became closer and closer even tho you don't ready for next level.. you just make us the modded basic level. It's so strong because we are connected yet this isn't the goal I want to achieved.. it is different connection. I rather we became strangers and flee away from the world. I.. really really want it but fate talks differ and called me a failure.",
+          "It's not about successfull, it is rather a place between the fate, place between the hell and heaven. I see the gap but I can't ever reach it. I see it.. I see it.. I see it.",
+          "- REZ3X"
+        ],
+        timestamp: "2025-09-26T17:00:00.000Z"
+      },
+      {
+        messages: [
+          "September 27th, the best day of my life? I don't know.. is it a date? I don't know too.. but.. it indeed a something for me.",
+          "Closer and closer.. nothing really special but we.. kind of really match the vibe.",
+          "I don't really know what will happened next.. after this event with her.. after I take her out this day.. after the dinner.. after everything..",
+          "I see more of the blank pages.. waiting to be written. But it left my life with many more branches with many possibilities.",
+          "And guess.. I'm still at limbo.. not that strong.. but still.",
+          "- REZ3X"
+        ],
+        timestamp: "2025-09-28T22:30:00.000Z"
       }
     ]
   });
