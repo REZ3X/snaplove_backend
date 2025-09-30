@@ -43,6 +43,7 @@ const frameAdminDeleteRoute = require("./api/frame/public/[id]/admin/delete/rout
 const frameLeaderboardRoute = require("./api/frame/public/[id]/leaderboard/route");
 
 const photoCaptureRoute = require("./api/user/[username]/photo/capture/route");
+const photoAdditionalImageRoute = require("./api/user/[username]/photo/capture/additionalImage/route");
 const photoPrivateRoute = require("./api/user/[username]/photo/private/route");
 
 const adminUsersRoute = require("./api/admin/users/route");
@@ -736,6 +737,7 @@ app.use("/api/user", photoCaptureRoute);
 app.use("/api/user", photoEditRoute);
 app.use("/api/user", photoDeleteRoute);
 app.use("/api/user", photoCaptureRoute);
+app.use("/api/user", photoAdditionalImageRoute);
 
 app.use("/api/user", userProfileEditRoute);
 app.use("/api/user", userStatsRoute);

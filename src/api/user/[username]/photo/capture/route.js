@@ -1,11 +1,11 @@
 const express = require('express');
-// const { _param, _body, _validationResult } = require('express-validator');
+
 const Photo = require('../../../../../models/Photo');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
 const { calculatePhotoExpiry } = require('../../../../../utils/RolePolicy');
-
+const path = require('path'); 
 const router = express.Router();
 
 router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async (req, res) => {
@@ -31,7 +31,8 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         files: req.files?.length || 0,
         frame_id,
         title,
-        desc
+        desc,
+        enableAIMerge: req.body.enableAIMerge,         additionalImagePath: req.body.additionalImagePath
       });
 
       const errors = [];
@@ -58,6 +59,12 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
 
       if (!req.files || req.files.length === 0) {
         errors.push({ msg: 'At least one photo is required', path: 'images', location: 'files' });
+      }
+
+      if (req.body.enableAIMerge === 'true') {
+        if (!req.body.additionalImagePath) {
+          errors.push({ msg: 'Additional image path is required for AI merge', path: 'additionalImagePath', location: 'body' });
+        }
       }
 
       if (errors.length > 0) {
@@ -148,6 +155,79 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         photoId: newPhoto._id,
         expiresAt: newPhoto.expires_at
       });
+
+
+      if (req.body.additionalImagePath && req.body.enableAIMerge === 'true') {
+        try {
+          console.log('🤖 AI merge requested for captured photos');
+          
+          const additionalImageAbsPath = path.join(process.cwd(), req.body.additionalImagePath);
+
+          const additionalValidation = await require('../../../../../utils/GeminiAIImage').validateImage(additionalImageAbsPath);
+          if (!additionalValidation.valid) {
+            console.warn('⚠️ Invalid additional image, skipping AI merge');
+          } else {
+
+            const capturedPhotoAbsPaths = images.map(imgPath => path.join(process.cwd(), imgPath));
+            
+            const batchResults = await require('../../../../../utils/GeminiAIImage').batchMergePhotos(
+              capturedPhotoAbsPaths,
+              additionalImageAbsPath,
+              {
+                style: req.body.mergeStyle || 'natural',
+                creativityLevel: req.body.creativityLevel || 'medium'
+              }
+            );
+
+            const aiMergeResults = batchResults.map(result => ({
+              index: result.index,
+              success: result.success,
+              mergedImageBase64: result.success ? result.mergedImage : null,
+              error: result.error || null
+            }));
+
+            return res.status(201).json({
+              success: true,
+              message: 'Photo captured successfully with AI merge',
+              data: {
+                photo: {
+                  id: newPhoto._id,
+                  images: newPhoto.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
+                  title: newPhoto.title,
+                  desc: newPhoto.desc,
+                  frame: {
+                    id: newPhoto.frame_id._id,
+                    title: newPhoto.frame_id.title,
+                    layout_type: newPhoto.frame_id.layout_type,
+                    thumbnail: newPhoto.frame_id.thumbnail ? req.protocol + '://' + req.get('host') + '/' + newPhoto.frame_id.thumbnail : null
+                  },
+                  expires_at: newPhoto.expires_at,
+                  created_at: newPhoto.created_at,
+                  updated_at: newPhoto.updated_at
+                },
+                aiMerge: {
+                  enabled: true,
+                  additionalImage: req.body.additionalImagePath,
+                  results: aiMergeResults,
+                  statistics: {
+                    total: aiMergeResults.length,
+                    successful: aiMergeResults.filter(r => r.success).length,
+                    failed: aiMergeResults.filter(r => !r.success).length
+                  },
+                  options: {
+                    style: req.body.mergeStyle || 'natural',
+                    creativityLevel: req.body.creativityLevel || 'medium'
+                  }
+                }
+              }
+            });
+          }
+        } catch (aiError) {
+          console.error('❌ AI merge failed, proceeding without merge:', aiError);
+
+        }
+      }
+
 
       res.status(201).json({
         success: true,
