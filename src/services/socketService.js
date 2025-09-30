@@ -63,7 +63,7 @@ class SocketService {
       this.handleConnection(socket);
     });
 
-    console.log('📡 Socket.IO service initialized');
+    console.log('Socket.IO service initialized');
   }
 
   handleConnection(socket) {

@@ -263,7 +263,8 @@ Please provide detailed step-by-step instructions for creating this merge, inclu
       const validation = {
         exists: true,
         size: stats.size,
-        sizeValid: stats.size <= 20 * 1024 * 1024,         width: metadata.width,
+        sizeValid: stats.size <= 20 * 1024 * 1024,         
+        width: metadata.width,
         height: metadata.height,
         format: metadata.format,
         formatValid: ['jpeg', 'png', 'webp', 'gif'].includes(metadata.format),

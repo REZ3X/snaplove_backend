@@ -491,23 +491,23 @@ app.use((req, res, next) => {
 const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === "production") {
     const productionUrls = process.env.PRODUCTION_FRONTEND_URLS;
-    console.log(`🌐 PRODUCTION_FRONTEND_URLS env var: "${productionUrls}"`);
+    console.log(`PRODUCTION_FRONTEND_URLS env var: "${productionUrls}"`);
 
     if (productionUrls) {
       const urls = productionUrls.split(",")
         .map((url) => url.trim())
         .filter(Boolean);
 
-      console.log(`🌐 Parsed production URLs: ${JSON.stringify(urls)}`);
+      console.log(`Parsed production URLs: ${JSON.stringify(urls)}`);
       return urls;
     }
 
-    console.warn('⚠️ PRODUCTION_FRONTEND_URLS not set, using fallback');
+    console.warn('PRODUCTION_FRONTEND_URLS not set, using fallback');
     const fallback = [
       "https://snaplove.pics",
       "https://www.snaplove.pics"
     ];
-    console.log(`🌐 Using fallback URLs: ${JSON.stringify(fallback)}`);
+    console.log(`Using fallback URLs: ${JSON.stringify(fallback)}`);
     return fallback;
   } else if (process.env.NODE_ENV === "development") {
     const devUrls = [
@@ -519,16 +519,16 @@ const getAllowedOrigins = () => {
       "https://localhost:3000",
       "https://localhost:3001",
     ];
-    console.log(`🌐 Development URLs: ${JSON.stringify(devUrls)}`);
+    console.log(`Development URLs: ${JSON.stringify(devUrls)}`);
     return devUrls;
   }
 
-  console.log(`🌐 Test environment - allowing wildcard`);
+  console.log(`Test environment - allowing wildcard`);
   return ["*"];
 };
 
 app.use((err, req, res, _next) => {
-  console.error('\n🚨 ERROR MIDDLEWARE TRIGGERED:');
+  console.error('\nERROR MIDDLEWARE TRIGGERED:');
   console.error('Error message:', err?.message || 'No error message');
   console.error('Error stack:', err?.stack || 'No stack trace');
 
@@ -593,11 +593,11 @@ app.get("/api/test-cors", (req, res) => {
   });
 });
 
-console.log('\n🔧 CORS Debug Mode Activated');
-console.log('📊 Environment:', process.env.NODE_ENV);
-console.log('🌐 Allowed Origins:', JSON.stringify(getAllowedOrigins()));
-console.log('🔑 API Key Auth:', process.env.NODE_ENV === "production" ? "Enabled" : "Disabled");
-console.log('📍 Test endpoint: GET /api/test-cors\n');
+console.log('\nCORS Debug Mode Activated');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Allowed Origins:', JSON.stringify(getAllowedOrigins()));
+console.log('API Key Auth:', process.env.NODE_ENV === "production" ? "Enabled" : "Disabled");
+console.log('Test endpoint: GET /api/test-cors\n');
 
 app.use("/images", (req, res, next) => {
   const allowedOrigins = getAllowedOrigins();
@@ -823,25 +823,24 @@ if (process.env.NODE_ENV !== "test") {
   socketService.initialize(server);
   birthdayService.start();
 
-  // Start photo cleanup scheduler (runs every 30 minutes)
   cleanupScheduler.start('*/30 * * * *');
 
   discordBotService.start()
-    .then(() => console.log('🤖 Discord bot integration started'))
-    .catch(err => console.log('⚠️ Discord bot not available:', err.message));
+    .then(() => console.log('Discord bot integration started'))
+    .catch(err => console.log('Discord bot not available:', err.message));
 
   discordHandler.sendStartupMessage()
-    .then(() => console.log('📢 Discord webhook connected with profile data'))
-    .catch(err => console.log('⚠️ Discord webhook not available:', err.message));
+    .then(() => console.log('Discord webhook connected with profile data'))
+    .catch(err => console.log('Discord webhook not available:', err.message));
 
   server.listen(PORT, () => {
-    console.log(`🚀 Snaplove Backend running on port ${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-    console.log(`📁 Images served from: ${path.join(process.cwd(), "images")}`);
-    console.log(`🔒 Trust proxy: ${app.get("trust proxy")}`);
-    console.log(`📡 Socket.IO enabled for real-time notifications`);
-    console.log(`🧹 Photo cleanup scheduler active (every 30 minutes)`);
+    console.log(`Snaplove Backend running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`Images served from: ${path.join(process.cwd(), "images")}`);
+    console.log(`Trust proxy: ${app.get("trust proxy")}`);
+    console.log(`Socket.IO enabled for real-time notifications`);
+    console.log(`Photo cleanup scheduler active (every 30 minutes)`);
   });
 }
 
