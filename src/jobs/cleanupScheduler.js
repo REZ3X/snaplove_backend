@@ -53,7 +53,7 @@ class CleanupScheduler {
           this.stats.successful_runs++;
           this.stats.total_photos_processed += cleanupResult.processed;
           this.stats.total_files_deleted += cleanupResult.deleted_files;
-          this.stats.total_records_deleted += cleanupResult.deleted_records;
+          this.stats.total_records_deleted += cleanupResult.deleted_records || 0;
           
           console.log('Automated cleanup completed successfully:');
           console.log(`   Photos processed: ${cleanupResult.processed}`);
