@@ -331,7 +331,7 @@ class DiscordBotService {
 
   async registerSlashCommands() {
     try {
-      console.log('🔄 Started refreshing application (/) commands.');
+      console.log('Started refreshing application (/) commands.');
 
       const commands = this.setupSlashCommands();
 
@@ -340,22 +340,22 @@ class DiscordBotService {
           Routes.applicationGuildCommands(this.client.user.id, process.env.DISCORD_GUILD_ID),
           { body: commands }
         );
-        console.log(`✅ Successfully reloaded ${commands.length} guild application (/) commands.`);
+        console.log(`Successfully reloaded ${commands.length} guild application (/) commands.`);
       } else {
         await this.rest.put(
           Routes.applicationCommands(this.client.user.id),
           { body: commands }
         );
-        console.log(`✅ Successfully reloaded ${commands.length} global application (/) commands.`);
+        console.log(`Successfully reloaded ${commands.length} global application (/) commands.`);
       }
     } catch (error) {
-      console.error('❌ Error registering slash commands:', error);
+      console.error('Error registering slash commands:', error);
     }
   }
 
   setupEventHandlers() {
     this.client.on('clientReady', async () => {
-      console.log(`🤖 Discord bot logged in as ${this.client.user.tag}`);
+      console.log(`Discord bot logged in as ${this.client.user.tag}`);
       this.isReady = true;
 
       await this.registerSlashCommands();
@@ -544,12 +544,12 @@ class DiscordBotService {
 
   async testInternalConnection() {
     try {
-      console.log('🔍 Testing internal API connection...');
+      console.log('Testing internal API connection...');
       const response = await this.makeApiRequest('/health');
-      console.log('✅ Internal API connection successful');
+      console.log('Internal API connection successful');
       return response;
     } catch (error) {
-      console.error('❌ Internal API connection failed:', error.message);
+      console.error('Internal API connection failed:', error.message);
       throw error;
     }
   }
@@ -573,7 +573,7 @@ class DiscordBotService {
           timeout: 8000, ...(data && { data })
         };
 
-        console.log(`🤖 Discord Bot Internal API Request (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`);
+        console.log(`Discord Bot Internal API Request (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`);
         const response = await axios(config);
 
         if (attempt > 1) {
@@ -587,7 +587,7 @@ class DiscordBotService {
         const isTimeout = error.code === 'ECONNABORTED';
         const isConnectionError = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET'].includes(error.code);
 
-        console.error(`❌ Discord Bot Internal API Request Failed (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`, {
+        console.error(`Discord Bot Internal API Request Failed (Attempt ${attempt}/${maxRetries}): ${method} ${endpoint}`, {
           status: error.response?.status,
           statusText: error.response?.statusText,
           data: error.response?.data,
@@ -681,9 +681,9 @@ class DiscordBotService {
         .setTimestamp();
 
       await channel.send({ embeds: [embed] });
-      console.log('✅ Discord startup notification sent successfully');
+      console.log('Discord startup notification sent successfully');
     } catch (error) {
-      console.error('❌ Failed to send startup notification:', error.message);
+      console.error('Failed to send startup notification:', error.message);
     }
   }
 

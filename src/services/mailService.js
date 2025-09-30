@@ -9,7 +9,7 @@ class MailService {
 
   initialize() {
     if (!process.env.BREVO_SMTP_HOST) {
-      console.log('⚠️ Brevo SMTP credentials not found - email service disabled');
+      console.log('Brevo SMTP credentials not found - email service disabled');
       return;
     }
 
@@ -25,9 +25,9 @@ class MailService {
 
     this.transporter.verify((error, _success) => {
       if (error) {
-        console.error('❌ Brevo SMTP connection failed:', error);
+        console.error('Brevo SMTP connection failed:', error);
       } else {
-        console.log('✅ Brevo SMTP server is ready to send emails');
+        console.log('Brevo SMTP server is ready to send emails');
       }
     });
   }

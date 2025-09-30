@@ -8,12 +8,12 @@ class BirthdayService {
 
     start() {
         if (this.isRunning) {
-            console.log('🎂 Birthday service already running');
+            console.log('Birthday service already running');
             return;
         }
 
         this.isRunning = true;
-        console.log('🎂 Birthday notification service started');
+        console.log('Birthday notification service started');
 
         this.checkBirthdays();
 
@@ -28,7 +28,7 @@ class BirthdayService {
             this.intervalId = null;
         }
         this.isRunning = false;
-        console.log('🎂 Birthday notification service stopped');
+        console.log('Birthday notification service stopped');
     }
 
     async checkBirthdays() {
@@ -38,7 +38,7 @@ class BirthdayService {
             const todayMonth = today.getMonth();
             const todayDate = today.getDate();
 
-            console.log(`🎂 Checking for birthdays on ${today.toDateString()}`);
+            console.log(`Checking for birthdays on ${today.toDateString()}`);
 
             const birthdayUsers = await User.find({
                 birthdate: {
@@ -57,11 +57,11 @@ class BirthdayService {
             });
 
             if (birthdayUsers.length === 0) {
-                console.log('🎂 No birthdays found for today');
+                console.log('No birthdays found for today');
                 return;
             }
 
-            console.log(`🎂 Found ${birthdayUsers.length} birthday(s) today!`);
+            console.log(`Found ${birthdayUsers.length} birthday(s) today!`);
 
             for (const user of birthdayUsers) {
                 try {
@@ -82,22 +82,22 @@ class BirthdayService {
                             last_birthday_notification: today
                         });
 
-                        console.log(`🎂 Sent birthday notifications for ${user.name} (@${user.username}) - Age ${birthdayBadge.age}`);
+                        console.log(`Sent birthday notifications for ${user.name} (@${user.username}) - Age ${birthdayBadge.age}`);
                     }
                 } catch (userError) {
-                    console.error(`🎂 Error processing birthday for user ${user.username}:`, userError);
+                    console.error(`Error processing birthday for user ${user.username}:`, userError);
                 }
             }
 
-            console.log(`🎂 Birthday notification process completed for ${birthdayUsers.length} users`);
+            console.log(`Birthday notification process completed for ${birthdayUsers.length} users`);
 
         } catch (error) {
-            console.error('🎂 Birthday check error:', error);
+            console.error('Birthday check error:', error);
         }
     }
 
     async triggerBirthdayCheck() {
-        console.log('🎂 Manually triggering birthday check...');
+        console.log('Manually triggering birthday check...');
         await this.checkBirthdays();
     }
 
