@@ -392,6 +392,25 @@
         white-space: nowrap;
       }
 
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        color: var(--text-inverse);
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid var(--primary-light);
+        white-space: nowrap;
+        box-shadow: var(--shadow-sm);
+      }
+
       .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1357,6 +1376,121 @@
           <div class="example-code">
             Basic: 3 days Verified: 7 days Verified Premium/Official/Developer:
             Unlimited
+          </div>
+        </div>
+
+        <div class="endpoint-group">
+          <h3>🤖 AI Photobooth System</h3>
+          <p>
+            Advanced AI-powered photobooth that merges user photos with
+            additional character/idol images using Gemini 2.5 Flash.
+          </p>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/capture/additionalImage</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Upload additional image (idol/character) for AI photobooth
+              processing
+            </div>
+            <div class="example-code">
+              FormData: - additionalImage: File (max 5MB, JPEG/PNG/WebP)
+              Response includes path for use in capture process
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/capture</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+              <span class="badge">AI Enhanced</span>
+            </div>
+            <div class="endpoint-description">
+              Capture photos with integrated AI photobooth processing.
+              Automatically merges captured photos with additional image using
+              Gemini AI.
+            </div>
+            <div class="example-code">
+              FormData: - images: File[] (captured photos based on frame layout)
+              - frame_id: string (ObjectId) - title: string - desc: string
+              (optional) - enableAIMerge: 'true' | 'false' -
+              additionalImagePath: string (from upload step) - mergeStyle:
+              'natural' | 'artistic' (optional, default: 'natural') -
+              creativityLevel: 'low' | 'medium' | 'high' (optional, default:
+              'medium') AI Processing Flow: 1. Upload additional image first 2.
+              Capture photos (2 for 2x1, 3 for 3x1, etc.) 3. AI automatically
+              merges each captured photo with additional image 4. Returns both
+              original images (for frame) and merged images (for preview) 5.
+              Frontend displays merged images in preview 6. Final frame uses
+              original images for proper assembly
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/capture/additionalImage/cleanup</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Clean up additional image after photobooth session completed
+            </div>
+          </div>
+
+          <h4>🎯 AI Photobooth Features:</h4>
+          <div class="example-code">
+            Advanced Features: - Pose Matching: AI analyzes user pose and
+            positions character naturally - Lighting Harmony: Automatic lighting
+            adjustment for realistic integration - Scale Consistency: Maintains
+            proper proportions between subjects - Creative Positioning: Smart
+            placement for natural interactions - Style Control: Natural/artistic
+            merge styles - Batch Processing: Handles multiple photos efficiently
+            - Frame Integration: Works with all frame layouts (2x1, 3x1, 4x1) -
+            Preview Support: Base64 images for instant frontend preview - TTL
+            Cleanup: Automatic cleanup with existing photo TTL system
+          </div>
+
+          <h4>🔄 Photobooth Workflow:</h4>
+          <div class="example-code">
+            Frontend Implementation Guide: 1. Setup Phase: POST
+            /api/user/{username}/photo/capture/additionalImage → Upload
+            idol/character image → Get additionalImagePath for use in capture 2.
+            Capture Phase: POST /api/user/{username}/photo/capture → Send
+            captured photos + additionalImagePath + enableAIMerge: 'true' →
+            Backend processes with Gemini AI → Returns original images + merged
+            images (base64) 3. Preview Phase: → Use
+            aiPhotobooth.results[].mergedImageBase64 for preview → Display
+            merged images to show AI result → User can see themselves with their
+            chosen character 4. Frame Assembly: → Use original photo.images URLs
+            for final frame creation → Merged images are only for preview/effect
+            demonstration → Final saved photo uses original images with TTL 5.
+            Cleanup Phase: DELETE
+            /api/user/{username}/photo/capture/additionalImage/cleanup → Clean
+            up temporary additional image
+          </div>
+
+          <h4>📊 Response Structure:</h4>
+          <div class="example-code">
+            { "success": true, "message": "AI Photobooth capture completed
+            successfully", "data": { "photo": { "id": "photo_id", "images":
+            ["original_image_urls"], // For frame assembly "frame": {
+            "layout_type": "2x1" }, "expires_at": "TTL_timestamp" },
+            "aiPhotobooth": { "enabled": true, "frameLayout": "2x1",
+            "processedSlots": 2, "results": [ { "index": 0, "success": true,
+            "mergedImageBase64": "base64_string", // For preview
+            "originalImage": "path/to/original" } ], "statistics": {
+            "success_rate": "100%" }, "preview": { "instructions": "Use
+            mergedImageBase64 for preview", "format": "base64" } } } }
           </div>
         </div>
       </div>
