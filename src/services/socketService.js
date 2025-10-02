@@ -453,6 +453,43 @@ class SocketService {
     }
   }
 
+  async sendCollabInviteNotification(receiverId, inviterData, collaborationData) {
+  const notification = {
+    recipient_id: receiverId,
+    sender_id: inviterData.inviter_id,
+    type: 'photo_collab_invite',
+    title: '📸 Collaboration Invitation!',
+    message: `${inviterData.inviter_name} invited you to collaborate on a photo`,
+    data: {
+      collaboration_id: collaborationData.id,
+      inviter: inviterData,
+      photo_preview: collaborationData.photo_preview,
+      frame: collaborationData.frame,
+      message: collaborationData.message,
+      expires_at: collaborationData.expires_at
+    }
+  };
+
+  return await this.sendNotificationToUser(receiverId, notification);
+}
+
+async sendCollabResponseNotification(inviterId, receiverData, collaborationId, action) {
+  const notification = {
+    recipient_id: inviterId,
+    sender_id: receiverData.receiver_id,
+    type: `photo_collab_${action}`,
+    title: action === 'accepted' ? '🎉 Collaboration Accepted!' : '😔 Collaboration Declined',
+    message: `${receiverData.receiver_name} ${action} your collaboration invitation`,
+    data: {
+      collaboration_id: collaborationId,
+      receiver: receiverData,
+      action
+    }
+  };
+
+  return await this.sendNotificationToUser(inviterId, notification);
+}
+
   async sendBroadcastNotification(broadcast) {
     try {
       const User = require('../models/User');
