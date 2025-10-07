@@ -1380,117 +1380,291 @@
         </div>
 
         <div class="endpoint-group">
-          <h3>🤖 AI Photobooth System</h3>
+          <h3>🤖 AI Photobooth System (New Flow)</h3>
           <p>
-            Advanced AI-powered photobooth that merges user photos with
-            additional character/idol images using Gemini 2.5 Flash.
+            <strong>✨ Multi-step AI photobooth</strong> with preview capability. Upload idol image, capture photos one by one with AI merge preview, then submit final result. Powered by Gemini 2.5 Flash.
+          </p>
+          <p style="color: #f59e0b; font-weight: 600; margin-top: 1rem;">
+            ⚠️ <strong>Note:</strong> Old single-request flow with <code>additionalImage</code> endpoint is deprecated. Use new multi-step flow below.
           </p>
 
+          <h4 style="margin-top: 2rem; color: var(--primary-color);">📸 Step 1: Upload Idol Image</h4>
           <div class="endpoint">
             <div class="endpoint-header">
               <span class="method post">POST</span>
               <span class="endpoint-path"
-                >/api/user/{username}/photo/capture/additionalImage</span
+                >/api/user/{username}/photo/capture/ai/idol</span
               >
               <span class="auth-required">🔒 AUTH</span>
+              <span class="badge">New</span>
             </div>
             <div class="endpoint-description">
-              Upload additional image (idol/character) for AI photobooth
-              processing
+              Upload and validate idol/character image before capturing photos. Image is validated by Gemini AI for quality and content.
             </div>
             <div class="example-code">
-              FormData: - additionalImage: File (max 5MB, JPEG/PNG/WebP)
-              Response includes path for use in capture process
+              FormData:
+              - idolImage: File (max 5MB, JPEG/PNG/WebP)
+              
+              Response:
+              {
+                "success": true,
+                "message": "Idol image uploaded and validated successfully",
+                "data": {
+                  "idolImage": {
+                    "path": "images/profiles/1234567890.jpg",
+                    "url": "http://localhost:3000/images/profiles/1234567890.jpg",
+                    "filename": "1234567890.jpg",
+                    "size": 245678,
+                    "mimetype": "image/jpeg",
+                    "uploaded_at": "2025-10-07T10:30:00.000Z"
+                  },
+                  "validation": {
+                    "valid": true,
+                    "message": "Image validated successfully",
+                    "ai_provider": "Gemini AI"
+                  },
+                  "user": {
+                    "id": "64f1a2b3c4d5...",
+                    "username": "john"
+                  }
+                }
+              }
             </div>
           </div>
 
+          <h4 style="margin-top: 2rem; color: var(--primary-color);">🎨 Step 2: Preview Each Slot</h4>
           <div class="endpoint">
             <div class="endpoint-header">
               <span class="method post">POST</span>
               <span class="endpoint-path"
-                >/api/user/{username}/photo/capture</span
+                >/api/user/{username}/photo/capture/ai/preview</span
               >
               <span class="auth-required">🔒 AUTH</span>
-              <span class="badge">AI Enhanced</span>
+              <span class="badge">New</span>
             </div>
             <div class="endpoint-description">
-              Capture photos with integrated AI photobooth processing.
-              Automatically merges captured photos with additional image using
-              Gemini AI.
+              Capture single photo and get AI merge preview. Does NOT save to database. Use this for each slot (slot 1, slot 2, etc.) to show preview before final submit.
             </div>
             <div class="example-code">
-              FormData: - images: File[] (captured photos based on frame layout)
-              - frame_id: string (ObjectId) - title: string - desc: string
-              (optional) - enableAIMerge: 'true' | 'false' -
-              additionalImagePath: string (from upload step) - mergeStyle:
-              'natural' | 'artistic' (optional, default: 'natural') -
-              creativityLevel: 'low' | 'medium' | 'high' (optional, default:
-              'medium') AI Processing Flow: 1. Upload additional image first 2.
-              Capture photos (2 for 2x1, 3 for 3x1, etc.) 3. AI automatically
-              merges each captured photo with additional image 4. Returns both
-              original images (for frame) and merged images (for preview) 5.
-              Frontend displays merged images in preview 6. Final frame uses
-              original images for proper assembly
+              FormData:
+              - capturedImage: File (single photo from webcam)
+              - idolImagePath: string (from Step 1)
+              - slotIndex: number (0, 1, 2, ...)
+              - mergeStyle: 'natural' | 'artistic' | 'cartoon' | 'dramatic' (optional)
+              - creativityLevel: 'low' | 'medium' | 'high' (optional)
+              
+              Response:
+              {
+                "success": true,
+                "message": "AI merge preview generated successfully",
+                "data": {
+                  "preview": {
+                    "slotIndex": 0,
+                    "mergedImageBase64": "data:image/jpeg;base64,/9j/4AAQ...",
+                    "format": "jpeg",
+                    "capturedImagePath": "images/photos/captured1.jpg",
+                    "idolImagePath": "images/profiles/1234567890.jpg",
+                    "mergeOptions": {
+                      "style": "natural",
+                      "creativityLevel": "medium"
+                    },
+                    "generated_at": "2025-10-07T10:35:00.000Z"
+                  }
+                }
+              }
+              
+              Usage:
+              - Display mergedImageBase64 to user as preview
+              - Save capturedImagePath for final submit
+              - User can retake if not satisfied
             </div>
           </div>
 
+          <h4 style="margin-top: 2rem; color: var(--primary-color);">💾 Step 3: Final Submit</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/capture/ai/submit</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+              <span class="badge">New</span>
+            </div>
+            <div class="endpoint-description">
+              Submit all captured image paths for batch AI merge and save to database. Use capturedImagePath from preview steps.
+            </div>
+            <div class="example-code">
+              JSON Body:
+              {
+                "capturedImagePaths": [
+                  "images/photos/captured1.jpg",
+                  "images/photos/captured2.jpg"
+                ],
+                "idolImagePath": "images/profiles/1234567890.jpg",
+                "frame_id": "64f1a2b3c4d5e6f7g8h9i0j1",
+                "title": "My AI Photobooth 2x1",
+                "desc": "Fun time with my idol!",
+                "mergeStyle": "natural",
+                "creativityLevel": "medium"
+              }
+              
+              Response:
+              {
+                "success": true,
+                "message": "AI Photobooth completed successfully",
+                "data": {
+                  "photo": {
+                    "id": "64f1a2b3c4d5e6f7g8h9i0j9",
+                    "images": [
+                      "http://localhost:3000/images/photos/captured1.jpg",
+                      "http://localhost:3000/images/photos/captured2.jpg"
+                    ],
+                    "title": "My AI Photobooth 2x1",
+                    "desc": "Fun time with my idol!",
+                    "frame": {
+                      "id": "64f1a2b3c4d5e6f7g8h9i0j1",
+                      "title": "2x1 Frame",
+                      "layout_type": "2x1"
+                    },
+                    "expires_at": "2025-11-06T10:40:00.000Z",
+                    "created_at": "2025-10-07T10:40:00.000Z"
+                  },
+                  "aiPhotobooth": {
+                    "idolImage": "images/profiles/1234567890.jpg",
+                    "frameLayout": "2x1",
+                    "expectedSlots": 2,
+                    "processedSlots": 2,
+                    "results": [
+                      {
+                        "slotIndex": 0,
+                        "success": true,
+                        "mergedImageBase64": "data:image/jpeg;base64,...",
+                        "originalImagePath": "images/photos/captured1.jpg",
+                        "error": null
+                      },
+                      {
+                        "slotIndex": 1,
+                        "success": true,
+                        "mergedImageBase64": "data:image/jpeg;base64,...",
+                        "originalImagePath": "images/photos/captured2.jpg",
+                        "error": null
+                      }
+                    ],
+                    "statistics": {
+                      "total": 2,
+                      "successful": 2,
+                      "failed": 0,
+                      "success_rate": "100.0%"
+                    },
+                    "options": {
+                      "style": "natural",
+                      "creativityLevel": "medium"
+                    }
+                  }
+                }
+              }
+              
+              Validation:
+              - capturedImagePaths.length must match frame layout (2x1=2, 3x1=3, 2x2=4)
+            </div>
+          </div>
+
+          <h4 style="margin-top: 2rem; color: var(--primary-color);">🗑️ Step 4: Cleanup</h4>
           <div class="endpoint">
             <div class="endpoint-header">
               <span class="method delete">DELETE</span>
               <span class="endpoint-path"
-                >/api/user/{username}/photo/capture/additionalImage/cleanup</span
+                >/api/user/{username}/photo/capture/ai/idol/cleanup</span
               >
               <span class="auth-required">🔒 AUTH</span>
             </div>
             <div class="endpoint-description">
-              Clean up additional image after photobooth session completed
+              Delete idol image after photobooth session completed to save storage
+            </div>
+            <div class="example-code">
+              JSON Body:
+              {
+                "idolImagePath": "images/profiles/1234567890.jpg"
+              }
+              
+              Response:
+              {
+                "success": true,
+                "message": "Idol image cleaned up successfully",
+                "data": {
+                  "cleaned_path": "images/profiles/1234567890.jpg",
+                  "timestamp": "2025-10-07T10:45:00.000Z"
+                }
+              }
             </div>
           </div>
 
           <h4>🎯 AI Photobooth Features:</h4>
           <div class="example-code">
-            Advanced Features: - Pose Matching: AI analyzes user pose and
-            positions character naturally - Lighting Harmony: Automatic lighting
-            adjustment for realistic integration - Scale Consistency: Maintains
-            proper proportions between subjects - Creative Positioning: Smart
-            placement for natural interactions - Style Control: Natural/artistic
-            merge styles - Batch Processing: Handles multiple photos efficiently
-            - Frame Integration: Works with all frame layouts (2x1, 3x1, 4x1) -
-            Preview Support: Base64 images for instant frontend preview - TTL
-            Cleanup: Automatic cleanup with existing photo TTL system
+            ✅ Preview-First Approach: See AI merge result before saving
+            ✅ Retake Capability: Retake any slot without affecting others
+            ✅ Universal Layout Support: Works with 2x1, 3x1, 2x2, 4x1, NxM layouts
+            ✅ AI Validation: Gemini AI validates idol image quality & content
+            ✅ Style Control: Natural, artistic, cartoon, dramatic merge styles
+            ✅ Batch Processing: Efficient multi-slot AI merge
+            ✅ Base64 Preview: Instant preview without file downloads
+            ✅ TTL System: Photos expire based on user role
+            ✅ Frontend Control: Complete control over capture flow
           </div>
 
-          <h4>🔄 Photobooth Workflow:</h4>
+          <h4>🔄 Complete Flow Example (2x1 Frame):</h4>
           <div class="example-code">
-            Frontend Implementation Guide: 1. Setup Phase: POST
-            /api/user/{username}/photo/capture/additionalImage → Upload
-            idol/character image → Get additionalImagePath for use in capture 2.
-            Capture Phase: POST /api/user/{username}/photo/capture → Send
-            captured photos + additionalImagePath + enableAIMerge: 'true' →
-            Backend processes with Gemini AI → Returns original images + merged
-            images (base64) 3. Preview Phase: → Use
-            aiPhotobooth.results[].mergedImageBase64 for preview → Display
-            merged images to show AI result → User can see themselves with their
-            chosen character 4. Frame Assembly: → Use original photo.images URLs
-            for final frame creation → Merged images are only for preview/effect
-            demonstration → Final saved photo uses original images with TTL 5.
-            Cleanup Phase: DELETE
-            /api/user/{username}/photo/capture/additionalImage/cleanup → Clean
-            up temporary additional image
+            1. Upload Idol:
+               POST /capture/ai/idol → Get idolImagePath
+            
+            2. Capture Slot 1:
+               POST /capture/ai/preview (slotIndex: 0)
+               → Show mergedImageBase64 preview
+               → User approves or retakes
+               → Save capturedImagePath
+            
+            3. Capture Slot 2:
+               POST /capture/ai/preview (slotIndex: 1)
+               → Show mergedImageBase64 preview
+               → User approves or retakes
+               → Save capturedImagePath
+            
+            4. Submit Final:
+               POST /capture/ai/submit
+               → Send all capturedImagePaths + idolImagePath
+               → Photo saved to database
+               → Get all merged images again
+            
+            5. Cleanup:
+               DELETE /capture/ai/idol/cleanup
+               → Remove temporary idol image
           </div>
 
-          <h4>📊 Response Structure:</h4>
+          <h4>📊 Frame Layout Support:</h4>
           <div class="example-code">
-            { "success": true, "message": "AI Photobooth capture completed
-            successfully", "data": { "photo": { "id": "photo_id", "images":
-            ["original_image_urls"], // For frame assembly "frame": {
-            "layout_type": "2x1" }, "expires_at": "TTL_timestamp" },
-            "aiPhotobooth": { "enabled": true, "frameLayout": "2x1",
-            "processedSlots": 2, "results": [ { "index": 0, "success": true,
-            "mergedImageBase64": "base64_string", // For preview
-            "originalImage": "path/to/original" } ], "statistics": {
-            "success_rate": "100%" }, "preview": { "instructions": "Use
-            mergedImageBase64 for preview", "format": "base64" } } } }
+            Layout     Expected Slots    Example Flow
+            ───────    ──────────────    ────────────
+            2x1        2 images          Capture 2x → Submit
+            3x1        3 images          Capture 3x → Submit
+            2x2        4 images          Capture 4x → Submit
+            4x1        4 images          Capture 4x → Submit
+            NxM        N*M images        Capture NxM → Submit
+          </div>
+
+          <h4>⚡ Benefits vs Old Flow:</h4>
+          <div class="example-code">
+            Old Flow (Deprecated):
+            ❌ No preview before save
+            ❌ Can't retake individual slots
+            ❌ All-or-nothing approach
+            ❌ Wasted AI calls on retakes
+            
+            New Flow (Current):
+            ✅ Preview each slot before final save
+            ✅ Retake any slot independently
+            ✅ Step-by-step with full control
+            ✅ Optimized AI usage
+            ✅ Better UX and flexibility
           </div>
         </div>
         <div class="endpoint-group">
