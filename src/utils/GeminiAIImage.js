@@ -104,9 +104,7 @@ class GeminiAIImage {
   createMergePrompt(options = {}) {
     const {
       style = 'natural',
-      blendMode = 'creative',
-      poseMatching = true,
-      lightingAdjustment = true,
+      blendMode = 'realistic',
       frameLayout = '2x1',
       photoboothMode = false
     } = options;
@@ -127,27 +125,17 @@ class GeminiAIImage {
   MERGE REQUIREMENTS:
   1. **Natural Pose Integration**: The additional character should be positioned to naturally interact with or complement the user's pose
   2. **Realistic Placement**: Position the character as if they're actually in the same physical space
-  3. **Lighting Harmony**: Adjust lighting and shadows to match both subjects
-  4. **Scale Consistency**: Ensure both subjects appear at realistic relative sizes
-  5. **Creative Interaction**: Make it look like they're:
-    - Taking a photo together (selfie style)
-    - Standing/sitting side by side naturally  
-    - Having a conversation or interaction
-    - Posing together for the camera
-    - Sharing the same environment/background
+  3. **Scale Consistency**: Ensure both subjects appear at realistic relative sizes
 
   STYLE SPECIFICATIONS:
-  - Style: ${style} (natural/artistic)
-  - Blend Mode: ${blendMode} (realistic/creative)
-  - Pose Matching: ${poseMatching ? 'REQUIRED - Character must complement user pose' : 'Optional'}
-  - Lighting: ${lightingAdjustment ? 'REQUIRED - Must match lighting conditions' : 'Optional'}
+  - Style: ${style} 
+  - Blend Mode: ${blendMode} 
 
   ANALYSIS INSTRUCTIONS:
   1. Analyze the user's pose, expression, and positioning
   2. Analyze the character's pose and how it can be adapted
   3. Determine optimal positioning (left/right, foreground/background)
-  4. Suggest lighting adjustments needed
-  5. Recommend any pose modifications for natural interaction
+  4. Recommend any pose modifications for natural interaction
 
   POSITIONING GUIDELINES:
   - For selfie-style photos: Character should be positioned as if they're also taking the selfie
@@ -207,20 +195,6 @@ class GeminiAIImage {
     }
   }
 
-  /**
-   * Enhanced merge with multiple poses and creative positioning
-   */
-  async createCreativeMerge(capturedPhotoPath, additionalImagePath, creativityLevel = 'medium') {
-    const options = {
-      style: creativityLevel === 'high' ? 'artistic' : 'natural',
-      blendMode: creativityLevel === 'high' ? 'creative' : 'realistic',
-      poseMatching: true,
-      lightingAdjustment: true,
-      creativityLevel
-    };
-
-    return await this.mergePhotos(capturedPhotoPath, additionalImagePath, options);
-  }
 
   /**
    * Batch process multiple photos with the same additional image
