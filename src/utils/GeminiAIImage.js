@@ -110,8 +110,6 @@ class GeminiAIImage {
     } = options;
 
     return `
-  You are an expert AI photo editor specializing in creative photo merging for a photobooth application.
-
   TASK: Merge the captured user photo (first image) with the additional character/idol image (second image) to create a natural, creative composite for a ${frameLayout} photo frame layout.
 
   ${photoboothMode ? `
@@ -135,15 +133,8 @@ class GeminiAIImage {
   1. Analyze the user's pose, expression, and positioning
   2. Analyze the character's pose and how it can be adapted
   3. Determine optimal positioning (left/right, foreground/background)
-  4. Recommend any pose modifications for natural interaction
 
-  POSITIONING GUIDELINES:
-  - For selfie-style photos: Character should be positioned as if they're also taking the selfie
-  - For portrait shots: Character can be positioned beside, behind, or interacting with the user
-  - For group-style shots: Both should appear to be part of the same group
-  - Maintain natural proportions and perspectives
-
-  OUTPUT: Provide detailed step-by-step instructions for creating this merge, including specific positioning coordinates, scaling factors, rotation angles, and blending techniques that will make the composite look professionally edited and naturally believable.
+  OUTPUT: Provide detailed step-by-step instructions for creating this merge, including specific positioning, natural and realistic emotions that will make the composite look professionally edited and naturally believable.
     `.trim();
   }
 
