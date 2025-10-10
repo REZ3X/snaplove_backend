@@ -44,7 +44,6 @@ const frameLeaderboardRoute = require("./api/frame/public/[id]/leaderboard/route
 
 const photoCaptureRoute = require("./api/user/[username]/photo/capture/route");
 const photoCollabRoute = require("./api/user/[username]/photo/photoCollab/route");
-const photoAdditionalImageRoute = require("./api/user/[username]/photo/capture/additionalImage/route");
 const photoPrivateRoute = require("./api/user/[username]/photo/private/route");
 
 const adminUsersRoute = require("./api/admin/users/route");
