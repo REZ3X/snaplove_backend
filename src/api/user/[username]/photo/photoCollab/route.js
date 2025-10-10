@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const { param, body, query, validationResult } = require('express-validator');
 const PhotoCollab = require('../../../../../models/PhotoCollab');
 const Photo = require('../../../../../models/Photo');
