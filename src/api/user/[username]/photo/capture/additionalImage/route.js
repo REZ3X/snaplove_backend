@@ -319,4 +319,51 @@ router.post('/:username/photo/capture/additionalImage/batchMerge', [
   }
 });
 
+router.delete('/:username/photo/capture/additionalImage/cleanup', [
+  param('username').notEmpty().withMessage('Username is required')
+], authenticateToken, checkBanStatus, async (req, res) => {
+  try {
+    const { additionalImagePath } = req.body;
+    
+    if (!additionalImagePath) {
+      return res.status(400).json({
+        success: false,
+        message: 'additionalImagePath is required'
+      });
+    }
+
+    const targetUser = await User.findOne({ username: req.params.username });
+    if (!targetUser || req.user.userId !== targetUser._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    try {
+      const absolutePath = path.join(process.cwd(), additionalImagePath);
+      await fs.unlink(absolutePath);
+      console.log(`✅ Cleaned up additional image: ${additionalImagePath}`);
+    } catch (error) {
+      console.warn(`⚠️ Failed to cleanup additional image: ${error.message}`);
+    }
+
+    res.json({
+      success: true,
+      message: 'Additional image cleaned up successfully',
+      data: {
+        cleaned_path: additionalImagePath,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Cleanup additional image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 module.exports = router;

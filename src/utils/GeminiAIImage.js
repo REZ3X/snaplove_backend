@@ -106,38 +106,56 @@ class GeminiAIImage {
       style = 'natural',
       blendMode = 'creative',
       poseMatching = true,
-      lightingAdjustment = true
+      lightingAdjustment = true,
+      frameLayout = '2x1',
+      photoboothMode = false
     } = options;
 
     return `
-You are an expert photo editor and AI artist. I need you to analyze two images and provide detailed instructions for merging them naturally.
+  You are an expert AI photo editor specializing in creative photo merging for a photobooth application.
 
-TASK: Merge the captured photo (first image) with the additional character image (second image) to create a creative, natural-looking composite.
+  TASK: Merge the captured user photo (first image) with the additional character/idol image (second image) to create a natural, creative composite for a ${frameLayout} photo frame layout.
 
-REQUIREMENTS:
-1. **Pose Matching**: The character from the additional image should match or complement the pose of the person in the captured photo
-2. **Natural Integration**: The merge should look realistic and natural, not like a simple overlay
-3. **Lighting Consistency**: Adjust lighting to match between both images
-4. **Style Harmony**: Ensure both images blend well in terms of color, contrast, and overall aesthetic
-5. **Creative Positioning**: Position the character creatively - they could be:
-   - Standing next to the person
-   - In the background naturally
-   - Interacting with the scene
-   - Mirroring poses or gestures
+  ${photoboothMode ? `
+  PHOTOBOOTH CONTEXT:
+  - This is part of a ${frameLayout} photo frame (${frameLayout === '2x1' ? '2 photos' : frameLayout === '3x1' ? '3 photos' : '4 photos'} total)
+  - User wants to appear together with their chosen character/idol in all photos
+  - Each photo should look like they're actually together in the same scene
+  - Maintain consistency across all photos in the series
+  ` : ''}
 
-ANALYSIS NEEDED:
-- Describe the pose and positioning of the person in the captured photo
-- Describe the character in the additional image
-- Suggest the best way to position and blend the character
-- Recommend lighting adjustments needed
-- Suggest any pose modifications for natural interaction
+  MERGE REQUIREMENTS:
+  1. **Natural Pose Integration**: The additional character should be positioned to naturally interact with or complement the user's pose
+  2. **Realistic Placement**: Position the character as if they're actually in the same physical space
+  3. **Lighting Harmony**: Adjust lighting and shadows to match both subjects
+  4. **Scale Consistency**: Ensure both subjects appear at realistic relative sizes
+  5. **Creative Interaction**: Make it look like they're:
+    - Taking a photo together (selfie style)
+    - Standing/sitting side by side naturally  
+    - Having a conversation or interaction
+    - Posing together for the camera
+    - Sharing the same environment/background
 
-STYLE: ${style}
-BLEND MODE: ${blendMode}
-POSE MATCHING: ${poseMatching ? 'Required' : 'Optional'}
-LIGHTING ADJUSTMENT: ${lightingAdjustment ? 'Required' : 'Optional'}
+  STYLE SPECIFICATIONS:
+  - Style: ${style} (natural/artistic)
+  - Blend Mode: ${blendMode} (realistic/creative)
+  - Pose Matching: ${poseMatching ? 'REQUIRED - Character must complement user pose' : 'Optional'}
+  - Lighting: ${lightingAdjustment ? 'REQUIRED - Must match lighting conditions' : 'Optional'}
 
-Please provide detailed step-by-step instructions for creating this merge, including specific positioning, scaling, rotation, and blending techniques.
+  ANALYSIS INSTRUCTIONS:
+  1. Analyze the user's pose, expression, and positioning
+  2. Analyze the character's pose and how it can be adapted
+  3. Determine optimal positioning (left/right, foreground/background)
+  4. Suggest lighting adjustments needed
+  5. Recommend any pose modifications for natural interaction
+
+  POSITIONING GUIDELINES:
+  - For selfie-style photos: Character should be positioned as if they're also taking the selfie
+  - For portrait shots: Character can be positioned beside, behind, or interacting with the user
+  - For group-style shots: Both should appear to be part of the same group
+  - Maintain natural proportions and perspectives
+
+  OUTPUT: Provide detailed step-by-step instructions for creating this merge, including specific positioning coordinates, scaling factors, rotation angles, and blending techniques that will make the composite look professionally edited and naturally believable.
     `.trim();
   }
 
