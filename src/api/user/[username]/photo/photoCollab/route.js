@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const { param, body, query, validationResult } = require('express-validator');
 const PhotoCollab = require('../../../../../models/PhotoCollab');
 const Photo = require('../../../../../models/Photo');
@@ -8,7 +8,6 @@ const { authenticateToken, checkBanStatus } = require('../../../../../middleware
 const { calculatePhotoExpiry } = require('../../../../../utils/RolePolicy');
 const { getDisplayProfileImage } = require('../../../../../utils/profileImageHelper');
 const socketService = require('../../../../../services/socketService');
-const _geminiAI = require('../../../../../utils/GeminiAIImage');
 const imageHandler = require('../../../../../utils/LocalImageHandler');
 const path = require('path');
 const sharp = require('sharp');

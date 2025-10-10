@@ -738,7 +738,6 @@ app.use("/api/user", photoCollabRoute);
 app.use("/api/user", photoEditRoute);
 app.use("/api/user", photoDeleteRoute);
 app.use("/api/user", photoCaptureRoute);
-app.use("/api/user", photoAdditionalImageRoute);
 
 app.use("/api/user", userProfileEditRoute);
 app.use("/api/user", userStatsRoute);

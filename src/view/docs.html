@@ -755,6 +755,11 @@
                 role-based TTL and automatic cleanup
               </li>
               <li>
+                <strong>🤝 Photo Collaboration:</strong> Invite users to merge
+                photos side-by-side, add collaborative stickers, and create
+                shared memories with real-time notifications
+              </li>
+              <li>
                 <strong>🎂 Birthday System:</strong> One-time birthday setting
                 with automatic celebrations, 24-hour badges, and real-time
                 notifications
@@ -1377,6 +1382,200 @@
             Basic: 3 days Verified: 7 days Verified Premium/Official/Developer:
             Unlimited
           </div>
+
+          <h4>🤝 Photo Collaboration System</h4>
+          <div class="example-code">
+            Photo Collaboration allows users to merge their photos side-by-side
+            and add creative stickers together. Features: ✅ Send collaboration
+            invitations with your photo ✅ Accept/reject invitations with your
+            matching photo ✅ Automatic side-by-side merge of both photos ✅ Add
+            stickers (emoji, text, image) collaboratively ✅ Finalize and save
+            completed collaborations ✅ Real-time notifications for all actions
+            ✅ TTL-based expiration (same as user role) Status Flow: pending →
+            accepted → completed (or rejected)
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab/invite</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Send collaboration invitation to another user with your photo
+            </div>
+            <div class="example-code">
+              { "receiver_username": "collaborator_username", "photo_id":
+              "your_photo_id", "message": "Let's create something awesome
+              together!" // optional, max 200 chars }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab/invitations</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get collaboration invitations received by user
+            </div>
+            <div class="example-code">
+              Query Parameters: ?status=pending|accepted|rejected (default:
+              pending) &page=1 &limit=20
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab/:collaborationId/respond</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Accept or reject collaboration invitation (requires matching photo
+              when accepting)
+            </div>
+            <div class="example-code">
+              // Accept invitation { "action": "accept", "photo_id":
+              "your_matching_photo_id" // required, must match frame layout } //
+              Reject invitation { "action": "reject" } // When accepting, photos
+              are automatically merged side-by-side
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get all collaborations (sent and received)
+            </div>
+            <div class="example-code">
+              Query Parameters: ?type=sent|received|all (default: all)
+              &status=pending|accepted|rejected|completed &page=1 &limit=20
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab/:collaborationId</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get detailed collaboration information including merged images and
+              stickers
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab/:collaborationId/sticker</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Add sticker to accepted collaboration (both users can add
+              stickers)
+            </div>
+            <div class="example-code">
+              { "type": "emoji|text|image", "content": "🎉" or "text content" or
+              "image_url", "position": { "x": 100, "y": 150 }, "size": {
+              "width": 50, "height": 50 }, "rotation": 0 // optional, degrees }
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method delete">DELETE</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab/:collaborationId/sticker/:stickerId</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Remove sticker from collaboration (only sticker creator can
+              remove)
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/photoCollab/:collaborationId/complete</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Finalize collaboration and generate final images with all stickers
+              applied
+            </div>
+          </div>
+
+          <h4>🎨 Collaboration Response Structure</h4>
+          <div class="example-code">
+            { "success": true, "data": { "collaboration": { "id":
+            "collaboration_id", "title": "Collab: My Photo", "desc":
+            "Collaboration between user1 and user2", "status": "accepted",
+            "layout_type": "2x1", "inviter": { "id": "user_id", "name": "User
+            One", "username": "user1", "image_profile": "profile_url", "photo":
+            { "id": "photo_id", "title": "My Photo", "images": ["image_url_1",
+            "image_url_2"] } }, "receiver": { "id": "user_id", "name": "User
+            Two", "username": "user2", "image_profile": "profile_url", "photo":
+            { "id": "photo_id", "title": "Their Photo", "images":
+            ["image_url_1", "image_url_2"] } }, "frame": { "id": "frame_id",
+            "title": "Frame Title", "layout_type": "2x1", "thumbnail":
+            "thumbnail_url" }, "merged_images": [ "merged_image_url_1",
+            "merged_image_url_2" ], "stickers": [ { "id": "sticker_id", "type":
+            "emoji", "content": "🎉", "position": { "x": 100, "y": 150 },
+            "size": { "width": 50, "height": 50 }, "rotation": 0, "added_by": {
+            "id": "user_id", "name": "User Name", "username": "username" },
+            "created_at": "2024-01-15T10:30:00Z" } ], "invitation": { "message":
+            "Let's collaborate!", "sent_at": "2024-01-15T10:00:00Z",
+            "responded_at": "2024-01-15T10:15:00Z" }, "expires_at":
+            "2024-01-18T10:00:00Z", "completed_at": "2024-01-15T11:00:00Z",
+            "created_at": "2024-01-15T10:00:00Z", "updated_at":
+            "2024-01-15T11:00:00Z", "user_role": "inviter", "can_edit": true } }
+            }
+          </div>
+
+          <h4>🔔 Collaboration Notifications</h4>
+          <div class="example-code">
+            Real-time notifications sent for: - photo_collab_invite: Someone
+            invited you to collaborate - photo_collab_accepted: Someone accepted
+            your invitation - photo_collab_rejected: Someone declined your
+            invitation - photo_collab_sticker_added: Someone added sticker to
+            collaboration - photo_collab_completed: Collaboration has been
+            finalized All notifications include collaboration details and user
+            information
+          </div>
+
+          <h4>📋 Collaboration Rules</h4>
+          <div class="example-code">
+            ✅ Both photos must use frames with matching layout_type ✅ Cannot
+            collaborate with yourself ✅ Only one pending invitation per
+            photo/user pair ✅ Photos expire based on inviter's role (3/7 days
+            or unlimited) ✅ Both users can add stickers to accepted
+            collaborations ✅ Only sticker creator can remove their own stickers
+            ✅ Either user can complete the collaboration ✅ Completed
+            collaborations generate final merged images
+          </div>
         </div>
       </div>
 
@@ -1622,9 +1821,14 @@
             frame to take a photo frame_approved: Your frame was approved by
             admin frame_rejected: Your frame was rejected by admin user_follow:
             Someone started following you frame_upload: Someone you follow
-            uploaded a new frame birthday_celebration: 🎉 Birthday celebration
-            notifications broadcast: 📢 Admin broadcast messages system: System
-            notifications
+            photo_collab_invite: Someone invited you to collaborate
+            photo_collab_accepted: Someone accepted your collaboration
+            invitation photo_collab_rejected: Someone declined your
+            collaboration invitation photo_collab_sticker_added: Someone added a
+            sticker to your collaboration photo_collab_completed: Collaboration
+            has been finalized uploaded a new frame birthday_celebration: 🎉
+            Birthday celebration notifications broadcast: 📢 Admin broadcast
+            messages system: System notifications
           </div>
 
           <h4>🎂 Birthday Notifications</h4>
@@ -2541,6 +2745,43 @@
             data.data.public_frames.total_likes_received); console.log('Total
             uses:', data.data.public_frames.total_uses_received);
             console.log('Frame performance:', data.data.top_frames); });
+          </div>
+
+          <h4>🤝 Photo Collaboration Example</h4>
+          <div class="example-code">
+            // 1. Send collaboration invitation
+            fetch(`/api/user/${username}/photo/photoCollab/invite`, { method:
+            'POST', headers: { 'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' }, body: JSON.stringify({
+            receiver_username: 'friend_username', photo_id: 'my_photo_id',
+            message: "Let's create something cool!" }) }) .then(response =>
+            response.json()) .then(data => { console.log('Invitation sent:',
+            data.data.collaboration); }); // 2. Get pending invitations
+            fetch(`/api/user/${username}/photo/photoCollab/invitations?status=pending`,
+            { headers: { 'Authorization': `Bearer ${token}` } }) .then(response
+            => response.json()) .then(data => { console.log('Pending
+            invitations:', data.data.invitations); }); // 3. Accept invitation
+            with your photo
+            fetch(`/api/user/${username}/photo/photoCollab/${collabId}/respond`,
+            { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' }, body: JSON.stringify({ action:
+            'accept', photo_id: 'my_matching_photo_id' }) }) .then(response =>
+            response.json()) .then(data => { console.log('Collaboration
+            accepted!'); console.log('Merged images:',
+            data.data.collaboration.merged_images); }); // 4. Add sticker to
+            collaboration
+            fetch(`/api/user/${username}/photo/photoCollab/${collabId}/sticker`,
+            { method: 'POST', headers: { 'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' }, body: JSON.stringify({ type:
+            'emoji', content: '🎉', position: { x: 150, y: 200 }, size: { width:
+            60, height: 60 }, rotation: 15 }) }) .then(response =>
+            response.json()) .then(data => { console.log('Sticker added:',
+            data.data.sticker); }); // 5. Complete collaboration
+            fetch(`/api/user/${username}/photo/photoCollab/${collabId}/complete`,
+            { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } })
+            .then(response => response.json()) .then(data => {
+            console.log('Collaboration completed! 🎉'); console.log('Final
+            images:', data.data.collaboration.merged_images); });
           </div>
 
           <h4>💖 Like a Frame</h4>
