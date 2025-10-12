@@ -7,40 +7,68 @@
 [![Discord.js](https://img.shields.io/badge/Discord.js-14.x-5865F2.svg)](https://discord.js.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A comprehensive RESTful API backend for **Snaplove** - a frame-based photo sharing platform where users can create custom frames, capture photos using those frames, and build social connections with real-time interactions. Features integrated Discord admin bot for seamless administration.
+A comprehensive RESTful API backend for **Snaplove** - an innovative frame-based photo sharing platform featuring live photo capture, collaborative photo creation, and social networking. Users can create custom frames, capture regular and live photos (3-second videos), collaborate on photos with friends, and build communities with real-time interactions. Includes email verification system, Discord bot administration, and intelligent content discovery algorithms.
 
 ## 🌟 Features
 
+### Core Features
+
 - **🖼️ Frame Management**: Create, edit, and manage photo frames with approval system
 - **📸 Photo Capture**: Take photos using frames with role-based TTL
-- **👥 Social System**: Follow/unfollow users with mutual connections
-- **🔔 Real-time Notifications**: Live updates via WebSocket connections
-- **🏆 Leaderboard & Trending**: Rankings based on likes, usage, and trending analysis
-- **🔍 Advanced Search**: Comprehensive search for frames and users with relevance scoring and filtering
-- **📈 Trending Analysis**: Real-time trending frames with velocity scoring and time periods
-- **🔍 Smart Discovery**: Intelligent frame discovery with hybrid algorithms combining trending, recency, and engagement signals
-- **🎯 Frame Leaderboards**: Individual frame usage rankings and user statistics
+- **🎬 Live Photo**: 3-second video capture with frame overlay (role-based save permissions)
+- **🤝 Photo Collaboration**: Multi-user collaborative photo creation with stickers and invitations
+- **👥 Social System**: Follow/unfollow users with mutual connections and relationship tracking
+- **🔔 Real-time Notifications**: Live updates via WebSocket for all social interactions
+- **📧 Email Verification**: Brevo SMTP integration with 24-hour verification tokens
+
+### Discovery & Analytics
+
+- **🏆 Leaderboard System**: Time-based rankings (7-day, 30-day, all-time) for users and frames
+- **📈 Trending Analysis**: Velocity-based algorithm with recency weighting and engagement scoring
+- **🔍 Smart Discovery**: Hybrid algorithm combining trending (40%), engagement (30%), momentum (20%), and randomization (10%)
+- **🔎 Advanced Search**: Multi-type search with relevance scoring, filtering, and flexible sorting
+- **🎯 Frame Leaderboards**: Individual frame usage rankings showing top users per frame
+- **📊 User Statistics**: Comprehensive analytics including social metrics and growth tracking
+
+### Social & Community
+
 - **👤 Profile Management**: Custom profile image uploads with Google OAuth fallback
-- **🤖 Discord Integration**: Full admin panel access via Discord bot with slash commands
+- **🎂 Birthday System**: One-time birthday setting with automatic celebrations and 24-hour badges
 - **📢 Broadcasting System**: Admin broadcast messages with targeting and delivery tracking
-- **📋 Report & Ticket System**: Content moderation and user support workflows
-- **🎂 Birthday System**: One-time birthday setting with automatic celebrations
-- **⚙️ Admin Tools**: Comprehensive administration and reporting
-- **🔐 Security**: JWT authentication, API key protection, rate limiting
-- **📊 Analytics**: Real-time stats and performance metrics
+- **📋 Report System**: Content moderation workflow for inappropriate frames and users
+- **� Ticket System**: Support ticket management with priority levels and status tracking
+
+### Administration
+
+- **🤖 Discord Integration**: Full admin panel access via Discord bot with 15+ slash commands
+- **⚙️ Admin Tools**: User management, frame approval, content moderation, and analytics
+- **🔐 Security**: JWT authentication, API key protection, rate limiting, and role-based access control
+- **🧹 Automated Cleanup**: Scheduled TTL-based deletion for photos, frames, and video files
 
 ## 🏗️ Tech Stack
 
+### Core Technologies
+
 - **Runtime**: Node.js 18+
-- **Framework**: Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Real-time**: Socket.IO for WebSocket connections
-- **Authentication**: JWT + Google OAuth
-- **File Storage**: Local file system with image processing
+- **Framework**: Express.js 4.x
+- **Database**: MongoDB 6.x with Mongoose ODM
+- **Real-time**: Socket.IO 4.x for WebSocket connections
+- **Authentication**: JWT tokens + Google OAuth 2.0
+
+### Integrations
+
+- **Email Service**: Brevo (Sendinblue) SMTP for verification emails
 - **Discord Integration**: Discord.js v14 with slash commands
-- **Security**: Helmet, CORS, Rate Limiting, API Keys
-- **Testing**: Jest
-- **Deployment**: PM2 compatible
+- **File Storage**: Local file system with multer for uploads
+- **Image Processing**: Sharp for optimization and resizing
+
+### Security & Performance
+
+- **Security**: Helmet, CORS, Rate Limiting, API Keys, Input Validation
+- **Monitoring**: Custom health checks and performance metrics
+- **Scheduled Jobs**: Node-cron for automated cleanup and birthday checks
+- **Testing**: Jest with coverage reporting
+- **Deployment**: PM2 compatible with ecosystem config
 
 ## 🚀 Quick Start
 
@@ -99,6 +127,14 @@ A comprehensive RESTful API backend for **Snaplove** - a frame-based photo shari
    DISCORD_GUILD_ID=your_discord_server_id
    DISCORD_CHANNEL_ID=your_admin_channel_id
    DISCORD_ADMIN_IDS=your_discord_user_id,another_admin_id
+
+   # Email Service (Brevo SMTP)
+   BREVO_SMTP_HOST=smtp-relay.brevo.com
+   BREVO_SMTP_PORT=587
+   BREVO_SMTP_USER=your_brevo_user
+   BREVO_SMTP_PASS=your_brevo_password
+   BREVO_FROM_EMAIL=noreply@snaplove.pics
+   BREVO_FROM_NAME=Snaplove
 
    # Documentation Authentication
    DOCS_USERNAME=admin
@@ -229,19 +265,31 @@ headers: {
 
 #### 📸 Photo Management
 
-- `POST /api/user/{username}/photo/capture` - Capture photo with frame
-- `GET /api/user/{username}/photo/private` - Get user's photos
-- `PUT /api/user/{username}/photo/private/{id}/edit` - Edit photo
-- `DELETE /api/user/{username}/photo/private/{id}/delete` - Delete photo
+- `POST /api/user/{username}/photo/capture` - Capture photo/live photo with frame
+  - Supports dual upload: `images` (required) and `video_files` (optional for live photos)
+  - Role-based save permissions: Basic users get download-only response
+- `GET /api/user/{username}/photo/private` - Get user's photos with live photo support
+- `GET /api/user/{username}/photo/private/{id}` - Get specific photo details
+- `PUT /api/user/{username}/photo/private/{id}/edit` - Edit photo metadata
+- `DELETE /api/user/{username}/photo/private/{id}/delete` - Delete photo and associated videos
+
+#### 🤝 Photo Collaboration
+
+- `POST /api/user/{username}/photo/photoCollab` - Send collaboration invitation
+- `GET /api/user/{username}/photo/photoCollab` - Get collaboration invitations
+- `PUT /api/user/{username}/photo/photoCollab/{id}/respond` - Accept/decline invitation
+- `POST /api/user/{username}/photo/photoCollab/{id}/sticker` - Add stickers to collaboration
+- `PUT /api/user/{username}/photo/photoCollab/{id}/complete` - Finalize collaboration
+- `DELETE /api/user/{username}/photo/photoCollab/{id}` - Cancel collaboration
 
 #### 👥 Social Features
 
-- `GET /api/user/{username}/following` - Get following list
-- `POST /api/user/{username}/following` - Follow user (with notifications)
+- `GET /api/user/{username}/following` - Get following list with pagination
+- `POST /api/user/{username}/following` - Follow user (triggers real-time notification)
 - `DELETE /api/user/{username}/following/{id}` - Unfollow user
-- `GET /api/user/{username}/follower` - Get followers list
+- `GET /api/user/{username}/follower` - Get followers list with pagination
 - `DELETE /api/user/{username}/follower/{id}` - Remove follower
-- `GET /api/user/{username}/following/check/{target}` - Check follow status
+- `GET /api/user/{username}/following/check/{target}` - Check mutual follow status
 
 #### 🔔 Real-time Notifications
 
@@ -294,29 +342,40 @@ headers: {
     - `limit` - Results per page (1-50)
     - `page` - Page number
 
-#### � User Analytics
+#### 👤 User Management & Analytics
 
-- `GET /api/user/{username}` - Get user profile
-- `GET /api/user/{username}/stats` - Get user statistics (including social stats)
-- `GET /api/user/{username}/liked/private` - Get liked frames
-- `PUT /api/user/{username}/private/edit` - Edit profile with custom image upload
+- `GET /api/user/{username}` - Get public user profile with social stats
+- `GET /api/user/{username}/stats` - Comprehensive user statistics (frames, photos, social metrics)
+- `GET /api/user/{username}/liked/private` - Get liked frames list
+- `PUT /api/user/{username}/private/edit` - Edit profile with custom image upload (multipart/form-data)
+- `PUT /api/user/{username}/birthday` - Set birthday (one-time only)
 
 #### 📋 Reports & Tickets
 
-- `GET /api/user/{username}/report/private` - Get user reports
-- `POST /api/user/{username}/report/private` - Submit content report
-- `GET /api/user/{username}/ticket/private` - Get support tickets
-- `POST /api/user/{username}/ticket/private` - Create support ticket
+- `GET /api/user/{username}/report/private` - Get user's submitted reports
+- `POST /api/user/{username}/report/private` - Submit content report (frame/user)
+- `GET /api/user/{username}/report/private/{id}` - Get specific report details
+- `GET /api/user/{username}/ticket/private` - Get support tickets with filtering
+- `POST /api/user/{username}/ticket/private` - Create support ticket with image upload
+- `GET /api/user/{username}/ticket/private/{id}` - Get ticket details and responses
 
-#### ⚙️ Admin (Admin only)
+#### ⚙️ Admin (Official/Developer only)
 
-- `GET /api/admin/framePublicApproval` - Frame approval queue
-- `PUT /api/admin/framePublicApproval/{id}` - Approve/reject frame
-- `GET /api/admin/users` - User management
-- `PUT /api/admin/users/{username}/update` - Update user
-- `GET /api/admin/reports` - Content reports
-- `GET /api/admin/ticket` - Support tickets
-- `GET /api/admin/serverHealth` - Server statistics
+- `GET /api/admin/framePublicApproval` - Frame approval queue with filtering
+- `PUT /api/admin/framePublicApproval/{id}` - Approve/reject frame with reason
+- `GET /api/admin/users` - User management with role filtering
+- `GET /api/admin/users/{username}` - Get detailed user information
+- `PUT /api/admin/users/{username}/update` - Update user role and ban status
+- `DELETE /api/admin/users/{username}/delete` - Delete user account
+- `GET /api/admin/reports` - Content reports with status filtering
+- `GET /api/admin/reports/{id}` - Get report details
+- `PUT /api/admin/reports/{id}` - Resolve content report
+- `GET /api/admin/ticket` - Support tickets with priority filtering
+- `GET /api/admin/ticket/{id}` - Get ticket details
+- `PUT /api/admin/ticket/{id}` - Update ticket status and add response
+- `POST /api/admin/broadcast` - Send broadcast messages to targeted users
+- `GET /api/admin/discord/status` - Check Discord bot status
+- `GET /api/admin/serverHealth` - Comprehensive server health and statistics
 
 For complete API documentation, visit `/` when the server is running.
 
@@ -345,79 +404,96 @@ socket.on("unread_count", (data) => {
 
 ### Notification Types
 
-- **`frame_like`**: Someone liked your frame
+- **`frame_like`**: Someone liked your frame (includes sender info)
 - **`frame_use`**: Someone used your frame to take a photo
-- **`user_follow`**: Someone started following you
+- **`user_follow`**: Someone started following you (real-time)
 - **`frame_upload`**: Someone you follow uploaded a new frame
 - **`frame_approved`**: Your frame was approved by admin
-- **`frame_rejected`**: Your frame was rejected by admin
-- **`system`**: System notifications
+- **`frame_rejected`**: Your frame was rejected by admin (includes reason)
+- **`photo_collab_invite`**: Someone invited you to collaborate on a photo
+- **`photo_collab_accepted`**: Your collaboration invitation was accepted
+- **`photo_collab_completed`**: Collaboration finalized and ready
+- **`birthday_celebration`**: Birthday notification for users you follow
+- **`broadcast`**: Admin broadcast messages
+- **`system`**: System-wide announcements
 
 ## 🗂️ Project Structure
 
 ```
 src/
-├── api/                    # API route handlers
-│   ├── admin/             # Admin-only endpoints
-│   │   ├── broadcast/     # Broadcasting system
-│   │   ├── discord/       # Discord integration routes
-│   │   ├── framePublicApproval/  # Frame approval system
-│   │   ├── reports/       # Content report management
-│   │   ├── ticket/        # Support ticket system
-│   │   └── users/         # User administration
-│   ├── auth/              # Authentication
-│   ├── frame/             # Frame management & discovery
-│   │   └── public/        # Public frame operations
-│   │       ├── discover/  # Intelligent frame discovery
-│   │       └── trending/  # Trending frames algorithm
-│   ├── leaderboard/       # Leaderboard system
-│   ├── search/            # Advanced search functionality
-│   └── user/              # User profile & private operations
-├── lib/                   # Database connections & setup
-├── middleware/            # Authentication & security middleware
-├── models/                # MongoDB schemas
-│   ├── User.js           # User model with birthday system
-│   ├── Frame.js          # Frame model with engagement tracking
-│   ├── Broadcast.js      # Broadcasting system model
-│   └── ...               # Other data models
-├── services/              # Business logic services
-│   ├── birthdayService.js    # Automated birthday celebrations
-│   ├── discordBotService.js  # Discord bot with slash commands
-│   ├── socketService.js      # WebSocket real-time events
-│   └── ...                   # Other services
-├── utils/                 # Helper utilities
-│   ├── LocalImageHandler.js  # Image management & cleanup
-│   ├── DiscordHookHandler.js # Discord webhook integration
-│   ├── profileImageHelper.js # Profile image processing
-│   └── RolePolicy.js         # Role-based access control
-└── view/                  # HTML documentation & pages
-    ├── docs.html         # Comprehensive API documentation
-    └── index.html        # Landing page
-│   ├── user/              # User operations & social features
-│   └── leaderboard/       # Rankings & competitions
-├── lib/                   # Core libraries
-│   └── mongodb.js         # Database connection
-├── middleware/            # Custom middleware
-│   ├── apiKeyAuth.js      # API key protection
-│   ├── docsAuth.js        # Documentation authentication
-│   └── middleware.js      # Authentication & permissions
-├── models/                # MongoDB schemas
-│   ├── User.js            # User model with profile images
-│   ├── Frame.js           # Frame model with trending metrics
-│   ├── Photo.js           # Photo model with TTL
-│   ├── Follow.js          # Social relationships
-│   ├── Notification.js    # Real-time notifications
-│   ├── Report.js          # Content reports
-│   └── Ticket.js          # Support tickets
-├── services/              # Business logic
-│   └── socketService.js   # Real-time notifications
-├── utils/                 # Utility functions
-│   ├── LocalImageHandler.js    # Image processing
-│   ├── profileImageHelper.js   # Profile image management
-│   └── RolePolicy.js           # Permission policies
-└── view/                  # API documentation
-    ├── docs.html          # Protected documentation
-    └── index.html         # Interactive docs
+├── api/                           # API route handlers (REST endpoints)
+│   ├── admin/                     # Admin-only endpoints (Official/Developer)
+│   │   ├── broadcast/             # Broadcasting system with targeting
+│   │   ├── discord/               # Discord bot status and management
+│   │   ├── framePublicApproval/   # Frame approval workflow
+│   │   ├── reports/               # Content report moderation
+│   │   ├── serverHealth/          # System health monitoring
+│   │   ├── ticket/                # Support ticket management
+│   │   └── users/                 # User administration and banning
+│   ├── auth/                      # Authentication & authorization
+│   │   ├── login/                 # JWT token generation
+│   │   ├── register/              # User registration with Google OAuth
+│   │   ├── verify-email/          # Email verification (24h tokens)
+│   │   ├── resend-verification/   # Resend verification email
+│   │   ├── me/                    # Current user info with permissions
+│   │   └── logout/                # Session termination
+│   ├── frame/                     # Frame management system
+│   │   └── public/                # Public frame operations
+│   │       ├── discover/          # Hybrid discovery algorithm
+│   │       ├── trending/          # Velocity-based trending
+│   │       └── [id]/              # Frame details, like, leaderboard
+│   ├── leaderboard/               # User ranking system
+│   │   └── public/                # Time-based leaderboards
+│   ├── search/                    # Advanced search engine
+│   └── user/                      # User-specific operations
+│       └── [username]/            # User profile and private routes
+│           ├── birthday/          # One-time birthday setting
+│           ├── follower/          # Follower management
+│           ├── following/         # Following management
+│           ├── frame/             # User frames (public/private)
+│           ├── liked/             # Liked frames list
+│           ├── notification/      # Real-time notifications
+│           ├── photo/             # Photo management
+│           │   ├── capture/       # Photo/live photo capture
+│           │   ├── photoCollab/   # Collaboration invitations
+│           │   └── private/       # Private photo operations
+│           ├── private/edit/      # Profile editing
+│           ├── report/            # User-submitted reports
+│           ├── stats/             # User analytics
+│           └── ticket/            # Support tickets
+├── jobs/                          # Scheduled tasks
+│   └── cleanupScheduler.js        # Automated TTL-based cleanup
+├── lib/                           # Core libraries
+│   └── mongodb.js                 # MongoDB connection with Mongoose
+├── middleware/                    # Request middleware
+│   ├── apiKeyAuth.js              # Production API key validation
+│   ├── docsAuth.js                # Documentation basic auth
+│   └── middleware.js              # JWT authentication & role checks
+├── models/                        # MongoDB schemas (Mongoose)
+│   ├── User.js                    # User with profile, birthday, role
+│   ├── Frame.js                   # Frame with engagement metrics
+│   ├── Photo.js                   # Photo with live photo support
+│   ├── PhotoCollab.js             # Collaboration with stickers
+│   ├── Follow.js                  # Social relationships
+│   ├── Notification.js            # Real-time notification system
+│   ├── Report.js                  # Content moderation reports
+│   ├── Ticket.js                  # Support ticket system
+│   └── Broadcast.js               # Admin broadcast messages
+├── services/                      # Business logic services
+│   ├── birthdayService.js         # Daily birthday checker
+│   ├── discordBotService.js       # Discord bot with 15+ commands
+│   ├── discordCommandService.js   # Slash command handlers
+│   ├── mailService.js             # Brevo SMTP email service
+│   ├── photoCleanupService.js     # TTL-based photo/video cleanup
+│   └── socketService.js           # WebSocket event emitter
+├── utils/                         # Utility functions
+│   ├── LocalImageHandler.js       # Image/video upload & deletion
+│   ├── DiscordHookHandler.js      # Discord webhook integration
+│   ├── profileImageHelper.js      # Profile image processing
+│   └── RolePolicy.js              # Role limits & TTL calculation
+└── view/                          # HTML documentation
+    ├── docs.html                  # Full API documentation
+    └── index.html                 # Landing page
 ```
 
 ## 🔧 Development
@@ -466,72 +542,209 @@ npm run lint:fix    # Auto-fix issues
 
 ## 👥 User Roles & Permissions
 
-| Role                 | Frame Limit | Photo TTL | Auto-Approval | Admin Access | Social Features |
-| -------------------- | ----------- | --------- | ------------- | ------------ | --------------- |
-| **Basic**            | 3 public    | 3 days    | ❌            | ❌           | ✅ Full         |
-| **Verified**         | 20 public   | 7 days    | ❌            | ❌           | ✅ Full         |
-| **Verified Premium** | Unlimited   | Unlimited | ❌            | ❌           | ✅ Full         |
-| **Official**         | Unlimited   | Unlimited | ✅            | ✅           | ✅ Full         |
-| **Developer**        | Unlimited   | Unlimited | ✅            | ✅           | ✅ Full         |
+| Role                 | Frame Limit | Photo TTL | Live Photo Save  | Live Photo TTL | Auto-Approval | Admin Access |
+| -------------------- | ----------- | --------- | ---------------- | -------------- | ------------- | ------------ |
+| **Basic**            | 3 public    | 3 days    | ❌ Download-only | N/A            | ❌            | ❌           |
+| **Verified**         | 20 public   | 7 days    | ✅ Yes           | 3 days         | ❌            | ❌           |
+| **Verified Premium** | Unlimited   | Unlimited | ✅ Yes           | 7 days         | ❌            | ❌           |
+| **Official**         | Unlimited   | Unlimited | ✅ Yes           | Unlimited      | ✅            | ✅           |
+| **Developer**        | Unlimited   | Unlimited | ✅ Yes           | Unlimited      | ✅            | ✅           |
+
+**Note**: All users can CREATE live photos, but only Verified+ users can SAVE them to the server. Basic users must download immediately.
+
+### Feature Access Matrix
+
+| Feature                 | Basic    | Verified | Premium   | Official  | Developer |
+| ----------------------- | -------- | -------- | --------- | --------- | --------- |
+| Public Frames           | 3        | 20       | Unlimited | Unlimited | Unlimited |
+| Private Frames          | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Photo Capture           | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Regular Photo TTL       | 3 days   | 7 days   | Unlimited | Unlimited | Unlimited |
+| Live Photo Create       | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Live Photo Save         | ❌       | ✅       | ✅        | ✅        | ✅        |
+| Live Photo TTL          | N/A      | 3 days   | 7 days    | Unlimited | Unlimited |
+| Photo Collaboration     | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Follow/Unfollow         | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Like Frames             | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Search & Discovery      | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Custom Profile Image    | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Birthday Setting        | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Email Verification      | Required | Required | Required  | Required  | Required  |
+| Real-time Notifications | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Submit Reports/Tickets  | ✅       | ✅       | ✅        | ✅        | ✅        |
+| Frame Auto-Approval     | ❌       | ❌       | ❌        | ✅        | ✅        |
+| Admin Panel Access      | ❌       | ❌       | ❌        | ✅        | ✅        |
+| Discord Bot Commands    | ❌       | ❌       | ❌        | ✅        | ✅        |
+| Broadcasting            | ❌       | ❌       | ❌        | ✅        | ✅        |
+| User Management         | ❌       | ❌       | ❌        | ✅        | ✅        |
 
 ## 📊 Social & Analytics Features
 
-### Social Interactions
+### 📸 Live Photo System
 
-- **Follow/Unfollow System**: Build connections with other users
-- **Mutual Follow Detection**: Identify mutual connections
+- **3-Second Video Capture**: Record video during frame countdown with MP4/WebM/GIF support (50MB limit)
+- **Role-Based Save Permissions**:
+  - **Basic users**: Can create but download-only (no server storage)
+  - **Verified users**: Can save with 3-day TTL
+  - **Premium users**: Can save with 7-day TTL
+  - **Official users**: Can save with unlimited TTL
+- **Dual File Upload**: Simultaneous image and video file handling in single request
+- **Automated Cleanup**: TTL-based video file deletion with scheduled cleanup service
+- **Download-Only Mode**: Special response format for basic users with immediate download URLs
+
+### 🤝 Photo Collaboration System
+
+- **Multi-User Collaboration**: Invite users to create collaborative photos together
+- **Invitation Workflow**: Send, accept, decline, or cancel collaboration invitations
+- **Sticker System**: Add emojis, text, or images to collaborative photos
+- **Frame Matching**: Ensure both users use the same frame for consistency
+- **Merged Output**: Automatically merge and deliver final collaborative images
+- **Real-time Updates**: WebSocket notifications for all collaboration events
+- **Expiry Management**: 7-day invitation expiration with automatic cleanup
+
+### 👥 Social Interaction System
+
+- **Follow/Unfollow System**: Build connections with pagination support
+- **Mutual Follow Detection**: Check bidirectional follow status
 - **Follower Management**: Remove followers from your profile
-- **Real-time Social Notifications**: Get notified of new followers and frame uploads
+- **Real-time Notifications**: Instant WebSocket updates for follows and frame uploads
+- **Social Analytics**: Track follower/following counts and growth
 
-### Analytics & Leaderboards
+### 📊 Analytics & Leaderboards
 
-- **User Statistics**: Comprehensive stats including social metrics
+- **User Statistics**: Comprehensive metrics (frames created, photos captured, likes received, follows)
 - **Time-based Leaderboards**: 7-day, 30-day, and all-time rankings
-- **Multiple Ranking Types**: Likes, uses, or combined scoring
-- **Growth Metrics**: Track performance over time
-- **Top Performers**: Showcase best-performing frames
+- **Multiple Ranking Types**: Likes received, times used, or combined scoring
+- **Frame Leaderboards**: Top users per frame with usage statistics
+- **Growth Tracking**: Monitor performance trends over time
 
-### Advanced Search & Discovery
+### 🔍 Advanced Search & Discovery
 
-- **Multi-type Search**: Search frames and users simultaneously with relevance scoring
-- **Smart Filtering**: Filter by layout type, tags, official status, user roles
-- **Flexible Sorting**: Sort by relevance, popularity, date, or usage statistics
-- **Pagination Support**: Efficient pagination with configurable limits
-- **Intelligent Discovery**: Hybrid algorithm combining trending, engagement, momentum, and randomization
+- **Multi-type Search**: Unified search for frames and users with relevance scoring
+- **Smart Filtering**: Filter by layout type (2x1/3x1/4x1), tags, official status, user roles
+- **Flexible Sorting**: Sort by relevance, newest, most liked, most used, or alphabetical
+- **Pagination Support**: Efficient cursor-based pagination with configurable limits
+- **Intelligent Discovery**: Hybrid algorithm with weighted scoring
+  - **Trending Score (40%)**: Recent engagement velocity with time decay
+  - **Engagement Score (30%)**: Total likes and usage count
+  - **Momentum Score (20%)**: Recent activity growth rate
+  - **Random Factor (10%)**: Serendipity boost for content exploration
 
-### Frame Discovery Algorithms
+### 🎂 Birthday & Celebration System
 
-- **Hybrid Algorithm**: Multi-factor scoring system with weighted components
-  - Trending Score (40%): Recent engagement velocity
-  - Engagement Score (30%): Total likes and usage
-  - Momentum Score (20%): Recent activity growth
-  - Random Factor (10%): Serendipity boost for exploration
-- **Trending Frames**: Velocity-based algorithm considering recency and engagement
-- **Recent Frames**: Latest uploads with quality filtering
-- **Random Discovery**: Curated randomization for content exploration
+- **One-time Birthday Setting**: Users can set birthday once (prevents manipulation)
+- **Automated Daily Check**: Background service checks birthdays at midnight
+- **24-Hour Birthday Badge**: Special visual indicator for birthday users
+- **Real-time Celebrations**: WebSocket notifications to followers
+- **Birthday Analytics**: Track and celebrate user milestones in stats
 
-### Birthday & Celebration System
+### 📢 Broadcasting & Communication
 
-- **Automated Birthday Detection**: Daily birthday notifications
-- **Birthday Badges**: Special 24-hour birthday badges for users
-- **One-time Birthday Updates**: Policy preventing birthday manipulation
-- **Real-time Celebrations**: Socket notifications for birthday events
-- **Birthday Analytics**: Track and celebrate user milestones
+- **Admin Broadcasting**: Send targeted messages to specific user groups or all users
+- **Delivery Tracking**: Monitor message reach and read status
+- **User Targeting**: Filter by role (basic, verified, premium, official)
+- **Real-time Delivery**: Instant WebSocket push notifications
+- **Broadcast History**: Track all sent broadcasts with analytics
 
-### Broadcasting & Communication
+### 🖼️ Profile & Image Management
 
-- **Admin Broadcasting**: Targeted message delivery system
-- **Delivery Tracking**: Monitor message reach and engagement
-- **User Targeting**: Send messages to specific user groups or roles
-- **Real-time Delivery**: Instant notifications via WebSocket
-- **Broadcast Analytics**: Track message performance and user engagement
-
-### Profile & Image Management
-
-- **Custom Profile Images**: Upload and manage custom profile pictures
+- **Custom Profile Images**: Upload profile pictures with automatic resizing (5MB limit)
 - **Google OAuth Integration**: Seamless fallback to Google profile images
-- **Image Processing**: Automatic resizing and optimization
-- **Flexible Display**: Dynamic switching between custom and OAuth images
+- **Flexible Switching**: Toggle between custom and Google OAuth images
+- **Image Optimization**: Automatic processing and storage management
+- **Display Preferences**: User-controlled image source selection
+
+## 🎬 Live Photo Feature
+
+### Overview
+
+Live Photos are 3-second videos captured during the frame countdown that merge with frame overlays to create animated memories. The feature uses a role-based permission system to balance feature access with storage costs.
+
+### How It Works
+
+1. **Frontend**: Records 3-second video during countdown
+2. **Processing**: Merges video with frame overlay
+3. **Upload**: Sends both images and video files to backend
+4. **Storage**: Role-based save or download-only response
+5. **Delivery**: CDN-served URLs for playback
+6. **Cleanup**: Automated TTL-based deletion
+
+### Supported Formats
+
+- **Video**: MP4, WebM, GIF (50MB per file, 5 files max)
+- **Images**: JPEG, PNG, GIF, WebP, SVG, AVIF (5MB per file, 5 files max)
+
+### Permission Model
+
+| User Role | Can Create | Can Save | TTL       | Download Required |
+| --------- | ---------- | -------- | --------- | ----------------- |
+| Basic     | ✅ Yes     | ❌ No    | N/A       | ✅ Immediately    |
+| Verified  | ✅ Yes     | ✅ Yes   | 3 days    | ⚪ Optional       |
+| Premium   | ✅ Yes     | ✅ Yes   | 7 days    | ⚪ Optional       |
+| Official  | ✅ Yes     | ✅ Yes   | Unlimited | ⚪ Optional       |
+
+### API Usage
+
+```javascript
+// Check user's live photo permissions
+const response = await fetch("/api/auth/me", {
+  headers: { Authorization: `Bearer ${token}` },
+});
+const { permissions, limits } = response.data.user;
+
+// Create live photo (all users)
+const formData = new FormData();
+formData.append("frame_id", frameId);
+formData.append("title", "My Live Photo");
+formData.append("livePhoto", "true");
+images.forEach((img) => formData.append("images", img));
+videos.forEach((vid) => formData.append("video_files", vid));
+
+const result = await fetch(`/api/user/${username}/photo/capture`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${token}` },
+  body: formData,
+});
+
+// Response for basic users (download-only)
+{
+  "success": true,
+  "message": "Live photo created successfully. Download immediately (not saved to server)",
+  "data": {
+    "photo": {
+      "download_only": true,
+      "images": ["https://cdn.com/image1.jpg"],
+      "video_files": ["https://cdn.com/video1.mp4"],
+      "createdAt": "2025-10-12T10:30:00.000Z"
+    }
+  },
+  "notice": "Basic users must download live photos immediately. Upgrade to Verified to save for 3 days."
+}
+
+// Response for verified+ users (saved)
+{
+  "success": true,
+  "message": "Photo captured successfully",
+  "data": {
+    "photo": {
+      "id": "photo_id_here",
+      "livePhoto": true,
+      "images": ["https://cdn.com/image1.jpg"],
+      "video_files": ["https://cdn.com/video1.mp4"],
+      "expires_at": "2025-10-15T10:30:00.000Z"
+    }
+  }
+}
+```
+
+### Technical Implementation
+
+- **Model**: `Photo.js` with `livePhoto` boolean and `video_files` array
+- **Upload Handler**: Dual field multer configuration (`images` + `video_files`)
+- **Permission Check**: `RolePolicy.canSaveLivePhoto()` function
+- **TTL Calculation**: `RolePolicy.calculateLivePhotoExpiry()` function
+- **Cleanup Service**: `photoCleanupService.js` with video file deletion
+- **File Storage**: Local filesystem at `images/photos/` directory
 
 ## 📊 Monitoring & Health
 
@@ -551,11 +764,49 @@ Provides comprehensive system status:
 
 ### Metrics Tracked
 
-- API response times and error rates
-- Database query performance
-- User engagement (likes, uses, uploads, follows)
-- Real-time notification delivery
-- Social interaction patterns
+- **API Performance**: Response times, error rates, request throughput
+- **Database**: Query performance, connection pool status, index efficiency
+- **User Engagement**: Likes, frame uses, photo uploads, follows, collaborations
+- **Real-time Events**: WebSocket connections, notification delivery rates
+- **Social Patterns**: Follow relationships, mutual connections, engagement trends
+- **Content Metrics**: Frame approval rates, report resolution times, ticket status
+- **Storage**: File upload sizes, video file count, cleanup efficiency
+
+### Key Statistics Endpoints
+
+```javascript
+// Server Health & Stats
+GET /api/admin/serverHealth
+{
+  "uptime": "5d 12h 30m",
+  "memory": { "used": "245MB", "total": "512MB" },
+  "database": { "status": "connected", "latency": "15ms" },
+  "counts": {
+    "users": 1250,
+    "frames": 3420,
+    "photos": 8930,
+    "livePhotos": 2340,
+    "collaborations": 567
+  },
+  "websocket": { "connected": 89 }
+}
+
+// User Statistics
+GET /api/user/{username}/stats
+{
+  "public_frames": {
+    "total": 15,
+    "total_likes_received": 234,
+    "total_uses_received": 567
+  },
+  "photos": { "total": 42, "live_photos": 12 },
+  "social": {
+    "followers": 89,
+    "following": 123,
+    "mutual_follows": 34
+  }
+}
+```
 
 ## 🚀 Deployment
 
