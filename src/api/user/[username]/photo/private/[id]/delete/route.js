@@ -53,17 +53,20 @@ router.delete('/:username/photo/private/:id/delete', [
       photoId: photo._id,
       userId: targetUser._id,
       imagesCount: photo.images.length,
-      imagePaths: photo.images
+      videoFilesCount: photo.video_files?.length || 0,
+      isLivePhoto: photo.livePhoto || false,
+      imagePaths: photo.images,
+      videoPaths: photo.video_files || []
     });
 
     const imageHandler = require('../../../../../../../utils/LocalImageHandler');
     const deletedFiles = [];
     const failedFiles = [];
-    
+
     for (const imagePath of photo.images) {
       try {
         console.log('🗑️ Attempting to delete image:', imagePath);
-        
+
         const possiblePaths = [
           imageHandler.getFullImagePath ? imageHandler.getFullImagePath(imagePath) : null,
           path.join(process.cwd(), imagePath),
@@ -99,11 +102,58 @@ router.delete('/:username/photo/private/:id/delete', [
       }
     }
 
+    if (photo.livePhoto && photo.video_files && photo.video_files.length > 0) {
+      console.log('🎥 Deleting live photo video files...');
+
+      for (const videoPath of photo.video_files) {
+        try {
+          console.log('🗑️ Attempting to delete video:', videoPath);
+
+          const possiblePaths = [
+            imageHandler.getFullImagePath ? imageHandler.getFullImagePath(videoPath) : null,
+            path.join(process.cwd(), videoPath),
+            path.join(process.cwd(), 'uploads', videoPath),
+            path.join(process.cwd(), 'public', videoPath),
+            path.isAbsolute(videoPath) ? videoPath : null
+          ].filter(Boolean);
+
+          let deleted = false;
+          for (const fullPath of possiblePaths) {
+            try {
+              console.log('🔍 Checking video path:', fullPath);
+              await fs.access(fullPath);
+              await fs.unlink(fullPath);
+              console.log('✅ Successfully deleted video:', fullPath);
+              deletedFiles.push(fullPath);
+              deleted = true;
+              break;
+            } catch (pathError) {
+              console.log('❌ Video path not found or error:', fullPath, pathError.message);
+              continue;
+            }
+          }
+
+          if (!deleted) {
+            console.warn('⚠️ Could not find video file to delete:', videoPath);
+            failedFiles.push(videoPath);
+          }
+
+        } catch (error) {
+          console.error('❌ Error processing video deletion:', videoPath, error);
+          failedFiles.push(videoPath);
+        }
+      }
+    }
+
     await Photo.findByIdAndDelete(photo._id);
+
+    const totalFiles = photo.images.length + (photo.video_files?.length || 0);
 
     console.log('✅ Photo deleted from database:', photo._id);
     console.log('📊 File deletion summary:', {
-      totalFiles: photo.images.length,
+      totalFiles,
+      imageFiles: photo.images.length,
+      videoFiles: photo.video_files?.length || 0,
       deletedFiles: deletedFiles.length,
       failedFiles: failedFiles.length,
       failedPaths: failedFiles
@@ -111,11 +161,14 @@ router.delete('/:username/photo/private/:id/delete', [
 
     res.json({
       success: true,
-      message: 'Photo deleted successfully',
+      message: photo.livePhoto ? 'Live photo deleted successfully' : 'Photo deleted successfully',
       data: {
         deleted_photo_id: photo._id,
+        was_live_photo: photo.livePhoto || false,
         file_deletion_summary: {
-          total_files: photo.images.length,
+          total_files: totalFiles,
+          image_files: photo.images.length,
+          video_files: photo.video_files?.length || 0,
           deleted_files: deletedFiles.length,
           failed_files: failedFiles.length,
           failed_paths: failedFiles

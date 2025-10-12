@@ -53,30 +53,42 @@ router.get('/:username/photo/private/:id', [
       frameId: photo.frame_id?._id
     });
 
+    const baseUrl = req.protocol + '://' + req.get('host');
+
     const formattedPhoto = {
       id: photo._id,
       images: photo.images.map(img => {
         if (img.startsWith('http')) {
           return img;
         }
-        return req.protocol + '://' + req.get('host') + '/' + img;
+        return baseUrl + '/' + img;
       }),
       title: photo.title,
       desc: photo.desc,
+      livePhoto: photo.livePhoto || false,
       expires_at: photo.expires_at,
       created_at: photo.created_at,
       updated_at: photo.updated_at
     };
+
+    if (photo.livePhoto && photo.video_files && photo.video_files.length > 0) {
+      formattedPhoto.video_files = photo.video_files.map(vid => {
+        if (vid.startsWith('http')) {
+          return vid;
+        }
+        return baseUrl + '/' + vid;
+      });
+    }
 
     if (photo.frame_id) {
       formattedPhoto.frame = {
         id: photo.frame_id._id,
         title: photo.frame_id.title,
         layout_type: photo.frame_id.layout_type,
-        thumbnail: photo.frame_id.thumbnail ? 
-          (photo.frame_id.thumbnail.startsWith('http') ? 
-            photo.frame_id.thumbnail : 
-            req.protocol + '://' + req.get('host') + '/' + photo.frame_id.thumbnail
+        thumbnail: photo.frame_id.thumbnail ?
+          (photo.frame_id.thumbnail.startsWith('http') ?
+            photo.frame_id.thumbnail :
+            baseUrl + '/' + photo.frame_id.thumbnail
           ) : null
       };
     }

@@ -1383,6 +1383,105 @@
             Unlimited
           </div>
 
+          <h4>📱 Live Photo Feature</h4>
+          <div class="example-code">
+            Live Photo combines video + image for dynamic photo booth
+            experience. Frontend captures 3-second video during countdown →
+            Backend processes video + images → Users can download as MP4 or GIF
+            🎥 How It Works: 1. User sets up photo booth session normally 2.
+            During 3-second timer, video is captured (not just photo) 3. Video
+            capture repeats based on frame layout slots 4. Frontend merges video
+            with frame → outputs as MP4 or GIF (looping) 5. Backend handles
+            storage, CDN serving, and TTL management ✅ Features: - Video file
+            support (MP4, WebM, GIF formats) - Automatic cleanup with separate
+            TTL rules - Seamless integration with existing photo system -
+            Download options: MP4 video or GIF animation - Same frame system,
+            different media type 🔒 Permissions by Role: - Basic: ✅ Can create,
+            ⚠️ Must download immediately (no server storage) - Verified: ✅ Can
+            create AND save for 3 days - Premium: ✅ Can create AND save for 7
+            days - Official/Developer: ✅ Can create AND save unlimited
+            Technical Details: - Video file size limit: 50MB per file -
+            Supported formats: video/mp4, video/webm, image/gif - Storage: Local
+            CDN (images/photos/ directory) - Naming:
+            video-{timestamp}-{random}.{ext} - TTL: Separate from regular photos
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path"
+                >/api/user/{username}/photo/capture</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+              <span class="badge">🎥 LIVE PHOTO</span>
+            </div>
+            <div class="endpoint-description">
+              Capture photo or live photo with video files
+            </div>
+            <div class="example-code">
+              // Regular Photo Capture (existing) FormData: - images: [File,
+              File, ...] (required) - frame_id: "frame_id_here" (required) -
+              title: "Photo Title" (required, 1-100 chars) - desc: "Description"
+              (optional, max 500 chars) // Live Photo Capture (NEW) FormData: -
+              images: [File, File, ...] (required - merged images) -
+              video_files: [File, File, ...] (required - captured videos) -
+              frame_id: "frame_id_here" (required) - title: "Live Photo Title"
+              (required) - desc: "Description" (optional) - livePhoto: true
+              (required to enable live photo mode) Response includes: {
+              "success": true, "message": "Live photo captured successfully",
+              "data": { "photo": { "id": "photo_id", "images": ["url1", "url2"],
+              "video_files": ["video_url1", "video_url2"], // NEW for live
+              photos "livePhoto": true, // NEW "title": "Title", "expires_at":
+              "2024-01-18T10:00:00Z", "frame": {...} } } }
+            </div>
+          </div>
+
+          <h4>📊 Live Photo Response Structure</h4>
+          <div class="example-code">
+            Regular Photo: { "id": "photo_id", "images": ["image_url_1",
+            "image_url_2"], "livePhoto": false, "title": "My Photo", "desc":
+            "Description", "expires_at": "2024-01-18T10:00:00Z", "frame": {...}
+            } Live Photo: { "id": "photo_id", "images": ["merged_image_url_1",
+            "merged_image_url_2"], "video_files": ["video_url_1",
+            "video_url_2"], // Video files captured "livePhoto": true, //
+            Identifies as live photo "title": "My Live Photo", "desc":
+            "Description", "expires_at": "2024-01-18T10:00:00Z", // Different
+            TTL rules apply "frame": {...} }
+          </div>
+
+          <h4>🎬 Live Photo TTL Rules</h4>
+          <div class="example-code">
+            Role-based Time-To-Live for Live Photos: Basic (No Save): - Can
+            capture but cannot save live photos - Videos immediately available
+            for download - No server storage (capture-only mode) Verified (3
+            Days): - Can save live photos for 3 days - Automatic cleanup after
+            expiration - Both images and videos deleted Verified Premium (7
+            Days): - Extended storage for 7 days - Suitable for active content
+            creators - Full live photo features Official/Developer (Unlimited):
+            - No expiration on live photos - Permanent storage - Full access to
+            all features Note: Live photos have SEPARATE TTL from regular photos
+            Regular photos: Basic=3d, Verified=7d, Premium/Official=unlimited
+            Live photos: Basic=download only (no save), Verified=3d, Premium=7d,
+            Official=unlimited
+          </div>
+
+          <h4>📥 Basic User Live Photo (Download-Only Mode)</h4>
+          <div class="example-code">
+            Basic users can create live photos but cannot save them to the
+            server. Response for Basic Users: { "success": true, "message":
+            "Live photo created successfully. Download immediately (not saved to
+            server)", "data": { "photo": { "images": ["merged_image_url_1",
+            "merged_image_url_2"], "video_files": ["video_url_1",
+            "video_url_2"], "title": "My Live Photo", "desc": "Description",
+            "livePhoto": true, "download_only": true, // Indicates no server
+            storage "frame": {...} } }, "notice": "Basic users must download
+            live photos immediately. Upgrade to Verified to save for 3 days." }
+            Important Notes: ✅ Files are temporarily available for immediate
+            download ⚠️ No photo ID returned (not saved to database) ⚠️ Files
+            will be available only during the response 💡 Upgrade to Verified
+            for 3-day storage
+          </div>
+
           <h4>🤝 Photo Collaboration System</h4>
           <div class="example-code">
             Photo Collaboration allows users to merge their photos side-by-side
@@ -2712,7 +2811,28 @@
             { localStorage.setItem('token', data.data.token); } });
           </div>
 
-          <h4>🖼️ Creating a Frame</h4>
+          <h4>� Check Live Photo Permissions</h4>
+          <div class="example-code">
+            // Get user permissions and limits fetch('/api/auth/me', { headers:
+            { 'Authorization': `Bearer ${token}` } }) .then(response =>
+            response.json()) .then(data => { const user = data.data.user; //
+            Check live photo permissions console.log('Can create live photo:',
+            user.permissions.can_create_live_photo); console.log('Can save live
+            photo:', user.permissions.can_save_live_photo); console.log('Live
+            photo TTL:', user.limits.live_photo_ttl_days || 'Download-only'); //
+            Handle different user roles if
+            (user.permissions.can_save_live_photo) { // Verified, Premium, or
+            Official user console.log(`✅ Live photos will be saved for
+            ${user.limits.live_photo_ttl_days || 'unlimited'} days`);
+            showSaveOption(true); } else if
+            (user.permissions.can_create_live_photo) { // Basic user
+            console.log('⚠️ You can create live photos but must download
+            immediately'); showDownloadNotice(true); showSaveOption(false); }
+            else { // Feature disabled console.log('❌ Live photo feature not
+            available'); disableLivePhotoOption(); } });
+          </div>
+
+          <h4>�🖼️ Creating a Frame</h4>
           <div class="example-code">
             // Create Frame with Images and Thumbnail const formData = new
             FormData(); formData.append('title', 'My Beautiful Frame');
@@ -2728,8 +2848,8 @@
 
           <h4>📸 Capturing a Photo</h4>
           <div class="example-code">
-            // Capture Photo using Frame const photoData = new FormData();
-            photoData.append('frame_id', 'frame_id_here');
+            // Capture Regular Photo using Frame const photoData = new
+            FormData(); photoData.append('frame_id', 'frame_id_here');
             photoData.append('title', 'My Photo with Frame');
             photoData.append('desc', 'Beautiful sunset photo');
             photoFiles.forEach(file => { photoData.append('images', file); });
@@ -2737,7 +2857,54 @@
             headers: { 'Authorization': `Bearer ${token}` }, body: photoData });
           </div>
 
-          <h4>📊 Getting User Stats</h4>
+          <h4>🎥 Capturing a Live Photo</h4>
+          <div class="example-code">
+            // Capture Live Photo with Video + Images const livePhotoData = new
+            FormData(); livePhotoData.append('frame_id', 'frame_id_here');
+            livePhotoData.append('title', 'My Live Photo');
+            livePhotoData.append('desc', 'Dynamic moment captured');
+            livePhotoData.append('livePhoto', 'true'); // Enable live photo mode
+            // Add merged images (frontend processed)
+            mergedImageFiles.forEach(file => { livePhotoData.append('images',
+            file); }); // Add captured video files videoFiles.forEach(file => {
+            livePhotoData.append('video_files', file); });
+            fetch(`/api/user/${username}/photo/capture`, { method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }, body: livePhotoData
+            }) .then(response => response.json()) .then(data => { if
+            (data.success) { console.log('Live photo created!');
+            console.log('Images:', data.data.photo.images);
+            console.log('Videos:', data.data.photo.video_files);
+            console.log('Expires at:', data.data.photo.expires_at); } }); //
+            Frontend Processing Workflow: // 1. Start 3-second countdown timer
+            // 2. Record video during countdown (per layout slot) // 3. Extract
+            frame from video for thumbnail // 4. Merge video with frame overlay
+            // 5. Send both merged images + video files to backend // 6. Backend
+            stores and serves via CDN // 7. User can download as MP4 or GIF
+          </div>
+
+          <h4>� Live Photo for Basic Users (Download-Only)</h4>
+          <div class="example-code">
+            // Basic users can create live photos but must download immediately
+            fetch(`/api/user/${username}/photo/capture`, { method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }, body: livePhotoData
+            // Same as verified users }) .then(response => response.json())
+            .then(data => { if (data.success) { // Check if download-only mode
+            if (data.data.photo.download_only) { console.log('⚠️ Download-only
+            mode (basic user)'); console.log('Notice:', data.notice); //
+            Download video files immediately
+            data.data.photo.video_files.forEach((videoUrl, index) => { const
+            link = document.createElement('a'); link.href = videoUrl;
+            link.download = `live-photo-${index}.mp4`; link.click(); }); //
+            Download merged images data.data.photo.images.forEach((imageUrl,
+            index) => { const link = document.createElement('a'); link.href =
+            imageUrl; link.download = `live-photo-image-${index}.jpg`;
+            link.click(); }); console.log('💡 Upgrade to Verified to save for 3
+            days'); } else { // Saved successfully (verified+ user)
+            console.log('✅ Live photo saved with ID:', data.data.photo.id);
+            console.log('Expires at:', data.data.photo.expires_at); } } });
+          </div>
+
+          <h4>�📊 Getting User Stats</h4>
           <div class="example-code">
             // Get User Statistics fetch(`/api/user/${username}/stats`, {
             headers: { 'Authorization': `Bearer ${token}` } }) .then(response =>

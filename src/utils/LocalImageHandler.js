@@ -75,7 +75,8 @@ class LocalImageHandler {
       filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         const ext = path.extname(file.originalname) || '.bin';
-        cb(null, `photo-${uniqueSuffix}${ext}`);
+        const prefix = file.fieldname === 'video_files' ? 'video' : 'photo';
+        cb(null, `${prefix}-${uniqueSuffix}${ext}`);
       }
     });
   }
@@ -94,6 +95,35 @@ class LocalImageHandler {
       return cb(null, true);
     }
     cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP, SVG, and AVIF are allowed.'), false);
+  }
+
+  videoFileFilter(req, file, cb) {
+    const allowedMimes = [
+      'video/mp4',
+      'video/webm',
+      'image/gif'     ];
+    if (allowedMimes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    cb(new Error('Invalid file type. Only MP4, WebM, and GIF are allowed for videos.'), false);
+  }
+
+  imageOrVideoFileFilter(req, file, cb) {
+    const allowedMimes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg',
+      'image/svg+xml',
+      'image/avif',
+      'video/mp4',
+      'video/webm'
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF, WebP, SVG, AVIF) and videos (MP4, WebM, GIF) are allowed.'), false);
   }
 
   getFrameUpload() {
@@ -123,6 +153,15 @@ class LocalImageHandler {
       limits: {
         fileSize: 5 * 1024 * 1024
       }
+    });
+  }
+
+  getLivePhotoUpload() {
+    return multer({
+      storage: this.getPhotoStorage(),
+      fileFilter: this.imageOrVideoFileFilter,
+      limits: {
+        fileSize: 50 * 1024 * 1024       }
     });
   }
 
@@ -189,7 +228,7 @@ class LocalImageHandler {
         let subDir;
         if (filename.startsWith('frame-')) {
           subDir = this.framesDir;
-        } else if (filename.startsWith('photo-')) {
+        } else if (filename.startsWith('photo-') || filename.startsWith('video-')) {
           subDir = this.photosDir;
         } else if (filename.startsWith('profile-')) {
           subDir = this.profilesDir;
@@ -207,16 +246,21 @@ class LocalImageHandler {
       await fs.access(fullPath);
       await fs.unlink(fullPath);
 
-      console.log(`✅ Successfully deleted image: ${fullPath}`);
+      console.log(`✅ Successfully deleted file: ${fullPath}`);
       return true;
     } catch (error) {
       if (error.code === 'ENOENT') {
-        console.warn(`⚠️ Image file not found (may already be deleted): ${relativePath}`);
+        console.warn(`⚠️ File not found (may already be deleted): ${relativePath}`);
         return true;
       }
-      console.error(`❌ Error deleting image ${relativePath}:`, error.message);
+      console.error(`❌ Error deleting file ${relativePath}:`, error.message);
       return false;
     }
+  }
+
+  async deleteVideo(relativePath) {
+
+    return this.deleteImage(relativePath);
   }
 }
 

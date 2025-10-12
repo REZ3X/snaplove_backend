@@ -1,12 +1,15 @@
 const express = require('express');
 const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 const { getDisplayProfileImage } = require('../../../utils/profileImageHelper');
+const { getRoleLimits, canCreateLivePhoto } = require('../../../utils/RolePolicy');
 
 const router = express.Router();
 
 router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
   try {
     const user = req.currentUser;
+    const roleLimits = getRoleLimits(user.role);
+    const livePhotoPermission = canCreateLivePhoto(user.role);
 
     res.json({
       success: true,
@@ -30,7 +33,16 @@ router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
         permissions: {
           can_edit_profile: true,
           can_create_content: !user.ban_status,
-          is_admin: ['official', 'developer'].includes(user.role)
+          is_admin: ['official', 'developer'].includes(user.role),
+          can_create_live_photo: livePhotoPermission.canCreate,
+          can_save_live_photo: livePhotoPermission.canSave
+        },
+        limits: {
+          public_frames: roleLimits.public_frames,
+          photo_ttl_days: roleLimits.photo_ttl_days,
+          live_photo_ttl_days: roleLimits.live_photo_ttl_days,
+          live_photo_enabled: livePhotoPermission.canCreate,
+          live_photo_save_enabled: livePhotoPermission.canSave
         }
       }
     });

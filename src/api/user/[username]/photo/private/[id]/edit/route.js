@@ -61,32 +61,41 @@ router.put('/:username/photo/private/:id/edit', [
       { path: 'frame_id', select: 'title layout_type thumbnail' }
     ]);
 
+    const baseUrl = req.protocol + '://' + req.get('host');
+
+    const photoResponse = {
+      id: photo._id,
+      images: photo.images.map(img => baseUrl + '/' + img),
+      title: photo.title,
+      desc: photo.desc,
+      frame: {
+        id: photo.frame_id._id,
+        title: photo.frame_id.title,
+        layout_type: photo.frame_id.layout_type,
+        thumbnail: photo.frame_id.thumbnail ? baseUrl + '/' + photo.frame_id.thumbnail : null
+      },
+      user: {
+        id: photo.user_id._id,
+        name: photo.user_id.name,
+        username: photo.user_id.username,
+        image_profile: getDisplayProfileImage(photo.user_id, req),
+        role: photo.user_id.role
+      },
+      livePhoto: photo.livePhoto || false,
+      expires_at: photo.expires_at,
+      created_at: photo.created_at,
+      updated_at: photo.updated_at
+    };
+
+    if (photo.livePhoto && photo.video_files && photo.video_files.length > 0) {
+      photoResponse.video_files = photo.video_files.map(vid => baseUrl + '/' + vid);
+    }
+
     res.json({
       success: true,
       message: 'Photo updated successfully',
       data: {
-        photo: {
-          id: photo._id,
-          images: photo.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
-          title: photo.title,
-          desc: photo.desc,
-          frame: {
-            id: photo.frame_id._id,
-            title: photo.frame_id.title,
-            layout_type: photo.frame_id.layout_type,
-            thumbnail: photo.frame_id.thumbnail ? req.protocol + '://' + req.get('host') + '/' + photo.frame_id.thumbnail : null
-          },
-          user: {
-            id: photo.user_id._id,
-            name: photo.user_id.name,
-            username: photo.user_id.username,
-            image_profile: getDisplayProfileImage(photo.user_id, req),
-            role: photo.user_id.role
-          },
-          expires_at: photo.expires_at,
-          created_at: photo.created_at,
-          updated_at: photo.updated_at
-        }
+        photo: photoResponse
       }
     });
 

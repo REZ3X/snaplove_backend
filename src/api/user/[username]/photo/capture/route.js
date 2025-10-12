@@ -1,18 +1,25 @@
 const express = require('express');
-// const { _param, _body, _validationResult } = require('express-validator');
+
 const Photo = require('../../../../../models/Photo');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
 const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
-const { calculatePhotoExpiry } = require('../../../../../utils/RolePolicy');
+const { calculatePhotoExpiry, calculateLivePhotoExpiry, canCreateLivePhoto } = require('../../../../../utils/RolePolicy');
 
 const router = express.Router();
 
 router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async (req, res) => {
   const imageHandler = require('../../../../../utils/LocalImageHandler');
-  const upload = imageHandler.getPhotoUpload();
 
-  upload.array('images', 5)(req, res, async (err) => {
+  const isLivePhoto = req.body.livePhoto === 'true' || req.body.livePhoto === true;
+  const upload = isLivePhoto ? imageHandler.getLivePhotoUpload() : imageHandler.getPhotoUpload();
+
+  const uploadFields = upload.fields([
+    { name: 'images', maxCount: 5 },
+    { name: 'video_files', maxCount: 5 }
+  ]);
+
+  uploadFields(req, res, async (err) => {
     if (err) {
       console.error('Multer upload error:', err);
       return res.status(400).json({
@@ -24,11 +31,14 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
     try {
       const { frame_id, title, desc } = req.body;
       const { username } = req.params;
+      const isLivePhoto = req.body.livePhoto === 'true' || req.body.livePhoto === true;
 
       console.log('📸 Received capture request:', {
         username,
         body: req.body,
-        files: req.files?.length || 0,
+        imageFiles: req.files?.images?.length || 0,
+        videoFiles: req.files?.video_files?.length || 0,
+        isLivePhoto,
         frame_id,
         title,
         desc
@@ -56,8 +66,17 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         errors.push({ msg: 'Description must be max 500 characters', path: 'desc', location: 'body' });
       }
 
-      if (!req.files || req.files.length === 0) {
-        errors.push({ msg: 'At least one photo is required', path: 'images', location: 'files' });
+      if (isLivePhoto) {
+        if (!req.files?.images || req.files.images.length === 0) {
+          errors.push({ msg: 'At least one image is required for live photo', path: 'images', location: 'files' });
+        }
+        if (!req.files?.video_files || req.files.video_files.length === 0) {
+          errors.push({ msg: 'At least one video file is required for live photo', path: 'video_files', location: 'files' });
+        }
+      } else {
+        if (!req.files?.images || req.files.images.length === 0) {
+          errors.push({ msg: 'At least one photo is required', path: 'images', location: 'files' });
+        }
       }
 
       if (errors.length > 0) {
@@ -82,6 +101,31 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
           success: false,
           message: 'Access denied. You can only capture photos for yourself.'
         });
+      }
+
+      if (isLivePhoto) {
+        const livePhotoPermission = canCreateLivePhoto(targetUser.role);
+        if (!livePhotoPermission.canCreate) {
+
+          if (req.files?.images) {
+            for (const file of req.files.images) {
+              await imageHandler.deleteImage(file.path);
+            }
+          }
+          if (req.files?.video_files) {
+            for (const file of req.files.video_files) {
+              await imageHandler.deleteVideo(file.path);
+            }
+          }
+
+          return res.status(403).json({
+            success: false,
+            message: livePhotoPermission.reason || 'You do not have permission to create live photos',
+            details: {
+              current_role: targetUser.role
+            }
+          });
+        }
       }
 
       console.log('🔍 Searching for frame:', {
@@ -116,11 +160,21 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         await frame.save();
       }
 
-      const images = req.files.map(file => imageHandler.getRelativeImagePath(file.path));
-      const expiryDate = calculatePhotoExpiry(targetUser.role);
+      const images = req.files.images.map(file => imageHandler.getRelativeImagePath(file.path));
+
+      let videoFiles = [];
+      if (isLivePhoto && req.files.video_files) {
+        videoFiles = req.files.video_files.map(file => imageHandler.getRelativeImagePath(file.path));
+      }
+
+      const expiryDate = isLivePhoto
+        ? calculateLivePhotoExpiry(targetUser.role)
+        : calculatePhotoExpiry(targetUser.role);
 
       console.log('💾 Creating photo with data:', {
+        isLivePhoto,
         imagesCount: images.length,
+        videoFilesCount: videoFiles.length,
         title: title.trim(),
         desc: desc ? desc.trim() : '',
         frameId: frame_id,
@@ -129,14 +183,54 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         userRole: targetUser.role
       });
 
-      const newPhoto = new Photo({
+      const livePhotoPermission = canCreateLivePhoto(targetUser.role);
+      const canSave = !isLivePhoto || livePhotoPermission.canSave;
+
+      const baseUrl = req.protocol + '://' + req.get('host');
+
+      if (isLivePhoto && !canSave) {
+        console.log('📥 Live photo for basic user - returning download-only response');
+
+        const downloadResponse = {
+          images: images.map(img => baseUrl + '/' + img),
+          video_files: videoFiles.map(vid => baseUrl + '/' + vid),
+          title: title.trim(),
+          desc: desc ? desc.trim() : '',
+          livePhoto: true,
+          download_only: true,
+          frame: {
+            id: frame._id,
+            title: frame.title,
+            layout_type: frame.layout_type,
+            thumbnail: frame.thumbnail ? baseUrl + '/' + frame.thumbnail : null
+          }
+        };
+
+        return res.status(200).json({
+          success: true,
+          message: 'Live photo created successfully. Download immediately (not saved to server)',
+          data: {
+            photo: downloadResponse
+          },
+          notice: 'Basic users must download live photos immediately. Upgrade to Verified to save for 3 days.'
+        });
+      }
+
+      const photoData = {
         images,
         title: title.trim(),
         desc: desc ? desc.trim() : '',
         frame_id,
         user_id: targetUser._id,
-        expires_at: expiryDate
-      });
+        expires_at: expiryDate,
+        livePhoto: isLivePhoto
+      };
+
+      if (isLivePhoto && videoFiles.length > 0) {
+        photoData.video_files = videoFiles;
+      }
+
+      const newPhoto = new Photo(photoData);
 
       await newPhoto.save();
       await newPhoto.populate([
@@ -149,31 +243,38 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         expiresAt: newPhoto.expires_at
       });
 
+      const photoResponse = {
+        id: newPhoto._id,
+        images: newPhoto.images.map(img => baseUrl + '/' + img),
+        title: newPhoto.title,
+        desc: newPhoto.desc,
+        frame: {
+          id: newPhoto.frame_id._id,
+          title: newPhoto.frame_id.title,
+          layout_type: newPhoto.frame_id.layout_type,
+          thumbnail: newPhoto.frame_id.thumbnail ? baseUrl + '/' + newPhoto.frame_id.thumbnail : null
+        },
+        livePhoto: newPhoto.livePhoto,
+        expires_at: newPhoto.expires_at,
+        created_at: newPhoto.created_at,
+        updated_at: newPhoto.updated_at
+      };
+
+      if (newPhoto.livePhoto && newPhoto.video_files && newPhoto.video_files.length > 0) {
+        photoResponse.video_files = newPhoto.video_files.map(vid => baseUrl + '/' + vid);
+      }
+
       res.status(201).json({
         success: true,
-        message: 'Photo captured successfully',
+        message: isLivePhoto ? 'Live photo captured successfully' : 'Photo captured successfully',
         data: {
-          photo: {
-            id: newPhoto._id,
-            images: newPhoto.images.map(img => req.protocol + '://' + req.get('host') + '/' + img),
-            title: newPhoto.title,
-            desc: newPhoto.desc,
-            frame: {
-              id: newPhoto.frame_id._id,
-              title: newPhoto.frame_id.title,
-              layout_type: newPhoto.frame_id.layout_type,
-              thumbnail: newPhoto.frame_id.thumbnail ? req.protocol + '://' + req.get('host') + '/' + newPhoto.frame_id.thumbnail : null
-            },
-            expires_at: newPhoto.expires_at,
-            created_at: newPhoto.created_at,
-            updated_at: newPhoto.updated_at
-          }
+          photo: photoResponse
         }
       });
 
     } catch (error) {
       console.error('Capture photo error:', error);
-      
+
       res.status(500).json({
         success: false,
         message: 'Internal server error',

@@ -46,7 +46,9 @@ class PhotoCleanupService {
 
       for (const photo of expiredPhotos) {
         try {
-          console.log(`Processing photo ${photo._id} (expires: ${photo.expires_at})`);
+          const isLivePhoto = photo.livePhoto || false;
+          const photoType = isLivePhoto ? 'live photo' : 'photo';
+          console.log(`Processing ${photoType} ${photo._id} (expires: ${photo.expires_at})`);
 
           const deletedFiles = [];
           const failedFiles = [];
@@ -56,10 +58,10 @@ class PhotoCleanupService {
               const deleted = await imageHandler.deleteImage(imagePath);
               if (deleted) {
                 deletedFiles.push(imagePath);
-                console.log(`Deleted file: ${imagePath}`);
+                console.log(`Deleted image file: ${imagePath}`);
               } else {
                 failedFiles.push(imagePath);
-                console.log(`File not found: ${imagePath}`);
+                console.log(`Image file not found: ${imagePath}`);
               }
             } catch (error) {
               console.error(`Error deleting image ${imagePath}:`, error.message);
@@ -67,12 +69,32 @@ class PhotoCleanupService {
             }
           }
 
+          if (isLivePhoto && photo.video_files && Array.isArray(photo.video_files)) {
+            console.log(`🎥 Deleting ${photo.video_files.length} video files for live photo ${photo._id}`);
+
+            for (const videoPath of photo.video_files) {
+              try {
+                const deleted = await imageHandler.deleteVideo(videoPath);
+                if (deleted) {
+                  deletedFiles.push(videoPath);
+                  console.log(`Deleted video file: ${videoPath}`);
+                } else {
+                  failedFiles.push(videoPath);
+                  console.log(`Video file not found: ${videoPath}`);
+                }
+              } catch (error) {
+                console.error(`Error deleting video ${videoPath}:`, error.message);
+                failedFiles.push(videoPath);
+              }
+            }
+          }
+
           try {
             await Photo.findByIdAndDelete(photo._id);
             deletedRecords++;
-            console.log(`Deleted photo record: ${photo._id}`);
+            console.log(`Deleted ${photoType} record: ${photo._id}`);
           } catch (error) {
-            console.error(`Error deleting photo record ${photo._id}:`, error.message);
+            console.error(`Error deleting ${photoType} record ${photo._id}:`, error.message);
             failedRecords++;
           }
 
@@ -80,7 +102,7 @@ class PhotoCleanupService {
           totalFailedFiles += failedFiles.length;
           processedPhotos++;
 
-          console.log(`Photo ${photo._id} processed: ${deletedFiles.length} files deleted, ${failedFiles.length} failed`);
+          console.log(`${photoType.charAt(0).toUpperCase() + photoType.slice(1)} ${photo._id} processed: ${deletedFiles.length} files deleted, ${failedFiles.length} failed`);
 
         } catch (error) {
           console.error(`Error processing photo ${photo._id}:`, error);
@@ -365,7 +387,7 @@ class PhotoCleanupService {
       console.log(`Starting manual cleanup for user: ${userId}`);
 
       const userPhotos = await Photo.find({ user_id: userId })
-        .select('_id images user_id expires_at');
+        .select('_id images video_files livePhoto user_id expires_at');
 
       if (userPhotos.length === 0) {
         return {
@@ -386,6 +408,7 @@ class PhotoCleanupService {
 
       for (const photo of userPhotos) {
         try {
+          const isLivePhoto = photo.livePhoto || false;
 
           for (const imagePath of photo.images) {
             try {
@@ -398,6 +421,22 @@ class PhotoCleanupService {
             } catch (error) {
               console.error(`Error deleting image ${imagePath}:`, error.message);
               failedFiles++;
+            }
+          }
+
+          if (isLivePhoto && photo.video_files && Array.isArray(photo.video_files)) {
+            for (const videoPath of photo.video_files) {
+              try {
+                const deleted = await imageHandler.deleteVideo(videoPath);
+                if (deleted) {
+                  totalDeletedFiles++;
+                } else {
+                  failedFiles++;
+                }
+              } catch (error) {
+                console.error(`Error deleting video ${videoPath}:`, error.message);
+                failedFiles++;
+              }
             }
           }
 

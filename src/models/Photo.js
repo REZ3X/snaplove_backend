@@ -29,7 +29,15 @@ const photoSchema = new mongoose.Schema({
   expires_at: {
     type: Date,
     default: null
-  }
+  },
+  livePhoto: {
+    type: Boolean,
+    default: false
+  },
+  video_files: [{
+    type: String,
+    default: []
+  }]
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
