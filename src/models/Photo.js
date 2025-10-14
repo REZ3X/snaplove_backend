@@ -37,7 +37,11 @@ const photoSchema = new mongoose.Schema({
   video_files: [{
     type: String,
     default: []
-  }]
+  }],
+  aiPhoto: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

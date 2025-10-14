@@ -3,10 +3,234 @@ const express = require('express');
 const Photo = require('../../../../../models/Photo');
 const Frame = require('../../../../../models/Frame');
 const User = require('../../../../../models/User');
+const AIPhotoBoothUsage = require('../../../../../models/AIPhotoBoothUsage');
 const { authenticateToken, checkBanStatus } = require('../../../../../middleware/middleware');
 const { calculatePhotoExpiry, calculateLivePhotoExpiry, canCreateLivePhoto } = require('../../../../../utils/RolePolicy');
 
 const router = express.Router();
+
+function getAIPhotoboothLimit(role) {
+  const limits = {
+    basic: 3,
+    verified_basic: 10,
+    verified_premium: 10,
+    official: -1,
+    developer: -1,
+  };
+  return limits[role?.toLowerCase()] || 3;
+}
+
+function isAIUnlimited(role) {
+  return ['official', 'developer'].includes(role?.toLowerCase());
+}
+
+async function getAIUsage(userId, username) {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  let usage = await AIPhotoBoothUsage.findOne({
+    user_id: userId,
+    month: currentMonth,
+    year: currentYear
+  });
+
+  if (!usage) {
+    usage = new AIPhotoBoothUsage({
+      user_id: userId,
+      username,
+      count: 0,
+      month: currentMonth,
+      year: currentYear,
+      last_used_at: null
+    });
+    await usage.save();
+  }
+
+  return usage;
+}
+
+async function incrementAIUsage(userId, username) {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const usage = await AIPhotoBoothUsage.findOneAndUpdate(
+    {
+      user_id: userId,
+      month: currentMonth,
+      year: currentYear
+    },
+    {
+      $inc: { count: 1 },
+      $set: {
+        last_used_at: now,
+        username
+      }
+    },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true
+    }
+  );
+
+  return usage;
+}
+
+async function checkAILimit(userId, username, userRole) {
+  if (isAIUnlimited(userRole)) {
+    return {
+      canUse: true,
+      remaining: -1,
+      limit: -1,
+      isUnlimited: true,
+      used: 0
+    };
+  }
+
+  const usage = await getAIUsage(userId, username);
+  const limit = getAIPhotoboothLimit(userRole);
+  const remaining = Math.max(0, limit - usage.count);
+
+  return {
+    canUse: remaining > 0,
+    remaining,
+    limit,
+    isUnlimited: false,
+    used: usage.count
+  };
+}
+
+router.get('/:username/photo/capture/ai/usage', authenticateToken, checkBanStatus, async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (req.user.userId !== user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view this data'
+      });
+    }
+
+    if (isAIUnlimited(user.role)) {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          count: 0,
+          limit: -1,
+          remaining: -1,
+          isUnlimited: true,
+          month: now.getMonth(),
+          year: now.getFullYear(),
+          resetDate: nextMonth.toISOString(),
+          lastUsedAt: null
+        }
+      });
+    }
+
+    const usage = await getAIUsage(user._id, username);
+    const limit = getAIPhotoboothLimit(user.role);
+    const remaining = Math.max(0, limit - usage.count);
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        count: usage.count,
+        limit,
+        remaining,
+        isUnlimited: false,
+        month: usage.month,
+        year: usage.year,
+        resetDate: nextMonth.toISOString(),
+        lastUsedAt: usage.last_used_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting AI usage:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get AI usage data'
+    });
+  }
+});
+
+router.post('/:username/photo/capture/ai/usage', authenticateToken, checkBanStatus, async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (req.user.userId !== user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to increment usage'
+      });
+    }
+
+    if (isAIUnlimited(user.role)) {
+      return res.status(200).json({
+        success: true,
+        message: 'Unlimited access - no tracking needed',
+        data: {
+          count: 0,
+          limit: -1,
+          remaining: -1,
+          isUnlimited: true
+        }
+      });
+    }
+
+    const usage = await incrementAIUsage(user._id, username);
+    const limit = getAIPhotoboothLimit(user.role);
+    const remaining = Math.max(0, limit - usage.count);
+
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    return res.status(200).json({
+      success: true,
+      message: 'AI usage incremented',
+      data: {
+        count: usage.count,
+        limit,
+        remaining,
+        isUnlimited: false,
+        month: usage.month,
+        year: usage.year,
+        resetDate: nextMonth.toISOString(),
+        lastUsedAt: usage.last_used_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Error incrementing AI usage:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to increment AI usage'
+    });
+  }
+});
 
 router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async (req, res) => {
   const imageHandler = require('../../../../../utils/LocalImageHandler');
@@ -21,7 +245,6 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
 
   uploadFields(req, res, async (err) => {
     if (err) {
-      console.error('Multer upload error:', err);
       return res.status(400).json({
         success: false,
         message: `Upload error: ${err.message}`
@@ -32,59 +255,48 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
       const { frame_id, title, desc } = req.body;
       const { username } = req.params;
       const isLivePhoto = req.body.livePhoto === 'true' || req.body.livePhoto === true;
-
-      console.log('📸 Received capture request:', {
-        username,
-        body: req.body,
-        imageFiles: req.files?.images?.length || 0,
-        videoFiles: req.files?.video_files?.length || 0,
-        isLivePhoto,
-        frame_id,
-        title,
-        desc
-      });
+      const isAIPhoto = req.body.aiPhoto === 'true' || req.body.aiPhoto === true;
 
       const errors = [];
 
       if (!username) {
-        errors.push({ msg: 'Username is required', path: 'username', location: 'params' });
+        errors.push('Username is required');
       }
 
       if (!frame_id) {
-        errors.push({ msg: 'Frame ID is required', path: 'frame_id', location: 'body' });
+        errors.push('Frame ID is required');
       } else if (!/^[0-9a-fA-F]{24}$/.test(frame_id)) {
-        errors.push({ msg: 'Frame ID must be a valid ObjectId', path: 'frame_id', location: 'body' });
+        errors.push('Invalid Frame ID format');
       }
 
       if (!title) {
-        errors.push({ msg: 'Title is required', path: 'title', location: 'body' });
+        errors.push('Title is required');
       } else if (title.length < 1 || title.length > 100) {
-        errors.push({ msg: 'Title must be 1-100 characters', path: 'title', location: 'body' });
+        errors.push('Title must be 1-100 characters');
       }
 
       if (desc && desc.length > 500) {
-        errors.push({ msg: 'Description must be max 500 characters', path: 'desc', location: 'body' });
+        errors.push('Description must be 500 characters or less');
       }
 
       if (isLivePhoto) {
         if (!req.files?.images || req.files.images.length === 0) {
-          errors.push({ msg: 'At least one image is required for live photo', path: 'images', location: 'files' });
+          errors.push('At least one image is required for live photo');
         }
         if (!req.files?.video_files || req.files.video_files.length === 0) {
-          errors.push({ msg: 'At least one video file is required for live photo', path: 'video_files', location: 'files' });
+          errors.push('At least one video file is required for live photo');
         }
       } else {
         if (!req.files?.images || req.files.images.length === 0) {
-          errors.push({ msg: 'At least one photo is required', path: 'images', location: 'files' });
+          errors.push('At least one image is required');
         }
       }
 
       if (errors.length > 0) {
-        console.error('Validation errors:', errors);
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors,
+          errors
         });
       }
 
@@ -99,14 +311,30 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
       if (req.user.userId !== targetUser._id.toString()) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied. You can only capture photos for yourself.'
+          message: 'Not authorized to create photo for this user'
         });
+      }
+
+      if (isAIPhoto) {
+        const aiLimit = await checkAILimit(targetUser._id, username, targetUser.role);
+
+        if (!aiLimit.canUse) {
+          return res.status(403).json({
+            success: false,
+            message: 'AI Photobooth monthly limit reached',
+            ai_limit: {
+              used: aiLimit.used,
+              limit: aiLimit.limit,
+              remaining: aiLimit.remaining,
+              isUnlimited: aiLimit.isUnlimited
+            }
+          });
+        }
       }
 
       if (isLivePhoto) {
         const livePhotoPermission = canCreateLivePhoto(targetUser.role);
         if (!livePhotoPermission.canCreate) {
-
           if (req.files?.images) {
             for (const file of req.files.images) {
               await imageHandler.deleteImage(file.path);
@@ -128,11 +356,6 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         }
       }
 
-      console.log('🔍 Searching for frame:', {
-        frame_id,
-        targetUserId: targetUser._id
-      });
-
       const frame = await Frame.findOne({
         _id: frame_id,
         $or: [
@@ -148,14 +371,14 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         });
       }
 
-      console.log('🖼️ Frame found:', {
-        frameId: frame._id,
-        title: frame.title,
-        visibility: frame.visibility,
-        ownerId: frame.user_id._id
-      });
-
       if (frame.user_id._id.toString() !== targetUser._id.toString()) {
+        if (frame.visibility !== 'public') {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to use this frame'
+          });
+        }
+
         frame.use_count.push({ user_id: targetUser._id });
         await frame.save();
       }
@@ -171,26 +394,12 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         ? calculateLivePhotoExpiry(targetUser.role)
         : calculatePhotoExpiry(targetUser.role);
 
-      console.log('💾 Creating photo with data:', {
-        isLivePhoto,
-        imagesCount: images.length,
-        videoFilesCount: videoFiles.length,
-        title: title.trim(),
-        desc: desc ? desc.trim() : '',
-        frameId: frame_id,
-        userId: targetUser._id,
-        expiryDate,
-        userRole: targetUser.role
-      });
-
       const livePhotoPermission = canCreateLivePhoto(targetUser.role);
       const canSave = !isLivePhoto || livePhotoPermission.canSave;
 
       const baseUrl = req.protocol + '://' + req.get('host');
 
       if (isLivePhoto && !canSave) {
-        console.log('📥 Live photo for basic user - returning download-only response');
-
         const downloadResponse = {
           images: images.map(img => baseUrl + '/' + img),
           video_files: videoFiles.map(vid => baseUrl + '/' + vid),
@@ -223,7 +432,8 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         frame_id,
         user_id: targetUser._id,
         expires_at: expiryDate,
-        livePhoto: isLivePhoto
+        livePhoto: isLivePhoto,
+        aiPhoto: isAIPhoto
       };
 
       if (isLivePhoto && videoFiles.length > 0) {
@@ -231,17 +441,16 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
       }
 
       const newPhoto = new Photo(photoData);
-
       await newPhoto.save();
+
+      if (isAIPhoto) {
+        await incrementAIUsage(targetUser._id, username);
+      }
+
       await newPhoto.populate([
         { path: 'frame_id', select: 'title layout_type thumbnail' },
         { path: 'user_id', select: 'name username role' }
       ]);
-
-      console.log('✅ Photo saved successfully:', {
-        photoId: newPhoto._id,
-        expiresAt: newPhoto.expires_at
-      });
 
       const photoResponse = {
         id: newPhoto._id,
@@ -255,6 +464,7 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
           thumbnail: newPhoto.frame_id.thumbnail ? baseUrl + '/' + newPhoto.frame_id.thumbnail : null
         },
         livePhoto: newPhoto.livePhoto,
+        aiPhoto: newPhoto.aiPhoto,
         expires_at: newPhoto.expires_at,
         created_at: newPhoto.created_at,
         updated_at: newPhoto.updated_at
@@ -264,21 +474,29 @@ router.post('/:username/photo/capture', authenticateToken, checkBanStatus, async
         photoResponse.video_files = newPhoto.video_files.map(vid => baseUrl + '/' + vid);
       }
 
+      if (isAIPhoto) {
+        const updatedLimit = await checkAILimit(targetUser._id, username, targetUser.role);
+        photoResponse.ai_usage = {
+          used: updatedLimit.used,
+          limit: updatedLimit.limit,
+          remaining: updatedLimit.remaining,
+          isUnlimited: updatedLimit.isUnlimited
+        };
+      }
+
       res.status(201).json({
         success: true,
-        message: isLivePhoto ? 'Live photo captured successfully' : 'Photo captured successfully',
+        message: 'Photo captured successfully',
         data: {
           photo: photoResponse
         }
       });
 
     } catch (error) {
-      console.error('Capture photo error:', error);
-
+      console.error('Error capturing photo:', error);
       res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'Failed to capture photo'
       });
     }
   });
