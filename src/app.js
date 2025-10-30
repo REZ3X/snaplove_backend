@@ -823,7 +823,7 @@ if (process.env.NODE_ENV !== "test") {
   socketService.initialize(server);
   birthdayService.start();
 
-  cleanupScheduler.start('*/30 * * * *');
+  cleanupScheduler.start('*/1 * * * *');
 
   discordBotService.start()
     .then(() => console.log('Discord bot integration started'))
@@ -839,8 +839,6 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`Health check: http://localhost:${PORT}/health`);
     console.log(`Images served from: ${path.join(process.cwd(), "images")}`);
     console.log(`Trust proxy: ${app.get("trust proxy")}`);
-    console.log(`Socket.IO enabled for real-time notifications`);
-    console.log(`Photo cleanup scheduler active (every 30 minutes)`);
   });
 }
 
