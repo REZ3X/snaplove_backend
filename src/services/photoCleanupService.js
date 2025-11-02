@@ -5,26 +5,26 @@ const fs = require('fs').promises;
 const path = require('path');
 
 class PhotoCleanupService {
-  /**
-   * Clean up expired photos (automated only)
-   * Buffer time: 5 minutes before actual expiry to handle MongoDB TTL delays
-   */
   async cleanupExpiredPhotos() {
     try {
       console.log('Starting automated photo cleanup...');
 
-      const bufferMinutes = 5;
-      const cleanupThreshold = new Date(Date.now() + (bufferMinutes * 60 * 1000));
-
+      // Ambil semua foto yang expires_at sudah lewat dari waktu sekarang
+      const now = new Date();
+      
+      console.log('🕐 Current time:', now.toDateString(), now.toLocaleTimeString());
+      
       const expiredPhotos = await Photo.find({
         expires_at: {
-          $lte: cleanupThreshold,
+          $lte: now,
           $ne: null
         }
-      }).select('_id images user_id expires_at');
+      }).select('_id images expires_at').lean();
+      
+      console.log(`📊 Found ${expiredPhotos.length} expired photos`);
 
       if (expiredPhotos.length === 0) {
-        console.log('No expired photos found');
+        console.log('\n✅ No expired photos found');
         return {
           success: true,
           processed: 0,
@@ -32,7 +32,6 @@ class PhotoCleanupService {
           deleted_files: 0,
           failed_records: 0,
           failed_files: 0,
-          message: 'No expired photos to clean up'
         };
       }
 
@@ -42,83 +41,48 @@ class PhotoCleanupService {
       let totalFailedFiles = 0;
       let deletedRecords = 0;
       let failedRecords = 0;
-      let processedPhotos = 0;
 
       for (const photo of expiredPhotos) {
         try {
-          const isLivePhoto = photo.livePhoto || false;
-          const photoType = isLivePhoto ? 'live photo' : 'photo';
-          console.log(`Processing ${photoType} ${photo._id} (expires: ${photo.expires_at})`);
+          console.log(`Processing photo ${photo._id} (expired at: ${photo.expires_at})`);
 
-          const deletedFiles = [];
-          const failedFiles = [];
-
-          for (const imagePath of photo.images) {
-            try {
-              const deleted = await imageHandler.deleteImage(imagePath);
-              if (deleted) {
-                deletedFiles.push(imagePath);
-                console.log(`Deleted image file: ${imagePath}`);
-              } else {
-                failedFiles.push(imagePath);
-                console.log(`Image file not found: ${imagePath}`);
-              }
-            } catch (error) {
-              console.error(`Error deleting image ${imagePath}:`, error.message);
-              failedFiles.push(imagePath);
-            }
-          }
-
-          if (isLivePhoto && photo.video_files && Array.isArray(photo.video_files)) {
-            console.log(`🎥 Deleting ${photo.video_files.length} video files for live photo ${photo._id}`);
-
-            for (const videoPath of photo.video_files) {
+          // Hapus semua files di array images
+          if (photo.images && Array.isArray(photo.images)) {
+            for (const imagePath of photo.images) {
               try {
-                const deleted = await imageHandler.deleteVideo(videoPath);
+                const deleted = await imageHandler.deleteImage(imagePath);
                 if (deleted) {
-                  deletedFiles.push(videoPath);
-                  console.log(`Deleted video file: ${videoPath}`);
+                  totalDeletedFiles++;
+                  console.log(`✓ Deleted: ${imagePath}`);
                 } else {
-                  failedFiles.push(videoPath);
-                  console.log(`Video file not found: ${videoPath}`);
+                  totalFailedFiles++;
+                  console.log(`✗ Not found: ${imagePath}`);
                 }
               } catch (error) {
-                console.error(`Error deleting video ${videoPath}:`, error.message);
-                failedFiles.push(videoPath);
+                console.error(`✗ Error deleting ${imagePath}:`, error.message);
+                totalFailedFiles++;
               }
             }
           }
 
-          try {
-            await Photo.findByIdAndDelete(photo._id);
-            deletedRecords++;
-            console.log(`Deleted ${photoType} record: ${photo._id}`);
-          } catch (error) {
-            console.error(`Error deleting ${photoType} record ${photo._id}:`, error.message);
-            failedRecords++;
-          }
-
-          totalDeletedFiles += deletedFiles.length;
-          totalFailedFiles += failedFiles.length;
-          processedPhotos++;
-
-          console.log(`${photoType.charAt(0).toUpperCase() + photoType.slice(1)} ${photo._id} processed: ${deletedFiles.length} files deleted, ${failedFiles.length} failed`);
+          // Hapus record dari database
+          await Photo.findByIdAndDelete(photo._id);
+          deletedRecords++;
+          console.log(`✓ Deleted photo record: ${photo._id}`);
 
         } catch (error) {
-          console.error(`Error processing photo ${photo._id}:`, error);
-          processedPhotos++;
+          console.error(`✗ Error processing photo ${photo._id}:`, error.message);
           failedRecords++;
         }
       }
 
       const result = {
         success: true,
-        processed: processedPhotos,
+        processed: expiredPhotos.length,
         deleted_records: deletedRecords,
         deleted_files: totalDeletedFiles,
         failed_records: failedRecords,
         failed_files: totalFailedFiles,
-        message: `Processed ${processedPhotos} expired photos, deleted ${deletedRecords} records and ${totalDeletedFiles} files`
       };
 
       const collabResult = await this.cleanupExpiredCollaborations();
@@ -128,12 +92,12 @@ class PhotoCleanupService {
         processed: result.processed + collabResult.processed,
         deleted_records: result.deleted_records + collabResult.deleted_records,
         deleted_files: result.deleted_files + collabResult.deleted_files,
-        failed_records: result.failed_records,
-        failed_files: result.failed_files,
+        failed_records: result.failed_records + collabResult.failed_records,
+        failed_files: result.failed_files + collabResult.failed_files,
         message: `${result.message}. ${collabResult.message}`
       };
 
-      console.log(`Combined cleanup completed:`, combinedResult);
+      console.log(`All cleanup completed:`, combinedResult);
       return combinedResult;
 
     } catch (error) {
@@ -150,330 +114,6 @@ class PhotoCleanupService {
     }
   }
 
-  /**
-   * Get statistics about expiring photos
-   * @param {number} hours - Look ahead this many hours
-   */
-  async getExpiringPhotosStats(hours = 24) {
-    try {
-      const now = new Date();
-      const futureThreshold = new Date(now.getTime() + (hours * 60 * 60 * 1000));
-
-      const [currentlyExpired, expiringWithinHours, totalPhotosWithExpiry] = await Promise.all([
-
-        Photo.countDocuments({
-          expires_at: {
-            $lte: now,
-            $ne: null
-          }
-        }),
-
-        Photo.countDocuments({
-          expires_at: {
-            $gt: now,
-            $lte: futureThreshold,
-            $ne: null
-          }
-        }),
-
-        Photo.countDocuments({
-          expires_at: { $ne: null }
-        })
-      ]);
-
-      return {
-        currently_expired: currentlyExpired,
-        expiring_within_hours: expiringWithinHours,
-        total_with_expiry: totalPhotosWithExpiry,
-        hours_ahead: hours,
-        checked_at: now.toISOString()
-      };
-
-    } catch (error) {
-      console.error('Error getting expiring photos stats:', error);
-      return {
-        currently_expired: 0,
-        expiring_within_hours: 0,
-        total_with_expiry: 0,
-        hours_ahead: hours,
-        error: error.message
-      };
-    }
-  }
-
-  /**
-   * Clean up orphaned image files (files that exist but have no photo record)
-   * This is for maintenance purposes
-   */
-  async cleanupOrphanedImageFiles() {
-    try {
-      console.log('Starting orphaned files cleanup...');
-
-      const photosDir = path.join(process.cwd(), 'images', 'photos');
-
-      try {
-        await fs.access(photosDir);
-      } catch (error) {
-        console.log('Photos directory does not exist, nothing to clean');
-        return {
-          success: true,
-          scanned_files: 0,
-          deleted_files: 0,
-          failed_files: 0,
-          message: 'Photos directory does not exist'
-        };
-      }
-
-      const files = await fs.readdir(photosDir);
-      const imageFiles = files.filter(file =>
-        /\.(jpg|jpeg|png|gif|webp)$/i.test(file)
-      );
-
-      if (imageFiles.length === 0) {
-        console.log('No image files found in photos directory');
-        return {
-          success: true,
-          scanned_files: 0,
-          deleted_files: 0,
-          failed_files: 0,
-          message: 'No image files found'
-        };
-      }
-
-      console.log(`Found ${imageFiles.length} image files to check`);
-
-      const photos = await Photo.find({ images: { $exists: true, $not: { $size: 0 } } })
-        .select('images')
-        .lean();
-
-      const referencedPaths = new Set();
-      photos.forEach(photo => {
-        photo.images.forEach(imagePath => {
-
-          const filename = path.basename(imagePath);
-          referencedPaths.add(filename);
-        });
-      });
-
-      console.log(`Found ${referencedPaths.size} referenced image files in database`);
-
-      const orphanedFiles = imageFiles.filter(file => !referencedPaths.has(file));
-
-      if (orphanedFiles.length === 0) {
-        console.log('No orphaned files found');
-        return {
-          success: true,
-          scanned_files: imageFiles.length,
-          deleted_files: 0,
-          failed_files: 0,
-          message: 'No orphaned files found'
-        };
-      }
-
-      console.log(`Found ${orphanedFiles.length} orphaned files to delete`);
-
-      let deletedFiles = 0;
-      let failedFiles = 0;
-
-      for (const file of orphanedFiles) {
-        try {
-          const filePath = path.join(photosDir, file);
-          await fs.unlink(filePath);
-          deletedFiles++;
-          console.log(`Deleted orphaned file: ${file}`);
-        } catch (error) {
-          console.error(`Failed to delete orphaned file ${file}:`, error.message);
-          failedFiles++;
-        }
-      }
-
-      const result = {
-        success: true,
-        scanned_files: imageFiles.length,
-        orphaned_files: orphanedFiles.length,
-        deleted_files: deletedFiles,
-        failed_files: failedFiles,
-        message: `Scanned ${imageFiles.length} files, deleted ${deletedFiles} orphaned files`
-      };
-
-      console.log('Orphaned files cleanup completed:', result);
-      return result;
-
-    } catch (error) {
-      console.error('Orphaned files cleanup error:', error);
-      return {
-        success: false,
-        error: error.message,
-        scanned_files: 0,
-        deleted_files: 0,
-        failed_files: 0
-      };
-    }
-  }
-
-  /**
-   * Get detailed photo storage statistics
-   */
-  async getStorageStats() {
-    try {
-      const photosDir = path.join(process.cwd(), 'images', 'photos');
-
-      let totalFiles = 0;
-      let totalSize = 0;
-
-      try {
-        const files = await fs.readdir(photosDir);
-        const imageFiles = files.filter(file =>
-          /\.(jpg|jpeg|png|gif|webp)$/i.test(file)
-        );
-
-        totalFiles = imageFiles.length;
-
-        for (const file of imageFiles) {
-          try {
-            const filePath = path.join(photosDir, file);
-            const stats = await fs.stat(filePath);
-            totalSize += stats.size;
-          } catch (error) {
-            console.warn(`Could not get stats for file ${file}:`, error.message);
-          }
-        }
-      } catch (error) {
-        console.warn('Could not read photos directory:', error.message);
-      }
-
-      const [totalPhotos, photosWithExpiry, expiredPhotos] = await Promise.all([
-        Photo.countDocuments(),
-        Photo.countDocuments({ expires_at: { $ne: null } }),
-        Photo.countDocuments({
-          expires_at: {
-            $lte: new Date(),
-            $ne: null
-          }
-        })
-      ]);
-
-      return {
-        storage: {
-          total_files: totalFiles,
-          total_size_bytes: totalSize,
-          total_size_mb: Math.round(totalSize / (1024 * 1024) * 100) / 100,
-          directory: photosDir
-        },
-        database: {
-          total_photos: totalPhotos,
-          photos_with_expiry: photosWithExpiry,
-          expired_photos: expiredPhotos,
-          permanent_photos: totalPhotos - photosWithExpiry
-        },
-        generated_at: new Date().toISOString()
-      };
-
-    } catch (error) {
-      console.error('Error getting storage stats:', error);
-      return {
-        error: error.message,
-        generated_at: new Date().toISOString()
-      };
-    }
-  }
-
-  /**
-   * Manual cleanup for specific user (admin function)
-   * @param {string} userId - User ID to cleanup photos for
-   */
-  async cleanupUserPhotos(userId) {
-    try {
-      console.log(`Starting manual cleanup for user: ${userId}`);
-
-      const userPhotos = await Photo.find({ user_id: userId })
-        .select('_id images video_files livePhoto user_id expires_at');
-
-      if (userPhotos.length === 0) {
-        return {
-          success: true,
-          processed: 0,
-          deleted_records: 0,
-          deleted_files: 0,
-          message: 'No photos found for this user'
-        };
-      }
-
-      console.log(`Found ${userPhotos.length} photos for user ${userId}`);
-
-      let totalDeletedFiles = 0;
-      let deletedRecords = 0;
-      let failedRecords = 0;
-      let failedFiles = 0;
-
-      for (const photo of userPhotos) {
-        try {
-          const isLivePhoto = photo.livePhoto || false;
-
-          for (const imagePath of photo.images) {
-            try {
-              const deleted = await imageHandler.deleteImage(imagePath);
-              if (deleted) {
-                totalDeletedFiles++;
-              } else {
-                failedFiles++;
-              }
-            } catch (error) {
-              console.error(`Error deleting image ${imagePath}:`, error.message);
-              failedFiles++;
-            }
-          }
-
-          if (isLivePhoto && photo.video_files && Array.isArray(photo.video_files)) {
-            for (const videoPath of photo.video_files) {
-              try {
-                const deleted = await imageHandler.deleteVideo(videoPath);
-                if (deleted) {
-                  totalDeletedFiles++;
-                } else {
-                  failedFiles++;
-                }
-              } catch (error) {
-                console.error(`Error deleting video ${videoPath}:`, error.message);
-                failedFiles++;
-              }
-            }
-          }
-
-          await Photo.findByIdAndDelete(photo._id);
-          deletedRecords++;
-
-        } catch (error) {
-          console.error(`Error processing photo ${photo._id}:`, error);
-          failedRecords++;
-        }
-      }
-
-      const result = {
-        success: true,
-        processed: userPhotos.length,
-        deleted_records: deletedRecords,
-        deleted_files: totalDeletedFiles,
-        failed_records: failedRecords,
-        failed_files: failedFiles,
-        message: `Cleaned up ${deletedRecords} photos and ${totalDeletedFiles} files for user ${userId}`
-      };
-
-      console.log('User cleanup completed:', result);
-      return result;
-
-    } catch (error) {
-      console.error('User cleanup error:', error);
-      return {
-        success: false,
-        error: error.message,
-        processed: 0,
-        deleted_records: 0,
-        deleted_files: 0
-      };
-    }
-  }
-
   async cleanupExpiredCollaborations() {
     try {
       console.log('🧹 Starting expired photo collaborations cleanup...');
@@ -482,11 +122,6 @@ class PhotoCleanupService {
         expires_at: { $lte: new Date() },
         status: { $in: ['pending', 'accepted'] }
       }).select('_id merged_images status');
-
-      if (expiredCollabs.length === 0) {
-        console.log('✅ No expired photo collaborations found');
-        return { success: true, processed: 0, deleted_records: 0, deleted_files: 0 };
-      }
 
       console.log(`🗑️ Found ${expiredCollabs.length} expired photo collaborations`);
 
