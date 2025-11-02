@@ -177,13 +177,13 @@ class MailService {
                   </div>
                 </div>
                 
-                <div class="mb-4">
-                  <p class="font-semibold text-gray-800 mb-2">Direct API Call:</p>
-                  <p class="text-sm text-gray-600 mb-2">For developers or if you're experiencing issues:</p>
-                  <div class="bg-white p-3 rounded-lg border-2 border-[#C9A7FF] overflow-x-auto">
-                    <code class="text-xs text-[#C9A7FF] break-all">GET ${apiVerificationUrl}</code>
-                  </div>
-                </div>
+                // <div class="mb-4">
+                //   <p class="font-semibold text-gray-800 mb-2">Direct API Call:</p>
+                //   <p class="text-sm text-gray-600 mb-2">For developers or if you're experiencing issues:</p>
+                //   <div class="bg-white p-3 rounded-lg border-2 border-[#C9A7FF] overflow-x-auto">
+                //     <code class="text-xs text-[#C9A7FF] break-all">GET ${apiVerificationUrl}</code>
+                //   </div>
+                // </div>
                 
                 <div>
                   <p class="font-semibold text-gray-800 mb-2">Verification Details:</p>
