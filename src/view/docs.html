@@ -660,6 +660,10 @@
           <i class="fas fa-search"></i>
           Search
         </button>
+        <button class="nav-tab" onclick="showSection('subscription')">
+          <i class="fas fa-credit-card"></i>
+          Subscription
+        </button>
         <button class="nav-tab" onclick="showSection('admin')">
           <i class="fas fa-cog"></i>
           Admin
@@ -2315,6 +2319,283 @@
             ✅ Mutual follow detection ✅ Search followers/following ✅
             Pagination support ✅ Real-time notifications ✅ Ban status
             filtering ✅ Self-follow prevention ✅ Stats integration
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section" id="subscription">
+        <div class="endpoint-group">
+          <h3>
+            <i class="fas fa-credit-card"></i>Premium Subscription (Duitku
+            Payment Gateway)
+          </h3>
+
+          <div class="endpoint">
+            <div class="endpoint-description">
+              <p style="margin-bottom: 1rem">
+                Monthly subscription system powered by
+                <strong>Duitku</strong> (Indonesian payment gateway). Users can
+                upgrade to <strong>verified_premium</strong> role for Rp
+                45,000/month to unlock extended features.
+              </p>
+              <div class="example-code">
+                💎 Premium Benefits: - Extended photo storage (7 days vs 3 days
+                for basic users) - Priority support - Enhanced profile
+                visibility - Access to premium features
+              </div>
+            </div>
+          </div>
+
+          <h4>💳 Payment Methods</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/subscription/methods</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get all available payment methods with fees and details. Supports
+              10+ payment options.
+            </div>
+            <div class="example-code">
+              Response: { "success": true, "data": { "amount": 45000, "grouped":
+              { "virtual_account": [ { "paymentMethod": "M2", "paymentName":
+              "Mandiri Virtual Account", "paymentImage": "https://...",
+              "totalFee": 4000, "totalAmount": 49000 }, { "paymentMethod": "BC",
+              "paymentName": "BCA Virtual Account", "paymentImage":
+              "https://...", "totalFee": 4000, "totalAmount": 49000 } // ...
+              more VA options ], "e_wallet": [ { "paymentMethod": "OV",
+              "paymentName": "OVO", "paymentImage": "https://...", "totalFee":
+              1500, "totalAmount": 46500 }, { "paymentMethod": "DA",
+              "paymentName": "DANA", "paymentImage": "https://...", "totalFee":
+              1500, "totalAmount": 46500 } // ... more e-wallet options ],
+              "qris": [...], "retail": [...], "credit_card": [...], "paylater":
+              [...] } } }
+            </div>
+          </div>
+
+          <h4>🛒 Create Payment</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/subscription/payment</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Create a new subscription payment. Returns payment details (VA
+              number, QR code, or redirect URL).
+            </div>
+            <div class="example-code">
+              Request Body: { "paymentMethod": "M2", // Required: Payment method
+              code "phoneNumber": "08123456789", // Required: User's phone
+              "address": "Jakarta", // Required: Address "city": "Jakarta", //
+              Required: City "postalCode": "12345" // Required: Postal code }
+              Response: { "success": true, "data": { "subscription": {
+              "order_id": "SUB-507f1f77bcf86cd799439011-1736237123456",
+              "amount": 45000, "payment_method": "Mandiri Virtual Account",
+              "payment_code": "M2", "status": "pending", "expires_at":
+              "2025-01-08T10:00:00.000Z" }, "payment_details": { "payment_url":
+              "https://sandbox.duitku.com/payment/...", "va_number":
+              "8770012345678901", "qr_string": null, "reference":
+              "D31828REF123456" }, "instructions": { "title": "Complete Your
+              Payment", "steps": [ "Open your Mandiri mobile banking app",
+              "Select 'Bayar' > 'Multipayment'", "Enter company code: 70012",
+              "Enter VA number: 8770012345678901", "Confirm payment of Rp
+              45,000", "Payment will be processed automatically" ],
+              "expires_in": "24 hours" } } }
+            </div>
+          </div>
+
+          <h4>🔔 Payment Callback</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/api/subscription/callback</span>
+              <span class="badge">NO AUTH (Duitku Server)</span>
+            </div>
+            <div class="endpoint-description">
+              Webhook endpoint called by Duitku when payment is completed.
+              Automatically upgrades user to
+              <strong>verified_premium</strong> role on successful payment.
+            </div>
+            <div class="example-code">
+              ✅ Automatic Actions on Success: 1. Validate MD5 signature from
+              Duitku 2. Update subscription status to "success" 3. Set
+              subscription dates (30 days from payment) 4. Upgrade user role:
+              verified_basic → verified_premium 5. Send real-time notification
+              via Socket.io 6. Return 200 OK to Duitku 🔒 Security: - MD5
+              signature validation - Merchant code verification - Amount
+              verification - Duplicate payment prevention
+            </div>
+          </div>
+
+          <h4>📊 Check Payment Status</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path"
+                >/api/subscription/status/:order_id</span
+              >
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Check the current status of a payment. Use this for polling
+              payment status in real-time.
+            </div>
+            <div class="example-code">
+              Response: { "success": true, "data": { "subscription": {
+              "order_id": "SUB-507f1f77bcf86cd799439011-1736237123456",
+              "status": "success", "amount": 45000, "payment_method": "Mandiri
+              Virtual Account", "paid_at": "2025-01-07T14:30:00.000Z",
+              "subscription_start_date": "2025-01-07T14:30:00.000Z",
+              "subscription_end_date": "2025-02-06T14:30:00.000Z", "expires_at":
+              "2025-01-08T10:00:00.000Z" }, "user_upgraded": true, "new_role":
+              "verified_premium" } } Possible Status Values: - pending: Waiting
+              for payment - success: Payment confirmed, user upgraded - failed:
+              Payment failed - expired: Payment window expired (24 hours)
+            </div>
+          </div>
+
+          <h4>📜 Payment History</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/subscription/history</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's payment history with pagination and filtering.
+            </div>
+            <div class="example-code">
+              Query Parameters: ?page=1&limit=10&status=success Response: {
+              "success": true, "data": { "subscriptions": [ { "order_id":
+              "SUB-...", "status": "success", "amount": 45000, "payment_method":
+              "Mandiri Virtual Account", "paid_at": "2025-01-07T14:30:00.000Z",
+              "subscription_end_date": "2025-02-06T14:30:00.000Z" } // ... more
+              subscriptions ], "pagination": { "current_page": 1, "total_pages":
+              3, "total_items": 25, "items_per_page": 10, "has_next": true,
+              "has_prev": false } } }
+            </div>
+          </div>
+
+          <h4>💎 Current Subscription</h4>
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/api/subscription/current</span>
+              <span class="auth-required">🔒 AUTH</span>
+            </div>
+            <div class="endpoint-description">
+              Get user's current active subscription details and remaining days.
+            </div>
+            <div class="example-code">
+              Response (Active Premium): { "success": true, "data": {
+              "has_subscription": true, "subscription": { "order_id": "SUB-...",
+              "status": "success", "subscription_start_date":
+              "2025-01-07T14:30:00.000Z", "subscription_end_date":
+              "2025-02-06T14:30:00.000Z", "remaining_days": 23 }, "user": {
+              "role": "verified_premium", "premium_features_enabled": true } } }
+              Response (No Active Subscription): { "success": true, "data": {
+              "has_subscription": false, "user": { "role": "verified_basic",
+              "premium_features_enabled": false } } }
+            </div>
+          </div>
+
+          <h4>🔄 Subscription Lifecycle</h4>
+          <div class="example-code">
+            1️⃣ User Selects Payment Method GET /api/subscription/methods →
+            Choose from 10+ payment options 2️⃣ Create Payment POST
+            /api/subscription/payment → Receive VA number / QR code / redirect
+            URL 3️⃣ User Completes Payment → Pay via bank transfer, e-wallet,
+            QRIS, etc. → Payment processed by Duitku 4️⃣ Automatic Upgrade
+            (Callback) POST /api/subscription/callback (from Duitku) → Signature
+            validated → User upgraded to verified_premium → 30-day subscription
+            activated → Real-time notification sent 5️⃣ Active Subscription
+            Period → Premium features unlocked → Extended photo storage (7 days)
+            → Priority support 6️⃣ Subscription Expiry (After 30 Days) → Daily
+            cron job checks expiry → User automatically downgraded to
+            verified_basic → Premium features disabled → Photo storage reverts
+            to 3 days
+          </div>
+
+          <h4>💰 Supported Payment Methods</h4>
+          <div class="example-code">
+            🏦 Virtual Account (24-hour expiry): - M2: Mandiri Virtual Account -
+            BC: BCA Virtual Account - I1: BNI Virtual Account - B1: CIMB Niaga
+            Virtual Account - A1: Bank Permata Virtual Account - AG: Bank Artha
+            Graha - S1: Bank Sahabat Sampoerna - NC: BNC (Bank Neo Commerce) -
+            BT: Bank Maybank 📱 E-Wallet (Instant/15-min): - OV: OVO - DA: DANA
+            - SA: ShopeePay - LF: LinkAja - SP: SPayLater 🔲 QRIS (30-min): -
+            NQ: NOBU QRIS - FT: Finnet QRIS 🏪 Retail (24-hour): - IR: Indomaret
+            - A2: Alfamart 💳 Credit Card (24-hour): - VC: Visa/Mastercard 🛍️
+            Paylater (Instant): - SA: SPayLater
+          </div>
+
+          <h4>🔧 Testing in Sandbox</h4>
+          <div class="example-code">
+            1. Create payment using sandbox credentials 2. Use returned VA
+            number / payment URL 3. Go to Duitku sandbox demo page:
+            https://sandbox.duitku.com/payment/demo/demosuccesstransaction.aspx
+            4. Enter VA number or reference 5. Click "Pay" to simulate
+            successful payment 6. Callback will be triggered automatically 7.
+            Check user role updated to verified_premium 🔑 Sandbox Credentials
+            (Already Configured): - Merchant Code: D31828 - API Key:
+            393e0f76df0fb64b0d337f82abc4781d - Mode: Sandbox
+          </div>
+
+          <h4>🚀 Production Checklist</h4>
+          <div class="example-code">
+            Before going live: ✅ Update DUITKU_MERCHANT_CODE to production
+            value ✅ Update DUITKU_API_KEY to production key ✅ Set
+            NODE_ENV=production in .env ✅ Update callback URL to production
+            domain ✅ Configure Duitku dashboard with production callback URL ✅
+            Test all payment methods in production ✅ Set up monitoring for
+            failed callbacks ✅ Configure email notifications for payments ✅
+            Enable IP whitelisting for Duitku callbacks ✅ Set up logging for
+            all payment transactions
+          </div>
+
+          <h4>🎯 Frontend Integration Example</h4>
+          <div class="example-code">
+            // Step 1: Get available payment methods const methods = await
+            fetch('/api/subscription/methods', { headers: { 'Authorization':
+            `Bearer ${token}` } }).then(r => r.json()); // Step 2: Display
+            payment method selection
+            methods.data.grouped.virtual_account.forEach(method => {
+            console.log(`${method.paymentName}: Rp ${method.totalAmount}`); });
+            // Step 3: Create payment when user selects method const payment =
+            await fetch('/api/subscription/payment', { method: 'POST', headers:
+            { 'Authorization': `Bearer ${token}`, 'Content-Type':
+            'application/json' }, body: JSON.stringify({ paymentMethod: 'M2',
+            phoneNumber: '08123456789', address: 'Jakarta', city: 'Jakarta',
+            postalCode: '12345' }) }).then(r => r.json()); // Step 4: Show
+            payment instructions if (payment.data.payment_details.va_number) {
+            // Display VA number for bank transfer console.log('VA Number:',
+            payment.data.payment_details.va_number); } else if
+            (payment.data.payment_details.payment_url) { // Redirect to payment
+            page window.location.href =
+            payment.data.payment_details.payment_url; } // Step 5: Poll payment
+            status const orderId = payment.data.subscription.order_id; const
+            pollInterval = setInterval(async () => { const status = await
+            fetch(`/api/subscription/status/${orderId}`, { headers: {
+            'Authorization': `Bearer ${token}` } }).then(r => r.json()); if
+            (status.data.subscription.status === 'success') {
+            clearInterval(pollInterval); alert('Payment successful! You are now
+            premium! 💎'); // Reload user data or redirect to dashboard } },
+            5000); // Check every 5 seconds
+          </div>
+
+          <h4>📊 Database Schema</h4>
+          <div class="example-code">
+            Subscription Collection: { user: ObjectId (ref: User), order_id:
+            String (unique), duitku_reference: String, amount: Number (45000),
+            payment_method: String, payment_code: String, status: String
+            (pending/success/failed/expired), va_number: String, qr_string:
+            String, payment_url: String, expires_at: Date, paid_at: Date,
+            subscription_start_date: Date, subscription_end_date: Date,
+            metadata: Object, created_at: Date, updated_at: Date } User Role
+            Update: - Before: verified_basic - After: verified_premium -
+            Duration: 30 days - Auto-downgrade: Yes (after expiry)
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ require("dotenv").config();
 const http = require("http");
 const socketService = require("./services/socketService");
 const birthdayService = require("./services/birthdayService");
+const subscriptionCleanupService = require("./services/subscriptionCleanupService");
 const discordBotService = require('./services/discordBotService');
 const cleanupScheduler = require('./jobs/cleanupScheduler');
 const discordHandler = require('./utils/DiscordHookHandler');
@@ -84,6 +85,13 @@ const userFollowingRoute = require("./api/user/[username]/following/route");
 const userBirthdayRoute = require("./api/user/[username]/birthday/route");
 
 const searchRoute = require("./api/search/route");
+
+const subscriptionPaymentRoute = require("./api/subscription/payment/route");
+const subscriptionCallbackRoute = require("./api/subscription/callback/route");
+const subscriptionMethodsRoute = require("./api/subscription/methods/route");
+const subscriptionStatusRoute = require("./api/subscription/status/[order_id]/route");
+const subscriptionHistoryRoute = require("./api/subscription/history/route");
+const subscriptionCurrentRoute = require("./api/subscription/current/route");
 
 const apiKeyAuth = createApiKeyAuth({
   skipPaths: ["/", "/health", "/lore", "/planning", "/dev"],
@@ -783,6 +791,13 @@ app.use("/api/user", photoPrivateDetailRoute);
 
 app.use("/api/search", searchRoute);
 
+app.use("/api/subscription/payment", subscriptionPaymentRoute);
+app.use("/api/subscription/callback", subscriptionCallbackRoute);
+app.use("/api/subscription/methods", subscriptionMethodsRoute);
+app.use("/api/subscription/status", subscriptionStatusRoute);
+app.use("/api/subscription/history", subscriptionHistoryRoute);
+app.use("/api/subscription/current", subscriptionCurrentRoute);
+
 app.use("*", (req, res) => {
   res.status(404).json({
     success: false,
@@ -822,6 +837,7 @@ const server = http.createServer(app);
 if (process.env.NODE_ENV !== "test") {
   socketService.initialize(server);
   birthdayService.start();
+  subscriptionCleanupService.start();
 
   cleanupScheduler.start('*/1 * * * *');
 

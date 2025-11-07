@@ -1,8 +1,8 @@
 const Photo = require('../models/Photo');
 const imageHandler = require('../utils/LocalImageHandler');
 const PhotoCollab = require('../models/PhotoCollab');
-const fs = require('fs').promises;
-const path = require('path');
+const _fs = require('fs').promises;
+const _path = require('path');
 
 class PhotoCleanupService {
   async cleanupExpiredPhotos() {
