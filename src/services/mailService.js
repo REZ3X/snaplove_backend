@@ -80,7 +80,7 @@ class MailService {
           <div style="max-width: 672px; margin: 0 auto;">
             <!-- Header -->
             <div style="background: linear-gradient(135deg, #FF9898 0%, #FFE99A 100%); color: white; padding: 32px; border-radius: 16px 16px 0 0; text-align: center;">
-              <img src="https://i.ibb.co.com/1Y8k2vHw/Snaplove-logo-full-white-2.png" alt="Snaplove" style="max-width: 200px; height: auto; margin: 0 auto 16px auto; display: block;" />
+              <img src="https://i.ibb.co/1Y8k2vHw/Snaplove-logo-full-white-2.png" alt="Snaplove" style="max-width: 200px; height: auto; margin: 0 auto 16px auto; display: block;" />
             </div>
             
             <!-- Content -->
@@ -216,7 +216,7 @@ class MailService {
     }
 
     const frontendUrl = this.getFrontendUrl();
-    const loginUrl = `${frontendUrl}/login`;
+    const loginUrl = `${frontendUrl}`;
 
     const mailOptions = {
       from: {
@@ -226,7 +226,7 @@ class MailService {
       to: userEmail,
       subject: 'Welcome to Snaplove - Your Account is Now Active! 🎉',
       html: `
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -240,7 +240,7 @@ class MailService {
   <div style="max-width: 672px; margin: 0 auto;">
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #A8EECC 0%, #C7F9E3 100%); color: #1f2937; padding: 32px; border-radius: 16px 16px 0 0; text-align: center;">
-<img src="https://i.ibb.co.com/FLsn2Jsw/Snaplove-logo-full-black-2.png" alt="Snaplove" style="max-width: 200px; height: auto; margin: 0 auto 16px auto; display: block;" />
+<img src="https://i.ibb.co/FLsn2Jsw/Snaplove-logo-full-black-2.png" alt="Snaplove" style="max-width: 200px; height: auto; margin: 0 auto 16px auto; display: block;" />
     </div>
     
     <!-- Content -->
