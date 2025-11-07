@@ -3,11 +3,11 @@ const router = express.Router();
 const User = require('../../../models/User');
 const Subscription = require('../../../models/Subscription');
 const duitkuService = require('../../../services/duitkuService');
-const { auth } = require('../../../middleware/middleware');
+const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.userId;
         const { paymentMethod } = req.body;
 
         if (!paymentMethod) {
@@ -51,7 +51,7 @@ router.post('/', auth, async (req, res) => {
         }
 
         const orderId = `SUB-${userId}-${Date.now()}`;
-        const amount = 45000;         const expiryPeriod = 1440; 
+        const amount = 45000; const expiryPeriod = 1440;
         const customerDetail = {
             firstName: user.name.split(' ')[0] || user.name,
             lastName: user.name.split(' ').slice(1).join(' ') || user.username,

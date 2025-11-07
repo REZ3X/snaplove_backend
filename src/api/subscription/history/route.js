@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Subscription = require('../../../models/Subscription');
-const { auth } = require('../../../middleware/middleware');
+const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.userId;
         const { page = 1, limit = 10, status } = req.query;
 
         const query = { user: userId };

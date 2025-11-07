@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const duitkuService = require('../../../services/duitkuService');
-const { auth } = require('../../../middleware/middleware');
+const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 
-// GET /api/subscription/methods - Get available payment methods
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
     try {
-        const amount = 45000; // Subscription price
+        const amount = 45000; 
 
         const result = await duitkuService.getPaymentMethods(amount);
 
@@ -17,7 +16,6 @@ router.get('/', auth, async (req, res) => {
             });
         }
 
-        // Format payment methods for frontend
         const formattedMethods = result.data.map(method => ({
             code: method.paymentMethod,
             name: method.paymentName,
@@ -26,7 +24,6 @@ router.get('/', auth, async (req, res) => {
             total_amount: amount + (parseInt(method.totalFee) || 0)
         }));
 
-        // Group by category
         const grouped = {
             virtual_account: [],
             e_wallet: [],

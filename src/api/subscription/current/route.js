@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const User = require('../../../models/User');
 const Subscription = require('../../../models/Subscription');
-const { auth } = require('../../../middleware/middleware');
+const { authenticateToken, checkBanStatus } = require('../../../middleware/middleware');
 
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.userId;
 
         const user = await User.findById(userId);
 
