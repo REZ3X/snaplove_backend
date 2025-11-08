@@ -10,7 +10,12 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
         const userId = req.user.userId;
         const { paymentMethod } = req.body;
 
+        console.log('Payment request body:', req.body);
+        console.log('Payment method received:', paymentMethod);
+        console.log('User ID:', userId);
+
         if (!paymentMethod) {
+            console.log('Payment method is missing');
             return res.status(400).json({
                 success: false,
                 message: 'Payment method is required'
@@ -52,11 +57,20 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
 
         const orderId = `SUB-${userId}-${Date.now()}`;
         const amount = 45000; const expiryPeriod = 1440;
+
+        const eWalletMethods = ['DA', 'OV', 'SA', 'LA'];
+        if (eWalletMethods.includes(paymentMethod) && !req.body.phoneNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Phone number is required for e-wallet payments'
+            });
+        }
+
         const customerDetail = {
             firstName: user.name.split(' ')[0] || user.name,
             lastName: user.name.split(' ').slice(1).join(' ') || user.username,
             email: user.email,
-            phoneNumber: req.body.phoneNumber || '-',
+            phoneNumber: req.body.phoneNumber || user.email,
             billingAddress: {
                 firstName: user.name.split(' ')[0] || user.name,
                 lastName: user.name.split(' ').slice(1).join(' ') || user.username,
@@ -77,6 +91,13 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
             }
         };
 
+        console.log('Creating Duitku transaction with:', {
+            merchantOrderId: orderId,
+            paymentAmount: amount,
+            paymentMethod,
+            customerDetail
+        });
+
         const transaction = await duitkuService.createTransaction({
             merchantOrderId: orderId,
             paymentAmount: amount,
@@ -87,7 +108,10 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
             expiryPeriod
         });
 
+        console.log('Duitku transaction response:', transaction);
+
         if (!transaction.success) {
+            console.log('Transaction failed:', transaction.message);
             return res.status(400).json({
                 success: false,
                 message: transaction.message
