@@ -100,7 +100,7 @@ class DuitkuService {
                 customerDetail,
                 callbackUrl,
                 returnUrl,
-                expiryPeriod = 1440             } = data;
+                expiryPeriod = 1440 } = data;
 
             const signature = this.generateSignature(
                 this.merchantCode,
@@ -134,6 +134,11 @@ class DuitkuService {
                 expiryPeriod
             };
 
+            console.log('Duitku API Request:', {
+                url: `${this.baseURL}/v2/inquiry`,
+                payload: JSON.stringify(payload, null, 2)
+            });
+
             const response = await axios.post(
                 `${this.baseURL}/v2/inquiry`,
                 payload,
@@ -143,6 +148,8 @@ class DuitkuService {
                     }
                 }
             );
+
+            console.log('Duitku API Response:', response.data);
 
             if (response.data.statusCode === '00') {
                 return {
@@ -159,15 +166,21 @@ class DuitkuService {
                 };
             }
 
+            console.log('Duitku transaction failed:', response.data);
             return {
                 success: false,
                 message: response.data.statusMessage
             };
         } catch (error) {
             console.error('Duitku Create Transaction Error:', error.response?.data || error.message);
+            console.error('Full error details:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data
+            });
             return {
                 success: false,
-                message: error.response?.data?.Message || error.message
+                message: error.response?.data?.Message || error.response?.data?.statusMessage || error.message
             };
         }
     }
@@ -180,7 +193,7 @@ class DuitkuService {
             const signature = this.generateSignature(
                 this.merchantCode,
                 merchantOrderId,
-                0,                 this.apiKey
+                0, this.apiKey
             );
 
             const response = await axios.post(

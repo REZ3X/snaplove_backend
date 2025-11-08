@@ -112,9 +112,15 @@ router.post('/', authenticateToken, checkBanStatus, async (req, res) => {
 
         if (!transaction.success) {
             console.log('Transaction failed:', transaction.message);
+
+            let errorMessage = transaction.message;
+            if (paymentMethod === 'DA' && transaction.message.includes('Dana')) {
+                errorMessage = 'DANA payment is currently unavailable in sandbox mode. Please try another payment method like Bank Transfer (BCA, BNI, Mandiri) or QRIS for testing.';
+            }
+
             return res.status(400).json({
                 success: false,
-                message: transaction.message
+                message: errorMessage
             });
         }
 

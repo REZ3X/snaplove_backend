@@ -88,6 +88,7 @@ const searchRoute = require("./api/search/route");
 
 const subscriptionPaymentRoute = require("./api/subscription/payment/route");
 const subscriptionCallbackRoute = require("./api/subscription/callback/route");
+const subscriptionCallbackSimulateRoute = require("./api/subscription/callback/simulate");
 const subscriptionMethodsRoute = require("./api/subscription/methods/route");
 const subscriptionStatusRoute = require("./api/subscription/status/[order_id]/route");
 const subscriptionHistoryRoute = require("./api/subscription/history/route");
@@ -793,6 +794,7 @@ app.use("/api/search", searchRoute);
 
 app.use("/api/subscription/payment", subscriptionPaymentRoute);
 app.use("/api/subscription/callback", subscriptionCallbackRoute);
+app.use("/api/subscription/callback", subscriptionCallbackSimulateRoute);
 app.use("/api/subscription/methods", subscriptionMethodsRoute);
 app.use("/api/subscription/status", subscriptionStatusRoute);
 app.use("/api/subscription/history", subscriptionHistoryRoute);
