@@ -161,7 +161,7 @@ class MailService {
             </div>
           </div>
         </body>
-        </html>
+</html>
       `,
       text: `
         Welcome to Snaplove, ${userName}!
