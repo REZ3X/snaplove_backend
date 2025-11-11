@@ -4,7 +4,7 @@ const Subscription = require('../../../../models/Subscription');
 const duitkuService = require('../../../../services/duitkuService');
 const { authenticateToken, checkBanStatus } = require('../../../../middleware/middleware');
 
-router.get('/', authenticateToken, checkBanStatus, async (req, res) => {
+router.get('/:order_id', authenticateToken, checkBanStatus, async (req, res) => {
     try {
         const { order_id } = req.params;
         const userId = req.user.userId;

@@ -89,6 +89,7 @@ const searchRoute = require("./api/search/route");
 const subscriptionPaymentRoute = require("./api/subscription/payment/route");
 const subscriptionCallbackRoute = require("./api/subscription/callback/route");
 const subscriptionCallbackSimulateRoute = require("./api/subscription/callback/simulate");
+const subscriptionDevClearRoute = require("./api/subscription/dev/clear");
 const subscriptionMethodsRoute = require("./api/subscription/methods/route");
 const subscriptionStatusRoute = require("./api/subscription/status/[order_id]/route");
 const subscriptionHistoryRoute = require("./api/subscription/history/route");
@@ -795,10 +796,22 @@ app.use("/api/search", searchRoute);
 app.use("/api/subscription/payment", subscriptionPaymentRoute);
 app.use("/api/subscription/callback", subscriptionCallbackRoute);
 app.use("/api/subscription/callback", subscriptionCallbackSimulateRoute);
+app.use("/api/subscription/dev/clear", subscriptionDevClearRoute);
 app.use("/api/subscription/methods", subscriptionMethodsRoute);
 app.use("/api/subscription/status", subscriptionStatusRoute);
 app.use("/api/subscription/history", subscriptionHistoryRoute);
 app.use("/api/subscription/current", subscriptionCurrentRoute);
+
+
+const subscriptionCancelRoute = require("./api/subscription/cancel/route");
+const subscriptionAutoRenewalRoute = require("./api/subscription/auto-renewal/route");
+const subscriptionDetailsRoute = require("./api/subscription/details/route");
+const subscriptionRefundEligibilityRoute = require("./api/subscription/refund-eligibility/route");
+
+app.use("/api/subscription/cancel", subscriptionCancelRoute);
+app.use("/api/subscription/auto-renewal", subscriptionAutoRenewalRoute);
+app.use("/api/subscription/details", subscriptionDetailsRoute);
+app.use("/api/subscription/refund-eligibility", subscriptionRefundEligibilityRoute);
 
 app.use("*", (req, res) => {
   res.status(404).json({

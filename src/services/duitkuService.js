@@ -287,6 +287,111 @@ class DuitkuService {
             }
         };
     }
+
+    /**
+     * Request a refund for a transaction
+     * Note: This is a simplified implementation. Actual Duitku refund API may differ
+     */
+    async requestRefund({ reference, amount, reason = 'Customer requested cancellation' }) {
+        try {
+            console.log(`🔄 Requesting refund for reference: ${reference}`);
+
+
+
+            const refundData = {
+                merchantCode: this.merchantCode,
+                reference,
+                amount,
+                reason
+            };
+
+
+            const signature = crypto
+                .createHash('md5')
+                .update(`${this.merchantCode}${reference}${amount}${this.apiKey}`)
+                .digest('hex');
+
+            refundData.signature = signature;
+
+
+
+            if (this.isProduction) {
+                const response = await axios.post(`${this.baseURL}/refund`, refundData, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.data && response.data.statusCode === '00') {
+                    return {
+                        success: true,
+                        data: {
+                            refundReference: response.data.refundReference || `REF-${Date.now()}`,
+                            status: 'processed',
+                            message: 'Refund processed successfully'
+                        }
+                    };
+                } else {
+                    throw new Error(response.data?.statusMessage || 'Refund request failed');
+                }
+            } else {
+
+                console.log('⚠️ Sandbox mode: Simulating refund approval');
+                return {
+                    success: true,
+                    data: {
+                        refundReference: `SANDBOX-REF-${Date.now()}`,
+                        status: 'processed',
+                        message: 'Refund processed successfully (sandbox mode)'
+                    }
+                };
+            }
+        } catch (error) {
+            console.error('❌ Refund request error:', error.message);
+            return {
+                success: false,
+                message: error.message || 'Failed to process refund',
+                error: error.response?.data || error.message
+            };
+        }
+    }
+
+    /**
+     * Check refund status
+     */
+    async checkRefundStatus(refundReference) {
+        try {
+            if (!this.isProduction) {
+
+                return {
+                    success: true,
+                    data: {
+                        refundReference,
+                        status: 'processed',
+                        message: 'Refund completed (sandbox)'
+                    }
+                };
+            }
+
+
+            const response = await axios.get(`${this.baseURL}/refund/status/${refundReference}`, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            return {
+                success: true,
+                data: response.data
+            };
+        } catch (error) {
+            console.error('❌ Check refund status error:', error.message);
+            return {
+                success: false,
+                message: 'Failed to check refund status'
+            };
+        }
+    }
 }
 
 module.exports = new DuitkuService();

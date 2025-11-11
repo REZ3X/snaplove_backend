@@ -42,3 +42,6 @@ coverage/
 # Uploaded Assets
 uploads
 images
+
+# Temp files
+clear.js

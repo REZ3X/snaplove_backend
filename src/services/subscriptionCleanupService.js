@@ -15,6 +15,7 @@ class SubscriptionCleanupService {
         cron.schedule('0 0 * * *', async () => {
             console.log('Running subscription cleanup...');
             await this.cleanupExpiredSubscriptions();
+            await this.expireCancelledSubscriptions();
             await this.downgradeExpiredUsers();
         });
 
@@ -46,6 +47,7 @@ class SubscriptionCleanupService {
 
     /**
      * Downgrade users with expired premium subscriptions
+     * Also handles grace period expirations
      */
     async downgradeExpiredUsers() {
         try {
@@ -57,18 +59,39 @@ class SubscriptionCleanupService {
 
             for (const user of premiumUsers) {
 
+
                 const activeSubscription = await Subscription.findOne({
                     user: user._id,
                     status: 'success',
                     subscription_end_date: { $gt: now }
                 });
 
-                if (!activeSubscription) {
-                    user.role = 'verified_basic';
+
+                const gracePeriodSubscription = await Subscription.findOne({
+                    user: user._id,
+                    status: 'grace_period',
+                    grace_period_end: { $gt: now }
+                });
+
+
+                if (!activeSubscription && !gracePeriodSubscription) {
+                    user.role = 'verified';
                     await user.save();
                     downgraded++;
 
                     console.log(`Downgraded user ${user.username} (${user._id}) from premium to basic`);
+
+
+                    await Subscription.updateMany(
+                        {
+                            user: user._id,
+                            status: 'grace_period',
+                            grace_period_end: { $lte: now }
+                        },
+                        {
+                            $set: { status: 'expired' }
+                        }
+                    );
                 }
             }
 
@@ -79,14 +102,48 @@ class SubscriptionCleanupService {
     }
 
     /**
+     * Mark cancelled subscriptions as expired after their end date
+     */
+    async expireCancelledSubscriptions() {
+        try {
+            const now = new Date();
+
+            const result = await Subscription.updateMany(
+                {
+                    status: 'cancelled',
+                    subscription_end_date: { $lte: now }
+                },
+                {
+                    $set: { status: 'expired' }
+                }
+            );
+
+            console.log(`Expired ${result.modifiedCount} cancelled subscriptions`);
+        } catch (error) {
+            console.error('Error expiring cancelled subscriptions:', error);
+        }
+    }
+
+    /**
      * Manually trigger cleanup (for testing)
      */
     async manualCleanup() {
         console.log('Running manual subscription cleanup...');
         await this.cleanupExpiredSubscriptions();
+        await this.expireCancelledSubscriptions();
         await this.downgradeExpiredUsers();
         console.log('Manual cleanup completed');
     }
+}
+
+
+const renewalScheduler = require('./renewalScheduler');
+
+
+if (process.env.NODE_ENV !== 'test') {
+    setTimeout(() => {
+        renewalScheduler.start();
+    }, 5000);
 }
 
 module.exports = new SubscriptionCleanupService();
