@@ -73,8 +73,10 @@ const photoDeleteRoute = require("./api/user/[username]/photo/private/[id]/delet
 
 const adminServerHealthRoute = require("./api/admin/serverHealth/route");
 const adminDiscordRoute = require("./api/admin/discord/route");
+const adminMaintenanceRoute = require("./api/admin/maintenance/route");
 
 const frameApprovalRoute = require("./api/admin/framePublicApproval/route");
+const maintenancePublicRoute = require("./api/maintenance/route");
 
 const leaderboardPublicRoute = require("./api/leaderboard/public/route");
 
@@ -92,7 +94,8 @@ const apiKeyAuth = createApiKeyAuth({
     /^\/images/,
     /^\/uploads/,
     /^\/api\/auth\/(verify-email|resend-verification)/,
-    /^\/api\/admin\/discord\/auth/
+    /^\/api\/admin\/discord\/auth/,
+    /^\/api\/maintenance\/status/
   ],
   envOnly: "production",
 });
@@ -658,7 +661,7 @@ const limiter = rateLimit({
     message: "Too many requests from this IP, please try again later.",
     resetTime: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
   },
-  skip: process.env.NODE_ENV === "test" ? () => true : () => false,
+  skip: () => process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development",
   keyGenerator: (req) => {
     if (process.env.NODE_ENV === "production") {
       const ip = req.headers["cf-connecting-ip"] ||
@@ -694,7 +697,7 @@ const authLimiter = rateLimit({
     success: false,
     message: "Too many authentication attempts, please try again later.",
   },
-  skip: process.env.NODE_ENV === "test" ? () => true : () => false,
+  skip: () => process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development",
   keyGenerator: (req) => {
     if (process.env.NODE_ENV === "production") {
       return (
@@ -765,8 +768,11 @@ app.use("/api/admin/users", adminUserDeleteRoute);
 
 app.use("/api/admin/serverHealth", adminServerHealthRoute);
 app.use("/api/admin/discord", adminDiscordRoute);
+app.use("/api/admin/maintenance", adminMaintenanceRoute);
 
 app.use("/api/admin/broadcast", adminBroadcastRoute);
+
+app.use("/api/maintenance", maintenancePublicRoute);
 
 /* private routes */
 app.use("/api/user", userReportPrivateRoute);
